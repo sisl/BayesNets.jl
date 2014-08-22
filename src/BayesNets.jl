@@ -154,9 +154,12 @@ end
 
 # TODO: this currently only supports binary valued variables
 function sumout(a::DataFrame, v::Symbol)
-  @assert unique(a[:,v]) == [0,1]
+  @assert issubset(unique(a[:,v]), [false, true])
   remainingvars = setdiff(names(a), [v, :p])
   g = groupby(a, v)
+  if length(g) == 1
+    return a[:,vcat(remainingvars, :p)]
+  end
   j = join(g..., on=remainingvars)
   j[:,:p] += j[:,:p_1]
   j[:,vcat(remainingvars, :p)]
