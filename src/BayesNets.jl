@@ -14,6 +14,8 @@ typealias NodeName Symbol
 
 typealias Assignment Dict
 
+Base.zero(::Any) = ""
+
 function consistent(a::Assignment, b::Assignment)
     commonKeys = intersect(keys(a), keys(b))
     all([a[k] == b[k] for k in commonKeys])
