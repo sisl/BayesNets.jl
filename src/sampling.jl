@@ -21,7 +21,7 @@ function randTable(b::BayesNet; numSamples=10, consistentWith=Assignment())
       end
     end
   end
-  DataFrame(t)
+  convert(DataFrame, t)
 end
 
 function randTableWeighted(b::BayesNet; numSamples=10, consistentWith=Assignment())
@@ -41,7 +41,7 @@ function randTableWeighted(b::BayesNet; numSamples=10, consistentWith=Assignment
         end
     end
     t[:p] = w / sum(w)
-    DataFrame(t)
+    convert(DataFrame, t)
 end
 
 # generate a random dictionary of Bernoulli parameters
