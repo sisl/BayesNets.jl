@@ -50,3 +50,25 @@ function randBernoulliDict(numParents::Integer)
     dims = ntuple(numParents, i->2)
     [[ind2sub(dims, i)...] .- 1 => round(1+rand()*98)/100 for i = 1:prod(dims)]
 end
+
+function normalize_values(d)
+
+    return d /= sum(d)
+end
+
+function map_names(dim, names)
+
+    return ntuple(length(dim), i -> names[i][dim[i]])
+end
+
+function randDiscreteDict(dimParents, dimNode)
+
+    dims = ntuple(length(dimParents), i -> length(dimParents[i]))
+
+    if length(dims) == 0
+        return [normalize_values(rand(dimNode))]
+    else
+        return [[map_names(ind2sub(dims, i), dimParents)...] => normalize_values(rand(dimNode)) for i = 1:prod(dims)]
+    end
+end
+

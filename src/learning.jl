@@ -44,7 +44,6 @@ end
 
 # helper for logBayesScore
 function sumoutCounts(a::DataFrame, v::Symbol)
-  @assert issubset(unique(a[:,v]), [false,true])
   remainingvars = setdiff(names(a), [v, :count])
   if isempty(remainingvars)
     j = DataFrame()
@@ -52,9 +51,15 @@ function sumoutCounts(a::DataFrame, v::Symbol)
     return j
   else
     g = groupby(a, v)
-    j = join(g..., on=remainingvars)
-    j[:,:count] += j[:,:count_1]
-    j[isna(j[:count]), :count] = 0
+
+    j = g[1]
+    for i = 1:(length(g) - 1)
+        j = join(j, g[i + 1], on=remainingvars)
+        j[:,:count] += j[:,:count_1]
+        j[isna(j[:count]), :count] = 0
+        j = j[:, 1:length(names(a))]
+    end
+
     return j
   end
 end
