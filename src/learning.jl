@@ -42,64 +42,75 @@ function prior(bn::BayesNet, alpha::Real = 1)
   [prior(bn, name, domains, alpha) for name in bn.names]
 end
 
-# helper for logBayesScore
-function sumoutCounts(a::DataFrame, v::Symbol)
-  remainingvars = setdiff(names(a), [v, :count])
-  if isempty(remainingvars)
-    j = DataFrame()
-    j[:count] = [sum(a[:count])]
-    return j
-  else
-    g = groupby(a, v)
+function logBayesScore(b::BayesNet, d::DataFrame)
 
-    j = g[1]
-    for i = 1:(length(g) - 1)
-        j = join(j, g[i + 1], on=remainingvars)
-        j[:,:count] += j[:,:count_1]
-        j[isna(j[:count]), :count] = 0
-        j = j[:, 1:length(names(a))]
+    n = length(b.names)
+
+    DATA = Array(Any, size(d))
+    for i = 1:n
+        node = b.names[i]
+        
+        DATA[:, i] = d[node]
     end
 
-    return j
-  end
-end
+    score = 0
 
-# helper for logBayesScore
-function addCounts(df1::DataFrame, df2::DataFrame)
-  onnames = setdiff(intersect(names(df1), names(df2)), [:count])
-  finalnames = vcat(setdiff(union(names(df1), names(df2)), [:count]), :count)
-  if isempty(onnames)
-    j = join(df1, df2, kind=:cross)
-    j[isna(j[:count]), :count] = 0
-    j[isna(j[:count_1]), :count_1] = 0
-    j[:,:count] .+= j[:,:count_1]
-    j[isna(j[:count]), :count] = 0
-    return j[:,finalnames]
-  else
-    j = join(df1, df2, on=onnames, kind=:outer)
-    j[isna(j[:count]), :count] = 0
-    j[isna(j[:count_1]), :count_1] = 0
-    j[:,:count] .+= j[:,:count_1]
-    j[isna(j[:count]), :count] = 0
-    return j[:,finalnames]
-  end
-end
+    for i = 1:n
+        node = b.names[i]
+        node_idx = i
 
-function logBayesScore(b::BayesNet, d::DataFrame)
-  n = length(b.names)
-  M = count(b, d)
-  Alpha = prior(b, 1)
-  score = 0.
-  for i = 1:n
-    sym = b.names[i]
-    m = M[i]
-    alpha = Alpha[i]
-    s = addCounts(m, alpha)
-    alpha0 = sumoutCounts(alpha, sym)
-    s0 = sumoutCounts(s, sym)
-    score += sum(lgamma(alpha0[:count]) - lgamma(s0[:count]))
-    score += sum(lgamma(s[:count]) - lgamma(alpha[:count]))
-  end
-  score
+        pars = parents(b, node)
+        pars_idx = zeros(Int64, length(pars))
+        for l = 1:length(pars)
+            pars_idx[l] = b.index[pars[l]]
+        end
+        sort!(pars_idx)
+
+        q = 1
+        for l = 1:length(pars)
+            q *= length(domain(b, pars[l]).elements)
+        end
+
+        r = length(domain(b, node).elements)
+
+        C = Dict()
+        sizehint(C, size(q * r, 1))
+        for l = 1:size(d, 1)
+            #key = array(d[l, [pars, node]])
+            key = DATA[l, [pars_idx, node_idx]]
+
+            if !haskey(C, key)
+                C[key] = 1
+            else
+                C[key] += 1
+            end
+        end
+
+        # let alpha_ijk = 1
+
+        second_term = 0
+        D = Dict()
+        sizehint(D, length(q))
+        for (key, m) in C
+            key_ = key[1:(end-1)]
+
+            if !haskey(D, key_)
+                D[key_] = m
+            else
+                D[key_] += m
+            end
+
+            second_term += lgamma(1 + m) - lgamma(1)
+        end
+
+        first_term = 0
+        for (key, m0) in D
+            first_term += lgamma(r) - lgamma(r + m0)
+        end
+
+        score += first_term + second_term
+    end
+
+    return score
 end
 
