@@ -17,7 +17,7 @@ function indexData(b::BayesNet, d::DataFrame)
     data = Array(Int, size(d,2), size(d,1))
     for i = 1:n
         node = b.names[i]
-        elements = domain(b, :A).elements
+        elements = domain(b, node).elements
         m = [elements[i]=>i for i = 1:length(elements)]
         for j = 1:size(d, 1)
             data[i,j] = m[d[j,i]]
