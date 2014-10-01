@@ -1,3 +1,5 @@
+export prior, logBayesScore, indexData, statistics, statistics!
+
 function Base.count(b::BayesNet, name::NodeName, d::DataFrame)
   # find relevant variable names based on structure of network
   varnames = push!(parents(b, name), name)
@@ -10,107 +12,80 @@ end
 
 Base.count(b::BayesNet, d::DataFrame) = [count(b, name, d) for name in b.names]
 
-function prior(bn::BayesNet, name::NodeName, domains::Vector, alpha::Real = 1)
-  edges = in_edges(bn.index[name], bn.dag)
-  names = [bn.names[source(e, bn.dag)] for e in edges]
-  names = [names, name]
-  d = DataFrame()
-  if length(edges) > 0
-    A = ndgrid([domain(bn, name).elements for name in names]...)
-    i = 1
-    for name in names
-      d[name] = A[i][:]
-      i = i + 1
-    end
-  else
-    d[name] = domain(bn, name).elements
-  end
-  for i = 1:size(d,1)
-    ownValue = d[i,length(names)]
-    a = [names[j]=>d[i,j] for j = 1:(length(names)-1)]
-  end
-  d[:count] = ones(size(d,1))
-  d
-end
-
-prior(bn::BayesNet, name::NodeName, alpha::Real = 1) = prior(bn, name, [domain(bn, name).elements for name in bn.names], alpha)
-
-prior(bn::BayesNet, domains::Vector, alpha::Real = 1) = [prior(bn, name, domains, alpha) for name in bn.names]
-
-function prior(bn::BayesNet, alpha::Real = 1)
-  domains = [domain(bn, name).elements for name in bn.names]
-  [prior(bn, name, domains, alpha) for name in bn.names]
-end
-
-function logBayesScore(b::BayesNet, d::DataFrame)
-
+function indexData(b::BayesNet, d::DataFrame)
     n = length(b.names)
-
-    DATA = Array(Any, size(d))
+    data = Array(Int, size(d,2), size(d,1))
     for i = 1:n
         node = b.names[i]
-        
-        DATA[:, i] = d[node]
+        elements = domain(b, :A).elements
+        m = [elements[i]=>i for i = 1:length(elements)]
+        for j = 1:size(d, 1)
+            data[i,j] = m[d[j,i]]
+        end
     end
-
-    score = 0
-
-    for i = 1:n
-        node = b.names[i]
-        node_idx = i
-
-        pars = parents(b, node)
-        pars_idx = zeros(Int64, length(pars))
-        for l = 1:length(pars)
-            pars_idx[l] = b.index[pars[l]]
-        end
-        sort!(pars_idx)
-
-        q = 1
-        for l = 1:length(pars)
-            q *= length(domain(b, pars[l]).elements)
-        end
-
-        r = length(domain(b, node).elements)
-
-        C = Dict()
-        sizehint(C, size(q * r, 1))
-        for l = 1:size(d, 1)
-            #key = array(d[l, [pars, node]])
-            key = DATA[l, [pars_idx, node_idx]]
-
-            if !haskey(C, key)
-                C[key] = 1
-            else
-                C[key] += 1
-            end
-        end
-
-        # let alpha_ijk = 1
-
-        second_term = 0
-        D = Dict()
-        sizehint(D, length(q))
-        for (key, m) in C
-            key_ = key[1:(end-1)]
-
-            if !haskey(D, key_)
-                D[key_] = m
-            else
-                D[key_] += m
-            end
-
-            second_term += lgamma(1 + m) - lgamma(1)
-        end
-
-        first_term = 0
-        for (key, m0) in D
-            first_term += lgamma(r) - lgamma(r + m0)
-        end
-
-        score += first_term + second_term
-    end
-
-    return score
+    data
 end
 
+statistics(b::BayesNet, d::DataFrame) = statistics(b, indexData(b, d))
+
+function statistics(b::BayesNet, d::Matrix{Int})
+    N = statistics(b)
+    statistics!(N, b, d)
+    N
+end
+
+function statistics(b::BayesNet, alpha = 0.)
+    n = length(b.names)
+    r = [length(domain(b, node).elements) for node in b.names]
+    parentList = [int(collect(in_neighbors(i, b.dag))) for i = 1:n]
+    N = cell(n)
+    for i = 1:n
+        q = 1
+        if !isempty(parentList[i])
+            q = prod(r[parentList[i]])
+        end
+        N[i] = ones(r[i], q) * alpha
+    end
+    N
+end
+
+function statistics!(N::Vector{Any}, b::BayesNet, d::Matrix{Int})
+    r = [length(domain(b, node).elements) for node in b.names]
+    (n, m) = size(d)
+    parentList = [int(collect(in_neighbors(i, b.dag))) for i = 1:n]
+    for di = 1:m
+        for i = 1:n
+            k = d[i,di]
+            j = 1
+            p = parentList[i]
+            if !isempty(p)
+                j = sub2ind(r[p], d[p,di]...)
+            end
+            N[i][k,j] += 1.
+        end
+    end
+    N
+end
+
+prior(b::BayesNet, alpha = 1.) = statistics(b::BayesNet, alpha)
+
+function logBayesScore(N::Vector{Any}, alpha::Vector{Any})
+    @assert length(N) == length(alpha)
+    n = length(N)
+    p = 0.
+    for i = 1:n
+        if !isempty(N[i])
+            p += sum(lgamma(alpha[i] + N[i]))
+            p -= sum(lgamma(alpha[i]))
+            p += sum(lgamma(sum(alpha[i],1)))
+            p -= sum(lgamma(sum(alpha[i],1) + sum(N[i],1)))
+        end
+    end
+    p
+end
+
+function logBayesScore(b::BayesNet, d::DataFrame, alpha = 1.)
+    alpha = prior(b)
+    N = statistics(b, d)
+    logBayesScore(N, alpha)
+end
