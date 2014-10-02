@@ -13,6 +13,7 @@ end
 Base.count(b::BayesNet, d::DataFrame) = [count(b, name, d) for name in b.names]
 
 function indexData(b::BayesNet, d::DataFrame)
+    d = d[:, b.names]
     n = length(b.names)
     data = Array(Int, size(d,2), size(d,1))
     for i = 1:n
