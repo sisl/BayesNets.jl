@@ -1,6 +1,6 @@
 module BayesNets
 
-export BayesNet, addEdge!, addEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence
+export BayesNet, addEdge!, removeEdge!, addEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence
 export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents
 
 import Graphs: GenericGraph, simple_graph, Edge, add_edge!, topological_sort_by_dfs, in_edges, source, in_neighbors
@@ -22,6 +22,7 @@ function consistent(a::Assignment, b::Assignment)
 end
 
 include("cpds.jl")
+include("edgeremoval.jl")
 
 typealias CPD CPDs.CPD
 
@@ -72,6 +73,13 @@ function addEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
   i = bn.index[sourceNode]
   j = bn.index[destNode]
   add_edge!(bn.dag, i, j)
+  bn
+end
+
+function removeEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
+  i = bn.index[sourceNode]
+  j = bn.index[destNode]
+  remove_edge!(bn.dag, i, j)
   bn
 end
 
