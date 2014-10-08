@@ -3,7 +3,7 @@ module BayesNets
 export BayesNet, addEdge!, removeEdge!, addEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence
 export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents
 
-import Graphs: GenericGraph, simple_graph, Edge, add_edge!, topological_sort_by_dfs, in_edges, source, in_neighbors
+import Graphs: GenericGraph, simple_graph, Edge, add_edge!, topological_sort_by_dfs, in_edges, source, in_neighbors, source, target
 import TikzGraphs: plot
 import Base: rand, select
 import DataFrames: DataFrame, groupby, array, isna
@@ -22,7 +22,6 @@ function consistent(a::Assignment, b::Assignment)
 end
 
 include("cpds.jl")
-include("edgeremoval.jl")
 
 typealias CPD CPDs.CPD
 
@@ -77,9 +76,19 @@ function addEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
 end
 
 function removeEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
+  # it would be nice to use a more efficient implementation
+  # see discussion here: https://github.com/JuliaLang/Graphs.jl/issues/73
   i = bn.index[sourceNode]
   j = bn.index[destNode]
-  remove_edge!(bn.dag, i, j)
+  newDAG = simple_graph(length(bn.names))
+  for edge in bn.dag.edges
+    u = source(edge)
+    v = target(edge)
+    if u != i || v != j
+      add_edge!(newDAG, u, v)
+    end
+  end
+  bn.dag = newDAG
   bn
 end
 
