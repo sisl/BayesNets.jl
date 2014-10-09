@@ -1,9 +1,9 @@
 module BayesNets
 
-export BayesNet, addEdge!, removeEdge!, addEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence
+export BayesNet, addEdge!, removeEdge!, addEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid
 export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents
 
-import Graphs: GenericGraph, simple_graph, Edge, add_edge!, topological_sort_by_dfs, in_edges, source, in_neighbors, source, target
+import Graphs: GenericGraph, simple_graph, Edge, add_edge!, topological_sort_by_dfs, in_edges, source, in_neighbors, source, target, test_cyclic_by_dfs
 import TikzGraphs: plot
 import Base: rand, select
 import DataFrames: DataFrame, groupby, array, isna
@@ -67,6 +67,9 @@ function parents(b::BayesNet, name::NodeName)
   NodeName[b.names[j] for j in in_neighbors(i, b.dag)]
 end
 
+function isValid(b::BayesNet)
+  !test_cyclic_by_dfs(b.dag)
+end
 
 function addEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
   i = bn.index[sourceNode]
