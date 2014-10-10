@@ -1,7 +1,7 @@
 module BayesNets
 
 export BayesNet, addEdge!, removeEdge!, addEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid
-export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents
+export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents, setDomain!
 
 import Graphs: GenericGraph, simple_graph, Edge, add_edge!, topological_sort_by_dfs, in_edges, source, in_neighbors, source, target, test_cyclic_by_dfs
 import TikzGraphs: plot
@@ -100,6 +100,11 @@ function addEdges!(bn::BayesNet, pairs)
     addEdge!(bn, p[1], p[2])
   end
   bn
+end
+
+function setDomain!(bn::BayesNet, name::NodeName, dom::Domain)
+  i = bn.index[name]
+  bn.domains[i] = dom
 end
 
 function setCPD!(bn::BayesNet, name::NodeName, cpd::CPD)
