@@ -1,6 +1,6 @@
 module BayesNets
 
-export BayesNet, addEdge!, removeEdge!, addEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid
+export BayesNet, addEdge!, removeEdge!, addEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid, hasEdge
 export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents, setDomain!
 
 import Graphs: GenericGraph, simple_graph, Edge, add_edge!, topological_sort_by_dfs, in_edges, source, in_neighbors, source, target, test_cyclic_by_dfs
@@ -69,6 +69,16 @@ end
 
 function isValid(b::BayesNet)
   !test_cyclic_by_dfs(b.dag)
+end
+
+function hasEdge(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
+	numEdges = length(bn.dag.edges)
+	for i = 1:numEdges
+		if (bn.names[source(bn.dag.edges[i])] == sourceNode) && (bn.names[target(bn.dag.edges[i])] == destNode)
+			return true
+		end
+	end
+	return false
 end
 
 function addEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
