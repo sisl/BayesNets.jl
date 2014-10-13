@@ -60,7 +60,13 @@ function statistics!(N::Vector{Any}, b::BayesNet, d::Matrix{Int})
             j = 1
             p = parentList[i]
             if !isempty(p)
-                j = sub2ind(r[p], d[p,di]...)
+                ndims = length(r[p])
+                j = int(d[p,di][1])
+                stride = 1
+                for kk=2:ndims
+                    stride = stride * r[p][kk-1]
+                    j += (int(d[p,di][kk])-1) * stride
+                end
             end
             N[i][k,j] += 1.
         end
