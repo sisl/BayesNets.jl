@@ -91,6 +91,7 @@ end
 function removeEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
   # it would be nice to use a more efficient implementation
   # see discussion here: https://github.com/JuliaLang/Graphs.jl/issues/73
+  # and here: https://github.com/JuliaLang/Graphs.jl/pull/87
   i = bn.index[sourceNode]
   j = bn.index[destNode]
   newDAG = simple_graph(length(bn.names))
@@ -109,6 +110,21 @@ function addEdges!(bn::BayesNet, pairs)
   for p in pairs
     addEdge!(bn, p[1], p[2])
   end
+  bn
+end
+
+function removeEdges!(bn:BayesNet, pairs)
+  sourceList = [p[1] for p in pairs]
+  targetList = [p[2] for p in pairs]
+  newDAG = simple_graph(length(bn.names))
+  for edge in bn.dag.edges
+    u = source(edge)
+    v = target(edge)
+    if !in(u, sourceList) || !in(v, targetList)
+      add_edge!(newDAG, u, v)
+    end
+  end
+  bn.dag = newDAG
   bn
 end
 
