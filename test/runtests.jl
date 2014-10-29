@@ -22,3 +22,5 @@ b.dag.edges
 
 removeEdges!(b, [(:D, :E), (:C, :D)])
 
+@test length(b.dag.edges) == 1
+
