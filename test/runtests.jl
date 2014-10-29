@@ -16,8 +16,6 @@ d = randTable(b, numSamples = 5)
 
 removeEdge!(b, :A, :C)
 
-b.dag.edges
-
 @test length(b.dag.edges) == 3
 
 removeEdges!(b, [(:D, :E), (:C, :D)])

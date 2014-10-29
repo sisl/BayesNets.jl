@@ -114,8 +114,8 @@ function addEdges!(bn::BayesNet, pairs)
 end
 
 function removeEdges!(bn::BayesNet, pairs)
-  sourceList = [p[1] for p in pairs]
-  targetList = [p[2] for p in pairs]
+  sourceList = [bn.index[p[1]] for p in pairs]
+  targetList = [bn.index[p[2]] for p in pairs]
   newDAG = simple_graph(length(bn.names))
   for edge in bn.dag.edges
     u = source(edge)
