@@ -1,6 +1,6 @@
 module BayesNets
 
-export BayesNet, addEdge!, removeEdge!, addEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid, hasEdge
+export BayesNet, addEdge!, removeEdge!, addEdges!, removeEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid, hasEdge
 export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents, setDomain!
 
 import Graphs: GenericGraph, simple_graph, Edge, add_edge!, topological_sort_by_dfs, in_edges, source, in_neighbors, source, target, test_cyclic_by_dfs
@@ -113,7 +113,7 @@ function addEdges!(bn::BayesNet, pairs)
   bn
 end
 
-function removeEdges!(bn:BayesNet, pairs)
+function removeEdges!(bn::BayesNet, pairs)
   sourceList = [p[1] for p in pairs]
   targetList = [p[2] for p in pairs]
   newDAG = simple_graph(length(bn.names))
