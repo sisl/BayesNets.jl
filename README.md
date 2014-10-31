@@ -1,6 +1,6 @@
 # BayesNets
 
-[![Build Status](https://travis-ci.org/sisl/BayesNets.jl.svg)](https://travis-ci.org/sisl/BayesNets.jl)
+[![Build Status](https://travis-ci.org/tfgit/BayesNets.jl.svg)](https://travis-ci.org/tfgit/BayesNets.jl)
 
 This library supports representation, inference, and learning in Bayesian networks.
 
