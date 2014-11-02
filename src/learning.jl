@@ -54,22 +54,21 @@ function statistics!(N::Vector{Any}, b::BayesNet, d::Matrix{Int})
     r = [length(domain(b, node).elements) for node in b.names]
     (n, m) = size(d)
     parentList = [int(collect(in_neighbors(i, b.dag))) for i = 1:n]
-    for di = 1:m
-        for i = 1:n
-            k = d[i,di]
-            j = 1
-            p = parentList[i]
-            if !isempty(p)
-                ndims = length(r[p])
-                j = int(d[p,di][1])
-                stride = 1
-                for kk=2:ndims
-                    stride = stride * r[p][kk-1]
-                    j += (int(d[p,di][kk])-1) * stride
-                end
+    for i = 1:n
+        p = parentList[i]
+        if !isempty(p)
+            Np = length(p)
+            stridevec = fill(1, length(p))
+            for k = 2:Np
+                stridevec[k] = stridevec[k-1] * r[p[k-1]]
             end
-            N[i][k,j] += 1.
+            js = d[p,:]' * stridevec - sum(stridevec) + 1 
+            # side note: flipping d to make array access column-major improves speed by a further 10%
+            # this change could be hacked into this method (dT = d'), but should really be made in indexData
+        else
+            js = fill(1, m)
         end
+        N[i] += sparse(vec(d[i,:]), vec(js), 1, size(N[i])...)
     end
     N
 end
@@ -91,7 +90,7 @@ function logBayesScore(N::Vector{Any}, alpha::Vector{Any})
     p
 end
 
-function logBayesScore(b::BayesNet, d::DataFrame, alpha = 1.)
+function logBayesScore(b::BayesNet, d::Union(DataFrame, Matrix{Int}), alpha = 1.)
     alpha = prior(b)
     N = statistics(b, d)
     logBayesScore(N, alpha)
