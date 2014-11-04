@@ -1,6 +1,6 @@
 module BayesNets
 
-export BayesNet, addEdge!, removeEdge!, addEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid, hasEdge
+export BayesNet, addEdge!, removeEdge!, addEdges!, removeEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid, hasEdge
 export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents, setDomain!
 
 import Graphs: GenericGraph, simple_graph, Edge, add_edge!, topological_sort_by_dfs, in_edges, source, in_neighbors, source, target, test_cyclic_by_dfs
@@ -91,6 +91,7 @@ end
 function removeEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
   # it would be nice to use a more efficient implementation
   # see discussion here: https://github.com/JuliaLang/Graphs.jl/issues/73
+  # and here: https://github.com/JuliaLang/Graphs.jl/pull/87
   i = bn.index[sourceNode]
   j = bn.index[destNode]
   newDAG = simple_graph(length(bn.names))
@@ -109,6 +110,21 @@ function addEdges!(bn::BayesNet, pairs)
   for p in pairs
     addEdge!(bn, p[1], p[2])
   end
+  bn
+end
+
+function removeEdges!(bn::BayesNet, pairs)
+  sourceList = [bn.index[p[1]] for p in pairs]
+  targetList = [bn.index[p[2]] for p in pairs]
+  newDAG = simple_graph(length(bn.names))
+  for edge in bn.dag.edges
+    u = source(edge)
+    v = target(edge)
+    if !in(u, sourceList) || !in(v, targetList)
+      add_edge!(newDAG, u, v)
+    end
+  end
+  bn.dag = newDAG
   bn
 end
 
