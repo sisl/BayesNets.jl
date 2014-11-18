@@ -278,5 +278,6 @@ function estimateConvergence(df::DataFrame, a::Assignment)
 end
 
 include("learning.jl")
+include("io.jl")
 
 end # module
