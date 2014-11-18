@@ -1,7 +1,6 @@
 using LightXML
 
 export readxdsl
-export writelatex
 
 function assignment_dicts(
 	bn    :: BayesNet,
