@@ -38,7 +38,7 @@ end
 function statistics(b::BayesNet, alpha = 0.)
     n = length(b.names)
     r = [length(domain(b, node).elements) for node in b.names]
-    parentList = [int(collect(in_neighbors(i, b.dag))) for i = 1:n]
+    parentList = [int(collect(in_neighbors(b.dag, i))) for i = 1:n]
     N = cell(n)
     for i = 1:n
         q = 1
@@ -53,7 +53,7 @@ end
 function statistics!(N::Vector{Any}, b::BayesNet, d::Matrix{Int})
     r = [length(domain(b, node).elements) for node in b.names]
     (n, m) = size(d)
-    parentList = [int(collect(in_neighbors(i, b.dag))) for i = 1:n]
+    parentList = [int(collect(in_neighbors(b.dag, i))) for i = 1:n]
     for i = 1:n
         p = parentList[i]
         if !isempty(p)
@@ -62,7 +62,7 @@ function statistics!(N::Vector{Any}, b::BayesNet, d::Matrix{Int})
             for k = 2:Np
                 stridevec[k] = stridevec[k-1] * r[p[k-1]]
             end
-            js = d[p,:]' * stridevec - sum(stridevec) + 1 
+            js = d[p,:]' * stridevec - sum(stridevec) + 1
             # side note: flipping d to make array access column-major improves speed by a further 10%
             # this change could be hacked into this method (dT = d'), but should really be made in indexData
         else

@@ -3,12 +3,12 @@ module BayesNets
 export BayesNet, addEdge!, removeEdge!, addEdges!, removeEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid, hasEdge
 export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents, setDomain!
 
-import Graphs: GenericGraph, simple_graph, Edge, add_edge!, topological_sort_by_dfs, in_edges, source, in_neighbors, source, target, test_cyclic_by_dfs
+import LightGraphs: DiGraph, Edge, rem_edge!, add_edge!, topological_sort_by_dfs, in_edges, src, dst, in_neighbors, is_cyclic
 import TikzGraphs: plot
 import Base: rand, select
 import DataFrames: DataFrame, groupby, array, isna
 
-typealias DAG GenericGraph{Int64,Edge{Int64},Range1{Int64},Array{Edge{Int64},1},Array{Array{Edge{Int64},1},1}}
+typealias DAG DiGraph
 
 typealias NodeName Symbol
 
@@ -25,7 +25,7 @@ include("cpds.jl")
 
 typealias CPD CPDs.CPD
 
-DAG(n) = simple_graph(n)
+DAG(n) = DiGraph(n)
 
 abstract Domain
 
@@ -54,7 +54,7 @@ type BayesNet
     index = [names[i]=>i for i = 1:n]
     cpds = CPD[CPDs.Bernoulli() for i = 1:n]
     domains = Domain[BinaryDomain() for i = 1:n] # default to binary domain
-    new(simple_graph(length(names)), cpds, index, names, domains)
+    new(DiGraph(length(names)), cpds, index, names, domains)
   end
 end
 
@@ -64,21 +64,15 @@ cpd(b::BayesNet, name::NodeName) = b.cpds[b.index[name]]
 
 function parents(b::BayesNet, name::NodeName)
   i = b.index[name]
-  NodeName[b.names[j] for j in in_neighbors(i, b.dag)]
+  NodeName[b.names[j] for j in in_neighbors(b.dag, i)]
 end
 
-function isValid(b::BayesNet)
-  !test_cyclic_by_dfs(b.dag)
-end
+isValid(b::BayesNet) = !is_cyclic(b.dag)
 
 function hasEdge(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
-	numEdges = length(bn.dag.edges)
-	for i = 1:numEdges
-		if (bn.names[source(bn.dag.edges[i])] == sourceNode) && (bn.names[target(bn.dag.edges[i])] == destNode)
-			return true
-		end
-	end
-	return false
+    u = bn.index[sourceNode]
+    v = bn.index[destNode]
+	return has_edge(bn.dag, u, v)
 end
 
 function addEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
@@ -94,15 +88,7 @@ function removeEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
   # and here: https://github.com/JuliaLang/Graphs.jl/pull/87
   i = bn.index[sourceNode]
   j = bn.index[destNode]
-  newDAG = simple_graph(length(bn.names))
-  for edge in bn.dag.edges
-    u = source(edge)
-    v = target(edge)
-    if u != i || v != j
-      add_edge!(newDAG, u, v)
-    end
-  end
-  bn.dag = newDAG
+  rem_edge!(bn.dag, i, j)
   bn
 end
 
@@ -114,17 +100,9 @@ function addEdges!(bn::BayesNet, pairs)
 end
 
 function removeEdges!(bn::BayesNet, pairs)
-  sourceList = [bn.index[p[1]] for p in pairs]
-  targetList = [bn.index[p[2]] for p in pairs]
-  newDAG = simple_graph(length(bn.names))
-  for edge in bn.dag.edges
-    u = source(edge)
-    v = target(edge)
-    if !in(u, sourceList) || !in(v, targetList)
-      add_edge!(newDAG, u, v)
-    end
+  for p in pairs
+      rem_edge!(bn.dag, bn.index[p[1]], bn.index[p[2]])
   end
-  bn.dag = newDAG
   bn
 end
 
@@ -164,8 +142,8 @@ end
 include("ndgrid.jl")
 
 function table(bn::BayesNet, name::NodeName)
-  edges = in_edges(bn.index[name], bn.dag)
-  names = [bn.names[source(e, bn.dag)] for e in edges]
+  edges = in_edges(bn.dag, bn.index[name])
+  names = [bn.names[src(e)] for e in edges]
   names = [names, name]
   c = cpd(bn, name)
   d = DataFrame()
