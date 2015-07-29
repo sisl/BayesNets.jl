@@ -101,7 +101,7 @@ end
 
 function removeEdges!(bn::BayesNet, pairs)
   for p in pairs
-      rem_edge!(bn.dag, bn.index[p[1]], bn.index[p[2]])
+      removeEdge!(bn, p[1], p[2])
   end
   bn
 end

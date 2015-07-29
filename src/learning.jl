@@ -38,7 +38,7 @@ end
 function statistics(b::BayesNet, alpha = 0.)
     n = length(b.names)
     r = [length(domain(b, node).elements) for node in b.names]
-    parentList = [int(collect(in_neighbors(b.dag, i))) for i = 1:n]
+    parentList = [collect(in_neighbors(b.dag, i)) for i = 1:n]
     N = cell(n)
     for i = 1:n
         q = 1
@@ -53,7 +53,7 @@ end
 function statistics!(N::Vector{Any}, b::BayesNet, d::Matrix{Int})
     r = [length(domain(b, node).elements) for node in b.names]
     (n, m) = size(d)
-    parentList = [int(collect(in_neighbors(b.dag, i))) for i = 1:n]
+    parentList = [collect(in_neighbors(b.dag, i)) for i = 1:n]
     for i = 1:n
         p = parentList[i]
         if !isempty(p)
