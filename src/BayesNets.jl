@@ -5,7 +5,7 @@ export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents, s
 
 import LightGraphs: DiGraph, Edge, rem_edge!, add_edge!, topological_sort_by_dfs, in_edges, src, dst, in_neighbors, is_cyclic
 import TikzGraphs: plot
-import Base: rand, select
+import Base: rand, select, *
 import DataFrames: DataFrame, groupby, array, isna
 
 typealias DAG DiGraph
@@ -18,7 +18,7 @@ Base.zero(::Any) = ""
 
 function consistent(a::Assignment, b::Assignment)
     commonKeys = intersect(keys(a), keys(b))
-    all([a[k] == b[k] for k in commonKeys])
+    reduce(&, [a[k] == b[k] for k in commonKeys])
 end
 
 include("cpds.jl")
