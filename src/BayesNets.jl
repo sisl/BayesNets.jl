@@ -3,7 +3,7 @@ module BayesNets
 export BayesNet, addEdge!, removeEdge!, addEdges!, removeEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid, hasEdge
 export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents, setDomain!, plot
 
-import LightGraphs: DiGraph, Edge, rem_edge!, add_edge!, topological_sort_by_dfs, in_edges, src, dst, in_neighbors, is_cyclic
+import LightGraphs: DiGraph, Edge, rem_edge!, add_edge!, has_edge, topological_sort_by_dfs, in_edges, src, dst, in_neighbors, is_cyclic
 import TikzGraphs: plot
 import Base: rand, select, *
 import DataFrames: DataFrame, groupby, array, isna
