@@ -1,7 +1,7 @@
 module BayesNets
 
 export BayesNet, addEdge!, removeEdge!, addEdges!, removeEdges!, CPD, CPDs, prob, setCPD!, pdf, rand, randBernoulliDict, randDiscreteDict, table, domain, Assignment, *, sumout, normalize, select, randTable, NodeName, consistent, estimate, randTableWeighted, estimateConvergence, isValid, hasEdge
-export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents, setDomain!
+export Domain, BinaryDomain, DiscreteDomain, RealDomain, domain, cpd, parents, setDomain!, plot
 
 import LightGraphs: DiGraph, Edge, rem_edge!, add_edge!, topological_sort_by_dfs, in_edges, src, dst, in_neighbors, is_cyclic
 import TikzGraphs: plot
@@ -129,8 +129,10 @@ Base.mimewritable(::MIME"image/svg+xml", b::BayesNet) = true
 
 Base.mimewritable(::MIME"text/html", dfs::Vector{DataFrame}) = true
 
+plot(b::BayesNet) = plot(b.dag, ASCIIString[string(s) for s in b.names])
+
 function Base.writemime(f::IO, a::MIME"image/svg+xml", b::BayesNet)
-  Base.writemime(f, a, plot(b.dag, ASCIIString[string(s) for s in b.names]))
+  Base.writemime(f, a, plot(b))
 end
 
 function Base.writemime(io::IO, a::MIME"text/html", dfs::Vector{DataFrame})
