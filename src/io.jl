@@ -63,7 +63,7 @@ function discrete_parameter_function(
 
 	# return (a)->dict[a]
 end
-function readxdsl( filename::String )
+function readxdsl( filename::AbstractString )
 
 	# Loads a discrete Bayesian Net from XDSL format (SMILE / GeNIe)
 
