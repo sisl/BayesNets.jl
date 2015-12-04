@@ -1,5 +1,6 @@
 using BayesNets
 using Base.Test
+using LightGraphs
 
 b = BayesNet([:A, :B, :C, :D, :E])
 addEdge!(b, :A, :B)
