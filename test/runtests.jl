@@ -1,5 +1,6 @@
 using BayesNets
 using Base.Test
+using LightGraphs
 
 b = BayesNet([:A, :B, :C, :D, :E])
 addEdge!(b, :A, :B)
@@ -16,9 +17,9 @@ d = randTable(b, numSamples = 5)
 
 removeEdge!(b, :A, :C)
 
-@test length(b.dag.edges) == 3
+@test ne(b.dag) == 3
 
 removeEdges!(b, [(:D, :E), (:C, :D)])
 
-@test length(b.dag.edges) == 1
+@test ne(b.dag) == 1
 
