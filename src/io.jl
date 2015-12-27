@@ -6,7 +6,7 @@ function assignment_dicts(
 	bn    :: BayesNet,
 	nodes :: Vector{Symbol}
 	)
-	
+
 	# constructs an array of assignment dictionaries [Dict{Symbol, Assignment}]
 	# assignments are created such that the first node's instantiations change most quickly
 
@@ -19,7 +19,7 @@ function assignment_dicts(
 	n_inst    = prod(nbins)
 	retval    = Array(Dict{Symbol, Any}, n_inst)
 	inst      = ones(Int32, n_nodes)
-	inst2assignment = instantiation->[nodes[i]=>domains[i].elements[instantiation[i]] for i in 1:n_nodes]
+	inst2assignment = instantiation->Dict([nodes[i]=>domains[i].elements[instantiation[i]] for i in 1:n_nodes])
 	retval[1] = inst2assignment(inst)
 	for perm  = 2 : n_inst
 		# get the next instantiation
@@ -57,20 +57,19 @@ function discrete_parameter_function(
 
 	const names = keys(assignments[1])
 	return (a)->begin
-		a_extracted = [sym=>a[sym] for sym in names]
+		a_extracted = Dict([sym=>a[sym] for sym in names])
 		dict[a_extracted]
 	end
 
 	# return (a)->dict[a]
 end
 function readxdsl( filename::AbstractString )
-
 	# Loads a discrete Bayesian Net from XDSL format (SMILE / GeNIe)
 
 	splitext(filename)[2] == ".xdsl" || error("readxdsl only supports .xdsl format")
 
 	xdoc  = parse_file(filename)
-	xroot = root(xdoc) 
+	xroot = root(xdoc)
 	ces   = get_elements_by_tagname(xroot, "nodes")[1]
 	cpts  = collect(child_elements(ces))
 

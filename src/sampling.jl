@@ -9,7 +9,7 @@ end
 
 function randTable(b::BayesNet; numSamples=10, consistentWith=Assignment())
   ordering = topological_sort_by_dfs(b.dag)
-  t = [n => Any[] for n in b.names]
+  t = Dict([n => Any[] for n in b.names])
   a = Assignment()
   for i = 1:numSamples
     for name in b.names[ordering]
@@ -26,7 +26,7 @@ end
 
 function randTableWeighted(b::BayesNet; numSamples=10, consistentWith=Assignment())
     ordering = topological_sort_by_dfs(b.dag)
-    t = [n => Any[] for n in b.names]
+    t = Dict([n => Any[] for n in b.names])
     w = ones(numSamples)
     a = Assignment()
     for i = 1:numSamples
@@ -47,28 +47,24 @@ end
 # generate a random dictionary of Bernoulli parameters
 # given some number of parents
 function randBernoulliDict(numParents::Integer)
-    dims = ntuple(numParents, i->2)
-    [[ind2sub(dims, i)...] .- 1 => round(1+rand()*98)/100 for i = 1:prod(dims)]
+    dims = ntuple(i->2, numParents)
+    Dict([[ind2sub(dims, i)...] .- 1 => round(1+rand()*98)/100 for i = 1:prod(dims)])
 end
 
 function normalize_values(d)
-
     return d /= sum(d)
 end
 
 function map_names(dim, names)
-
     return ntuple(length(dim), i -> names[i][dim[i]])
 end
 
 function randDiscreteDict(dimParents, dimNode)
-
     dims = ntuple(length(dimParents), i -> length(dimParents[i]))
 
     if length(dims) == 0
         return [normalize_values(rand(dimNode))]
     else
-        return [[map_names(ind2sub(dims, i), dimParents)...] => normalize_values(rand(dimNode)) for i = 1:prod(dims)]
+        return Dict([[map_names(ind2sub(dims, i), dimParents)...] => normalize_values(rand(dimNode)) for i = 1:prod(dims)])
     end
 end
-

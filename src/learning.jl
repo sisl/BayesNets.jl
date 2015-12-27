@@ -6,7 +6,7 @@ function Base.count(b::BayesNet, name::NodeName, d::DataFrame)
   t = d[:, varnames]
   tu = unique(t)
   # add column with counts of unique samples
-  tu[:count] = Int[sum([Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]]) for j = 1:size(tu,1)]
+  tu[:count] = Int[sum(Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]) for j = 1:size(tu,1)]
   tu
 end
 
@@ -19,7 +19,7 @@ function indexData(b::BayesNet, d::DataFrame)
     for i = 1:n
         node = b.names[i]
         elements = domain(b, node).elements
-        m = [elements[i]=>i for i = 1:length(elements)]
+        m = Dict([elements[i]=>i for i = 1:length(elements)])
         for j = 1:size(d, 1)
             data[i,j] = m[d[j,i]]
         end

@@ -14,8 +14,6 @@ typealias NodeName Symbol
 
 typealias Assignment Dict
 
-Base.zero(::Any) = ""
-
 function consistent(a::Assignment, b::Assignment)
     commonKeys = intersect(keys(a), keys(b))
     reduce(&, [a[k] == b[k] for k in commonKeys])
@@ -51,7 +49,7 @@ type BayesNet
 
   function BayesNet(names::Vector{NodeName})
     n = length(names)
-    index = [names[i]=>i for i = 1:n]
+    index = Dict([names[i]=>i for i = 1:n])
     cpds = CPD[CPDs.Bernoulli() for i = 1:n]
     domains = Domain[BinaryDomain() for i = 1:n] # default to binary domain
     new(DiGraph(length(names)), cpds, index, names, domains)
@@ -146,7 +144,7 @@ include("ndgrid.jl")
 function table(bn::BayesNet, name::NodeName)
   edges = in_edges(bn.dag, bn.index[name])
   names = [bn.names[src(e)] for e in edges]
-  names = [names, name]
+  names = [names; name]
   c = cpd(bn, name)
   d = DataFrame()
   if length(edges) > 0
@@ -162,7 +160,7 @@ function table(bn::BayesNet, name::NodeName)
   p = ones(size(d,1))
   for i = 1:size(d,1)
     ownValue = d[i,length(names)]
-    a = [names[j]=>d[i,j] for j = 1:(length(names)-1)]
+    a = Dict([names[j]=>d[i,j] for j = 1:(length(names)-1)])
     p[i] = pdf(c, a)(ownValue)
   end
   d[:p] = p

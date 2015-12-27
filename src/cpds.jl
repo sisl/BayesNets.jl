@@ -14,13 +14,13 @@ type Discrete <: CPD
   parameterFunction::Function
   domainIndex::Dict{Any,Integer}
   function Discrete{T}(domain::AbstractArray{T,1}, parameterFunction::Function)
-    new(domain, parameterFunction, [domain[i] => i for i in 1:length(domain)])
+    new(domain, parameterFunction, Dict([domain[i] => i for i in 1:length(domain)]))
   end
   function Discrete{T,U}(domain::AbstractArray{T,1}, parameters::AbstractArray{U,1})
-    new(domain, a->parameters, [domain[i] => i for i in 1:length(domain)])
+    new(domain, a->parameters, Dict([domain[i] => i for i in 1:length(domain)]))
   end
   function Discrete{T}(domain::AbstractArray{T,1}, names::AbstractArray{NodeName,1}, dict::Dict)
-    new(domain, a->dict[[a[n] for n in names]], [domain[i] => i for i in 1:length(domain)])
+    new(domain, a->dict[[a[n] for n in names]], Dict([domain[i] => i for i in 1:length(domain)]))
   end
 end
 
