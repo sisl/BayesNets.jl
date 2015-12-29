@@ -90,7 +90,7 @@ function logBayesScore(N::Vector{Any}, alpha::Vector{Any})
     p
 end
 
-function logBayesScore(b::BayesNet, d::Union(DataFrame, Matrix{Int}), alpha = 1.)
+function logBayesScore(b::BayesNet, d::Union{DataFrame, Matrix{Int}}, alpha = 1.)
     alpha = prior(b)
     N = statistics(b, d)
     logBayesScore(N, alpha)

@@ -1,5 +1,34 @@
 using BayesNets
+using DataFrames
 using Base.Test
+
+
+"""
+A simple variant of isapprox that is true if the isapprox comparison works
+elementwise in the vector
+"""
+function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F}, y::AbstractArray{F},
+	rtol::F=sqrt(eps(F)),
+	atol::F=zero(F),
+	)
+	
+	if length(x) != length(y)
+		return false
+	end
+
+	for (a,b) in zip(x,y)
+		if !isapprox(a,b,rtol=rtol, atol=atol)
+			return false
+		end
+	end
+	
+	true
+end
+
+include("test_utils.jl")
+
+
+
 
 b = BayesNet([:A, :B, :C, :D, :E])
 addEdge!(b, :A, :B)
@@ -16,9 +45,9 @@ d = randTable(b, numSamples = 5)
 
 removeEdge!(b, :A, :C)
 
-@test length(b.dag.edges) == 3
+@test LightGraphs.ne(b.dag) == 3
 
 removeEdges!(b, [(:D, :E), (:C, :D)])
 
-@test length(b.dag.edges) == 1
+@test LightGraphs.ne(b.dag) == 1
 

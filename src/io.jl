@@ -1,6 +1,21 @@
 using LightXML
-
 export readxdsl
+
+Base.mimewritable(::MIME"image/svg+xml", b::BayesNet) = true
+Base.mimewritable(::MIME"text/html", dfs::Vector{DataFrame}) = true
+
+plot(b::BayesNet) = plot(b.dag, ASCIIString[string(s) for s in b.names])
+
+function Base.writemime(f::IO, a::MIME"image/svg+xml", b::BayesNet)
+  Base.writemime(f, a, plot(b))
+end
+
+function Base.writemime(io::IO, a::MIME"text/html", dfs::Vector{DataFrame})
+  for df in dfs
+    writemime(io, a, df)
+  end
+end
+
 
 function assignment_dicts(
 	bn    :: BayesNet,
@@ -38,13 +53,14 @@ function assignment_dicts(
 
 	retval
 end
-function discrete_parameter_function(
+function discrete_parameter_dict(
 	assignments  :: Vector{Dict{Symbol, Any}}, # assumed to be in order
 	probs        :: Vector{Float64}, # length ninst_target * length(assignments)
 	ninst_target :: Int # number of values in target variable domain
 	)
 
-	# returns a function mapping an assignment to the list of probabilities
+	# returns a dict mapping an assignment to the list of probabilities
+
 	n_assignments = length(assignments)
 	@assert(length(probs) == n_assignments * ninst_target)
 
@@ -55,22 +71,30 @@ function discrete_parameter_function(
 		ind += ninst_target
 	end
 
-	const names = keys(assignments[1])
-	return (a)->begin
-		a_extracted = [sym=>a[sym] for sym in names]
-		dict[a_extracted]
-	end
-
-	# return (a)->dict[a]
+	dict
 end
-function readxdsl( filename::String )
+function discrete_parameter_function(
+	assignments  :: Vector{Dict{Symbol, Any}}, # assumed to be in order
+	probs        :: Vector{Float64}, # length ninst_target * length(assignments)
+	ninst_target :: Int # number of values in target variable domain
+	)
+
+	dict = discrete_parameter_dict(assignments, probs, ninst_target)
+
+	syms = keys(assignments[1])
+	return (a)->begin
+		d = [sym=>a[sym] for sym in syms]
+		dict[d]
+	end
+end
+function readxdsl( filename::AbstractString )
 
 	# Loads a discrete Bayesian Net from XDSL format (SMILE / GeNIe)
 
 	splitext(filename)[2] == ".xdsl" || error("readxdsl only supports .xdsl format")
 
 	xdoc  = parse_file(filename)
-	xroot = root(xdoc) 
+	xroot = root(xdoc)
 	ces   = get_elements_by_tagname(xroot, "nodes")[1]
 	cpts  = collect(child_elements(ces))
 
@@ -87,7 +111,7 @@ function readxdsl( filename::String )
 		node_sym = names[i]
 
 		# set the node's domain
-		states   = [convert(ASCIIString, attribute(s, "id")) for s in get_elements_by_tagname(e, "state")]
+		states   = [int(match(r"\d", convert(ASCIIString, attribute(s, "id"))).match) for s in get_elements_by_tagname(e, "state")]
 		n_states = length(states)::Int
 		BN.domains[i] = DiscreteDomain(states)
 
@@ -97,7 +121,6 @@ function readxdsl( filename::String )
 		parents_elem = get_elements_by_tagname(e, "parents")
 		if !isempty(parents_elem)
 			parents = map(s->symbol(s), split(content(parents_elem[1])))
-			println(parents)
 			for pa in parents
 				addEdge!(BN, pa, node_sym)
 			end
