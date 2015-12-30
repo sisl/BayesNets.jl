@@ -1,18 +1,26 @@
-export prior, logBayesScore, indexData, statistics, statistics!
 
+"""
+returns a table containing all observed assignments and their
+corresponding counts
+"""
 function Base.count(bn::BayesNet, name::NodeName, d::DataFrame)
-  # find relevant variable names based on structure of network
-  varnames = push!(parents(bn, name), name)
-  t = d[:, varnames]
-  tu = unique(t)
-  # add column with counts of unique samples
-  tu[:count] = Int[sum(Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]) for j = 1:size(tu,1)]
-  tu
+    # find relevant variable names based on structure of network
+    varnames = push!(parents(bn, name), name)
+    t = d[:, varnames]
+    tu = unique(t)
+    # add column with counts of unique samples
+    tu[:count] = Int[sum(Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]) for j = 1:size(tu,1)]
+    tu
 end
 
 Base.count(bn::BayesNet, d::DataFrame) = [count(bn, node.name, d) for node in bn.nodes]
 
-function indexData(bn::BayesNet, d::DataFrame)
+"""
+Converts a dataframe containing node assignments to a Matrix{Int}
+of node assignments, where M[i,j] is the assignment for the ith variable
+in the jth sample
+"""
+function index_data(bn::BayesNet, d::DataFrame)
     d = d[:, names(bn)]
     n = length(bn.nodes)
     data = Array(Int, size(d,2), size(d,1))
@@ -25,14 +33,6 @@ function indexData(bn::BayesNet, d::DataFrame)
         end
     end
     data
-end
-
-statistics(bn::BayesNet, d::DataFrame) = statistics(bn, indexData(bn, d))
-
-function statistics(bn::BayesNet, d::Matrix{Int})
-    N = statistics(bn)
-    statistics!(N, bn, d)
-    N
 end
 
 function statistics(bn::BayesNet, alpha::Float64 = 0.0)
@@ -49,6 +49,12 @@ function statistics(bn::BayesNet, alpha::Float64 = 0.0)
     end
     N
 end
+function statistics(bn::BayesNet, d::Matrix{Int})
+    N = statistics(bn)
+    statistics!(N, bn, d)
+    N
+end
+statistics(bn::BayesNet, d::DataFrame) = statistics(bn, index_data(bn, d))
 
 function statistics!(N::Vector{Any}, bn::BayesNet, d::Matrix{Int})
     r = [length(domain(bn, node.name).elements) for node in bn.nodes]
@@ -64,7 +70,7 @@ function statistics!(N::Vector{Any}, bn::BayesNet, d::Matrix{Int})
             end
             js = d[p,:]' * stridevec - sum(stridevec) + 1
             # side note: flipping d to make array access column-major improves speed by a further 10%
-            # this change could be hacked into this method (dT = d'), but should really be made in indexData
+            # this change could be hacked into this method (dT = d'), but should really be made in indext_data
         else
             js = fill(1, m)
         end

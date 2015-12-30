@@ -131,7 +131,18 @@ type BernoulliCPD <: CPD
     parameterFunction::Function # a → P(x = true | a)
     BernoulliCPD(parameter::Real = 0.5) = new(a->parameter)
     BernoulliCPD(parameterFunction::Function) = new(parameterFunction)
-    BernoulliCPD(names::AbstractVector{NodeName}, dict::Dict) = new(a->dict[[a[n] for n in names]])
+    function BernoulliCPD(names::AbstractVector{NodeName}, dict::Dict)
+
+        param_func = a -> begin a
+            a2 = Dict()
+            for n in names
+                a2[n] = a[n]
+            end
+            dict[a2]
+        end
+
+        new(param_func)
+    end
 end
 domain(d::BernoulliCPD) = BINARY_DOMAIN
 probvec(d::BernoulliCPD, a::Assignment) = [d.parameterFunction(a), 1.0-d.parameterFunction(a)]

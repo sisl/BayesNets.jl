@@ -7,23 +7,23 @@ Base.mimewritable(::MIME"text/html", dfs::Vector{DataFrame}) = true
 plot(b::BayesNet) = plot(b.dag, ASCIIString[string(s) for s in b.names])
 
 function Base.writemime(f::IO, a::MIME"image/svg+xml", b::BayesNet)
-  Base.writemime(f, a, plot(b))
+ 	Base.writemime(f, a, plot(b))
 end
 
 function Base.writemime(io::IO, a::MIME"text/html", dfs::Vector{DataFrame})
-  for df in dfs
-    writemime(io, a, df)
-  end
+	for df in dfs
+		writemime(io, a, df)
+	end
 end
 
-
+"""
+constructs an array of assignment dictionaries [Dict{Symbol, Assignment}]
+assignments are created such that the first node's instantiations change most quickly
+"""
 function assignment_dicts(
 	bn    :: BayesNet,
-	nodes :: Vector{Symbol}
+	nodes :: AbstractVector{Symbol}
 	)
-
-	# constructs an array of assignment dictionaries [Dict{Symbol, Assignment}]
-	# assignments are created such that the first node's instantiations change most quickly
 
 	n_nodes = length(nodes)
 
@@ -53,13 +53,15 @@ function assignment_dicts(
 
 	retval
 end
+
+"""
+returns a dict mapping an assignment to the list of probabilities
+"""
 function discrete_parameter_dict(
 	assignments  :: Vector{Dict{Symbol, Any}}, # assumed to be in order
 	probs        :: Vector{Float64}, # length ninst_target * length(assignments)
 	ninst_target :: Int # number of values in target variable domain
 	)
-
-	# returns a dict mapping an assignment to the list of probabilities
 
 	n_assignments = length(assignments)
 	@assert(length(probs) == n_assignments * ninst_target)
@@ -73,6 +75,10 @@ function discrete_parameter_dict(
 
 	dict
 end
+
+"""
+returns a CPD function for a discrete value
+"""
 function discrete_parameter_function(
 	assignments  :: Vector{Dict{Symbol, Any}}, # assumed to be in order
 	probs        :: Vector{Float64}, # length ninst_target * length(assignments)

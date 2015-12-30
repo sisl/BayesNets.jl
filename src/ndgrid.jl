@@ -9,19 +9,6 @@ function ndgrid{T}(v1::AbstractVector{T}, v2::AbstractVector{T})
     (repmat(v1, 1, n), repmat(v2, m, 1))
 end
 
-function ndgrid_fill(a, v, s, snext)
-    for j = 1:length(a)
-        a[j] = v[div(rem(j-1, snext), s)+1]
-    end
-end
-
-function ndgrid(v1, v2)
-    m, n = length(v1), length(v2)
-    v1 = reshape(v1, m, 1)
-    v2 = reshape(v2, 1, n)
-    (repmat(v1, 1, n), repmat(v2, m, 1))
-end
-
 function ndgrid{T}(vs::AbstractVector{T}...)
     n = length(vs)
     sz = map(length, vs)
@@ -37,22 +24,14 @@ function ndgrid{T}(vs::AbstractVector{T}...)
     out
 end
 
-function ndgrid(vs...)
-    n = length(vs)
-    sz = map(length, vs)
-    out = ntuple(n, i->Array(Any, sz))
-    s = 1
-    for i=1:n
-        a = out[i]::Array
-        v = vs[i]
-        snext = s*size(a,i)
-        ndgrid_fill(a, v, s, snext)
-        s = snext
+"""
+???
+"""
+function ndgrid_fill(a, v, s, snext)
+    for j = 1:length(a)
+        a[j] = v[div(rem(j-1, snext), s)+1]
     end
-    out
 end
-
-meshgrid(v::AbstractVector) = meshgrid(v, v)
 
 function meshgrid{T}(vx::AbstractVector{T}, vy::AbstractVector{T})
     m, n = length(vy), length(vx)
@@ -60,6 +39,9 @@ function meshgrid{T}(vx::AbstractVector{T}, vy::AbstractVector{T})
     vy = reshape(vy, m, 1)
     (repmat(vx, m, 1), repmat(vy, 1, n))
 end
+meshgrid(v::AbstractVector) = meshgrid(v, v)
+
+
 
 function meshgrid{T}(vx::AbstractVector{T}, vy::AbstractVector{T},
                      vz::AbstractVector{T})

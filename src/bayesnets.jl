@@ -10,6 +10,7 @@ typealias DAG DiGraph
 
 DAG(n) = DiGraph(n)
 
+# TODO: if CPDs give you domains, why do we need to store separate domains here?
 type BayesNetNode
 	name::NodeName # the symbol corresponding to the node
 	domain::Domain # the domain for this variable
@@ -30,7 +31,7 @@ type BayesNet
 	end
 	function BayesNet(dag::DAG, nodes::AbstractVector{BayesNetNode})
 
-		@assert(LightGraphs.nv(dag) == length(nodes))
+		@assert(nv(dag) == length(nodes))
 
 		retval = new()
 		retval.dag = dag
@@ -39,6 +40,27 @@ type BayesNet
 		retval.name_to_index = Dict{NodeName, Int}()
 		for (i, node) in enumerate(nodes)
 			retval.name_to_index[node.name] = i
+		end
+
+		retval
+	end
+	function BayesNet(
+		nodes::AbstractVector{BayesNetNode},
+		edges::AbstractVector{Tuple{NodeName, NodeName}},
+		)
+
+		retval = new()
+		retval.dag = DAG(length(nodes))
+		retval.nodes = nodes
+		retval.name_to_index = Dict{NodeName, Int}()
+		for (i, node) in enumerate(nodes)
+			retval.name_to_index[node.name] = i
+		end
+
+		for (parent, child) in edges
+			u = retval.name_to_index[parent]
+		    v = retval.name_to_index[child]
+			add_edge!(retval.dag, u, v)
 		end
 
 		retval
@@ -108,6 +130,18 @@ function add_edges!(bn::BayesNet, pairs::AbstractVector{Tuple{NodeName, NodeName
 	bn
 end
 
+function add_node!(bn::BayesNet, node::BayesNetNode)
+	add_vertex!(bn.dag)
+	push!(bn.nodes, node)
+	bn.name_to_index[node.name] = length(bn.nodes)
+	bn
+end
+function add_nodes!(bn::BayesNet, nodes::AbstractVector{BayesNetNode})
+	for node in nodes
+		add_node!(bn, node)
+	end
+	bn
+end
 
 function remove_edge!(bn::BayesNet, parent::NodeName, child::NodeName)
 	#=
