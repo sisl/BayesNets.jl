@@ -12,14 +12,21 @@ type BayesNet
 
 	function BayesNet(names::Vector{NodeName})
 	    n = length(names)
-	    index = [names[i]=>i for i = 1:n]
-	    cpds = CPD[CPDs.Bernoulli() for i = 1:n]
-	    domains = Domain[BinaryDomain() for i = 1:n] # default to binary domain
+	    index = [names[i]=>i for i in 1:n]
+
+	    cpds = Array(CPD, n)
+	    for i in 1:n
+	    	cpds[i] = BernoulliCPD()
+	    end
+
+
+	    # cpds = CPD[CPDs.BernoulliCPD() for i in 1:n]
+	    domains = Domain[BinaryDomain() for i in 1:n] # default to binary domain
 	    new(DiGraph(length(names)), cpds, index, names, domains)
 	end
 end
 
-domain(b::BayesNet, name::NodeName) = b.domains[b.index[name]]
+CPDs.domain(b::BayesNet, name::NodeName) = b.domains[b.index[name]]
 cpd(b::BayesNet, name::NodeName) = b.cpds[b.index[name]]
 
 function parents(b::BayesNet, name::NodeName)
@@ -88,7 +95,7 @@ end
 function table(bn::BayesNet, name::NodeName)
     edges = in_edges(bn.dag, bn.index[name])
     names = [bn.names[src(e)] for e in edges]
-    names = [names, name]
+    push!(names, name)
     c = cpd(bn, name)
     d = DataFrame()
     if length(edges) > 0
