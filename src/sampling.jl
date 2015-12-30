@@ -1,36 +1,41 @@
 function Base.rand(b::BayesNet)
   ordering = topological_sort_by_dfs(b.dag)
   a = Assignment()
-  for name in b.names[ordering]
+  for node in b.nodes[ordering]
+    name = node.name
     a[name] = rand(cpd(b, name), a)
   end
   a
 end
 
 function randTable(b::BayesNet; numSamples=10, consistentWith=Assignment())
-  ordering = topological_sort_by_dfs(b.dag)
-  t = Dict([n => Any[] for n in b.names])
-  a = Assignment()
-  for i = 1:numSamples
-    for name in b.names[ordering]
-      a[name] = rand(cpd(b, name), a)
+    ordering = topological_sort_by_dfs(b.dag)
+    t = Dict([node.name => Any[] for node in b.nodes])
+    a = Assignment()
+
+    for i in 1:numSamples
+        for node in b.nodes[ordering]
+            name = node.name
+            a[name] = rand(cpd(b, name), a)
+        end
+        if consistent(a, consistentWith)
+            for node in b.nodes[ordering]
+                name = node.name
+                push!(t[name], a[name])
+            end
+        end
     end
-    if consistent(a, consistentWith)
-      for name in b.names[ordering]
-        push!(t[name], a[name])
-      end
-    end
-  end
-  convert(DataFrame, t)
+    convert(DataFrame, t)
 end
 
 function randTableWeighted(b::BayesNet; numSamples=10, consistentWith=Assignment())
     ordering = topological_sort_by_dfs(b.dag)
-    t = Dict([n => Any[] for n in b.names])
+    t = Dict([node.name => Any[] for node in b.nodes])
     w = ones(numSamples)
     a = Assignment()
-    for i = 1:numSamples
-        for name in b.names[ordering]
+    for i in 1:numSamples
+        for node in b.nodes[ordering]
+            name = node.name
             if haskey(consistentWith, name)
                 a[name] = consistentWith[name]
                 w[i] *= pdf(cpd(b, name), a)(a[name])

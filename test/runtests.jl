@@ -26,43 +26,44 @@ function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F}, y::Abstract
 	true
 end
 
+include("test_cpds.jl")
 include("test_assignments.jl")
 include("test_factors.jl")
-include("test_cpds.jl")
+include("test_bayesnets.jl")
 
 # TODO(tim): move the stuff below
 
 b = BayesNet([:A, :B, :C, :D, :E])
-addEdge!(b, :A, :B)
-setCPD!(b, :A, BernoulliCPD(0.5))
-setCPD!(b, :B, BernoulliCPD(m->(m[:A] ? 0.5 : 0.45)))
-setCPD!(b, :C, BernoulliCPD(0.5))
+add_edge!(b, :A, :B)
+set_CPD!(b, :A, BernoulliCPD(0.5))
+set_CPD!(b, :B, BernoulliCPD(m->(m[:A] ? 0.5 : 0.45)))
+set_CPD!(b, :C, BernoulliCPD(0.5))
 
-@test length(b.names) == 5
+@test length(b.nodes) == 5
 
-addEdges!(b, [(:A, :C), (:D, :E), (:C, :D)])
+add_edges!(b, [(:A, :C), (:D, :E), (:C, :D)])
 
-d = randTable(b, numSamples = 5)
-@test size(d, 1) == 5
+d = randTable(b, numSamples=5)
+@test nrow(d) == 5
 
-removeEdge!(b, :A, :C)
+remove_edge!(b, :A, :C)
 
 @test LightGraphs.ne(b.dag) == 3
 
-removeEdges!(b, [(:D, :E), (:C, :D)])
+remove_edges!(b, [(:D, :E), (:C, :D)])
 
 @test LightGraphs.ne(b.dag) == 1
 
 # Code from documentation
 
 b = BayesNet([:B, :S, :E, :D, :C])
-addEdges!(b, [(:B, :E), (:S, :E), (:E, :D), (:E, :C)])
+add_edges!(b, [(:B, :E), (:S, :E), (:E, :D), (:E, :C)])
 
-setCPD!(b, :B, BernoulliCPD(0.1))
-setCPD!(b, :S, BernoulliCPD(0.5))
-setCPD!(b, :E, BernoulliCPD([:B, :S], randBernoulliDict(2)))
-setCPD!(b, :D, BernoulliCPD([:E], randBernoulliDict(1)))
-setCPD!(b, :C, BernoulliCPD([:E], randBernoulliDict(1)));
+set_CPD!(b, :B, BernoulliCPD(0.1))
+set_CPD!(b, :S, BernoulliCPD(0.5))
+set_CPD!(b, :E, BernoulliCPD([:B, :S], randBernoulliDict(2)))
+set_CPD!(b, :D, BernoulliCPD([:E], randBernoulliDict(1)))
+set_CPD!(b, :C, BernoulliCPD([:E], randBernoulliDict(1)));
 
 @test isequal(parents(b, :E), [:B, :S])
 
@@ -97,12 +98,12 @@ t = randTable(b, numSamples=100, consistentWith=Dict(:B=>true, :C=>false))
 @test size(estimate(t),2) == 6
 
 b = BayesNet([:A, :B, :C])
-addEdge!(b, :A, :B)
-setCPD!(b, :A, BernoulliCPD(0.5))
-setCPD!(b, :B, BernoulliCPD(m->(m[:A] ? 0.5 : 0.45)))
-setCPD!(b, :C, BernoulliCPD(0.5))
+add_edge!(b, :A, :B)
+set_CPD!(b, :A, BernoulliCPD(0.5))
+set_CPD!(b, :B, BernoulliCPD(m->(m[:A] ? 0.5 : 0.45)))
+set_CPD!(b, :C, BernoulliCPD(0.5))
 
 d = randTable(b, numSamples = 5)
 @test size(d) == (5,3)
 count(b, d)
-@test logBayesScore(b, d) < 0.0
+@test log_bayes_score(b, d) < 0.0

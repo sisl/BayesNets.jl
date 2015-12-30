@@ -1,118 +1,188 @@
+#=
+A Bayesian Network (BN) prepresents a probability distribution
+over a set of variables, P(x₁, x₂, ..., xₙ)
+It leverages relations between variables in order to efficiently encode it.
+A BN is defined by a directed acyclic graph in which each node is a variable
+and contains an associated probability distribution P(xⱼ | parents(xⱼ))
+=#
 
 typealias DAG DiGraph
 
 DAG(n) = DiGraph(n)
 
+type BayesNetNode
+	name::NodeName # the symbol corresponding to the node
+	domain::Domain # the domain for this variable
+	cpd::CPD # the conditional probability distribution P(x|parents(x))
+end
+
 type BayesNet
-	dag::DAG
-	cpds::Vector{CPD}
-	index::Dict{NodeName,Int}
-	names::Vector{NodeName}
-	domains::Vector{Domain}
+	dag::DAG # the directed acyclic graph, represented as a LightGraphs.DiGraph
+	nodes::Vector{BayesNetNode} # the nodes for the BayesNet
+	name_to_index::Dict{NodeName,Int} # NodeName → index in dag and nodes
 
-	function BayesNet(names::Vector{NodeName})
-	    n = length(names)
-	    index = [names[i]=>i for i in 1:n]
+	function BayesNet()
+		retval = new()
+		retval.dag = DAG(0)
+		retval.nodes = BayesNetNode[]
+		retval.name_to_index = Dict{NodeName, Int}()
+		retval
+	end
+	function BayesNet(dag::DAG, nodes::AbstractVector{BayesNetNode})
 
-	    cpds = Array(CPD, n)
-	    for i in 1:n
-	    	cpds[i] = BernoulliCPD()
-	    end
+		@assert(LightGraphs.nv(dag) == length(nodes))
 
+		retval = new()
+		retval.dag = dag
+		retval.nodes = nodes
 
-	    # cpds = CPD[CPDs.BernoulliCPD() for i in 1:n]
-	    domains = Domain[BinaryDomain() for i in 1:n] # default to binary domain
-	    new(DiGraph(length(names)), cpds, index, names, domains)
+		retval.name_to_index = Dict{NodeName, Int}()
+		for (i, node) in enumerate(nodes)
+			retval.name_to_index[node.name] = i
+		end
+
+		retval
+	end
+
+	"""
+	Generate a BayesNet with the given names
+	The DAG will be edgeless, and each variable
+	will be given a BernoulliCPD and binary domain
+	"""
+	function BayesNet(names::AbstractVector{NodeName})
+		n = length(names)
+
+		retval = new()
+		retval.dag = DiGraph(n)
+		retval.nodes = Array(BayesNetNode, n)
+		for (i,name) in enumerate(names)
+			retval.nodes[i] = BayesNetNode(name, BINARY_DOMAIN, BernoulliCPD())
+		end
+
+		retval.name_to_index = Dict{NodeName, Int}()
+		for (i, node) in enumerate(retval.nodes)
+			retval.name_to_index[node.name] = i
+		end
+
+		retval
 	end
 end
 
-CPDs.domain(b::BayesNet, name::NodeName) = b.domains[b.index[name]]
-cpd(b::BayesNet, name::NodeName) = b.cpds[b.index[name]]
-
-function parents(b::BayesNet, name::NodeName)
-	i = b.index[name]
-	NodeName[b.names[j] for j in in_neighbors(b.dag, i)]
+node(bn::BayesNet, name::NodeName) = bn.nodes[bn.name_to_index[name]]
+CPDs.domain(bn::BayesNet, name::NodeName) = node(bn, name).domain
+cpd(bn::BayesNet, name::NodeName) = node(bn, name).cpd
+function names(bn::BayesNet)
+	retval = Array(NodeName, length(bn.nodes))
+	for (i,node) in enumerate(bn.nodes)
+		retval[i] = node.name
+	end
+	retval
 end
 
-isValid(b::BayesNet) = !is_cyclic(b.dag)
+Base.isvalid(bn::BayesNet) = !is_cyclic(bn.dag)
 
-function hasEdge(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
-    u = bn.index[sourceNode]
-    v = bn.index[destNode]
-	return has_edge(bn.dag, u, v)
+"""
+Returns the parents as a list of NodeNames
+"""
+function parents(bn::BayesNet, name::NodeName)
+	i = bn.name_to_index[name]
+	NodeName[bn.nodes[j].name for j in in_neighbors(bn.dag, i)]
 end
 
-function addEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
-	i = bn.index[sourceNode]
-	j = bn.index[destNode]
-	add_edge!(bn.dag, i, j)
+function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)
+    u = bn.name_to_index[parent]
+    v = bn.name_to_index[child]
+	has_edge(bn.dag, u, v)
+end
+
+function add_edge!(bn::BayesNet, parent::NodeName, child::NodeName)
+	u = bn.name_to_index[parent]
+    v = bn.name_to_index[child]
+	add_edge!(bn.dag, u, v)
+	bn
+end
+function add_edges!(bn::BayesNet, pairs::AbstractVector{Tuple{NodeName, NodeName}})
+	for p in pairs
+  		add_edge!(bn, p[1], p[2])
+	end
 	bn
 end
 
-function removeEdge!(bn::BayesNet, sourceNode::NodeName, destNode::NodeName)
+
+function remove_edge!(bn::BayesNet, parent::NodeName, child::NodeName)
 	#=
+	NOTE:
 	it would be nice to use a more efficient implementation
 	see discussion here: https://github.com/JuliaLang/Graphs.jl/issues/73
 	and here: https://github.com/JuliaLang/Graphs.jl/pull/87
 	=#
 
-	i = bn.index[sourceNode]
-	j = bn.index[destNode]
-	rem_edge!(bn.dag, i, j)
+	u = bn.name_to_index[parent]
+    v = bn.name_to_index[child]
+	rem_edge!(bn.dag, u, v)
 	bn
 end
-
-function addEdges!(bn::BayesNet, pairs)
+function remove_edges!(bn::BayesNet, pairs::AbstractVector{Tuple{NodeName, NodeName}})
 	for p in pairs
-  		addEdge!(bn, p[1], p[2])
+		remove_edge!(bn, p[1], p[2])
 	end
 	bn
 end
 
-function removeEdges!(bn::BayesNet, pairs)
-	for p in pairs
-		removeEdge!(bn, p[1], p[2])
-	end
+function set_domain!(bn::BayesNet, name::NodeName, dom::Domain)
+	mynode = node(bn, name)
+	mynode.domain = dom
 	bn
 end
 
-function setDomain!(bn::BayesNet, name::NodeName, dom::Domain)
-	i = bn.index[name]
-	bn.domains[i] = dom
+function set_CPD!(bn::BayesNet, name::NodeName, cpd::CPD)
+	mynode = node(bn, name)
+	mynode.cpd = cpd
+	bn
 end
 
-function setCPD!(bn::BayesNet, name::NodeName, cpd::CPD)
-	i = bn.index[name]
-	bn.cpds[i] = cpd
-	bn.domains[i] = domain(cpd)
-	nothing
-end
+"""
+Computes the probability of a given assignment
+NOTE: if all variables are discrete, this is a discrete probability
+	  if all variables are continuous, this is a probability density
 
+      prob(BN) = ∏ P(xⱼ | parents(xⱼ))
+"""
 function prob(bn::BayesNet, assignment::Assignment)
- 	prod([pdf(bn.cpds[i], assignment)(assignment[bn.names[i]]) for i = 1:length(bn.names)])
+	retval = 1.0
+	for node in bn.nodes
+		pdf_func = pdf(node.cpd, assignment)
+		retval *= pdf_func(assignment[node.name])
+	end
+ 	retval
 end
 
+"""
+TODO: rename table() to factor()?
+Constructs the CPD factor associated with the given node in the BayesNet
+"""
 function table(bn::BayesNet, name::NodeName)
-    edges = in_edges(bn.dag, bn.index[name])
-    names = [bn.names[src(e)] for e in edges]
-    push!(names, name)
+
+	d = DataFrame()
     c = cpd(bn, name)
-    d = DataFrame()
-    if length(edges) > 0
+    names = push!(parents(bn, name), name)
+
+    nparents = length(names)-1
+    if nparents > 0
         A = ndgrid([domain(bn, name).elements for name in names]...)
-        i = 1
-        for name in names
-            d[name] = A[i][:]
-            i = i + 1
+        for (i,name2) in enumerate(names)
+            d[name2] = vec(A[i])
         end
     else
         d[name] = domain(bn, name).elements
     end
-    p = ones(size(d,1))
-    for i = 1:size(d,1)
+
+    p = ones(size(d,1)) # the probability column
+    for i in 1:size(d,1)
         ownValue = d[i,length(names)]
-        a = [names[j]=>d[i,j] for j = 1:(length(names)-1)]
-        p[i] = pdf(c, a)(ownValue)
+        assignment = Dict([names[j]=>d[i,j] for j in 1:nparents])
+        pdf_func = pdf(c, assignment)
+        p[i] = pdf_func(ownValue)
     end
     d[:p] = p
     d

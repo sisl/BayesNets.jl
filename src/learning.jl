@@ -1,8 +1,8 @@
 export prior, logBayesScore, indexData, statistics, statistics!
 
-function Base.count(b::BayesNet, name::NodeName, d::DataFrame)
+function Base.count(bn::BayesNet, name::NodeName, d::DataFrame)
   # find relevant variable names based on structure of network
-  varnames = push!(parents(b, name), name)
+  varnames = push!(parents(bn, name), name)
   t = d[:, varnames]
   tu = unique(t)
   # add column with counts of unique samples
@@ -10,15 +10,15 @@ function Base.count(b::BayesNet, name::NodeName, d::DataFrame)
   tu
 end
 
-Base.count(b::BayesNet, d::DataFrame) = [count(b, name, d) for name in b.names]
+Base.count(bn::BayesNet, d::DataFrame) = [count(bn, node.name, d) for node in bn.nodes]
 
-function indexData(b::BayesNet, d::DataFrame)
-    d = d[:, b.names]
-    n = length(b.names)
+function indexData(bn::BayesNet, d::DataFrame)
+    d = d[:, names(bn)]
+    n = length(bn.nodes)
     data = Array(Int, size(d,2), size(d,1))
-    for i = 1:n
-        node = b.names[i]
-        elements = domain(b, node).elements
+    for (i,node) in enumerate(bn.nodes)
+        name = node.name
+        elements = domain(bn, name).elements
         m = Dict([elements[i]=>i for i = 1:length(elements)])
         for j = 1:size(d, 1)
             data[i,j] = m[d[j,i]]
@@ -27,18 +27,18 @@ function indexData(b::BayesNet, d::DataFrame)
     data
 end
 
-statistics(b::BayesNet, d::DataFrame) = statistics(b, indexData(b, d))
+statistics(bn::BayesNet, d::DataFrame) = statistics(bn, indexData(bn, d))
 
-function statistics(b::BayesNet, d::Matrix{Int})
-    N = statistics(b)
-    statistics!(N, b, d)
+function statistics(bn::BayesNet, d::Matrix{Int})
+    N = statistics(bn)
+    statistics!(N, bn, d)
     N
 end
 
-function statistics(b::BayesNet, alpha = 0.)
-    n = length(b.names)
-    r = [length(domain(b, node).elements) for node in b.names]
-    parentList = [collect(in_neighbors(b.dag, i)) for i = 1:n]
+function statistics(bn::BayesNet, alpha::Float64 = 0.0)
+    n = length(bn.nodes)
+    r = [length(domain(bn, node.name).elements) for node in bn.nodes]
+    parentList = [collect(in_neighbors(bn.dag, i)) for i = 1:n]
     N = cell(n)
     for i = 1:n
         q = 1
@@ -50,10 +50,10 @@ function statistics(b::BayesNet, alpha = 0.)
     N
 end
 
-function statistics!(N::Vector{Any}, b::BayesNet, d::Matrix{Int})
-    r = [length(domain(b, node).elements) for node in b.names]
+function statistics!(N::Vector{Any}, bn::BayesNet, d::Matrix{Int})
+    r = [length(domain(bn, node.name).elements) for node in bn.nodes]
     (n, m) = size(d)
-    parentList = [collect(in_neighbors(b.dag, i)) for i = 1:n]
+    parentList = [collect(in_neighbors(bn.dag, i)) for i = 1:n]
     for i = 1:n
         p = parentList[i]
         if !isempty(p)
@@ -73,9 +73,9 @@ function statistics!(N::Vector{Any}, b::BayesNet, d::Matrix{Int})
     N
 end
 
-prior(b::BayesNet, alpha = 1.) = statistics(b::BayesNet, alpha)
+prior(bn::BayesNet, alpha::Real = 1.0) = statistics(bn, alpha)
 
-function logBayesScore(N::Vector{Any}, alpha::Vector{Any})
+function log_bayes_score(N::Vector{Any}, alpha::Vector{Any})
     @assert length(N) == length(alpha)
     n = length(N)
     p = 0.
@@ -89,9 +89,8 @@ function logBayesScore(N::Vector{Any}, alpha::Vector{Any})
     end
     p
 end
-
-function logBayesScore(b::BayesNet, d::Union{DataFrame, Matrix{Int}}, alpha = 1.)
-    alpha = prior(b)
-    N = statistics(b, d)
-    logBayesScore(N, alpha)
+function log_bayes_score(bn::BayesNet, d::Union{DataFrame, Matrix{Int}}, alpha::Real = 1.0)
+    alpha = prior(bn)
+    N = statistics(bn, d)
+    log_bayes_score(N, alpha)
 end

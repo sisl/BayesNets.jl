@@ -106,3 +106,19 @@ let
 	# @test probvec(d, Dict(:A => 2)) == [0.43, 0.7]
 	# @test probvec(d, Dict(:A => 3)) == [1.0, 0.0]
 end
+
+let
+	# NormalCPD
+	d = NormalCPD(0.0, 1.0)
+
+	dom = domain(d)
+	@test isa(dom, ContinuousDomain)
+	@test dom.lower == -Inf
+	@test dom.upper ==  Inf
+
+	f_pdf = pdf(d, Dict())
+	@test isapprox(f_pdf(0.0), 0.3989422804014327)
+	@test isapprox(f_pdf(1.0), 0.2419707245191434)
+
+	rand(d, Dict())
+end
