@@ -35,7 +35,7 @@ let
 	#       See Smile.jl
 	# Success -> Forecast
 
-	bn = readxdsl("sample_bn.xdsl")
+	bn = readxdsl(Pkg.dir("BayesNets", "test", "sample_bn.xdsl"))
 
 	@test sort!(names(bn)) == [:Forecast, :Success]
 	@test isempty(parents(bn, :Success))

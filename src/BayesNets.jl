@@ -5,9 +5,9 @@ module BayesNets
 using Compat
 using LightXML
 
-import LightGraphs: DiGraph, Edge, rem_edge!, add_edge!, add_vertex!, has_edge, topological_sort_by_dfs, in_edges, src, dst, in_neighbors, is_cyclic, nv, ne
+import LightGraphs: DiGraph, rem_edge!, add_edge!, add_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, is_cyclic, nv, ne
 import TikzGraphs: plot
-import DataFrames: DataFrame, groupby, array, isna, names
+import DataFrames: DataFrame, groupby, names
 
 export
 	BayesNet,
