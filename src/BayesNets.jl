@@ -1,5 +1,8 @@
+VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
+
 module BayesNets
 
+using Compat
 using LightXML
 
 import LightGraphs: DiGraph, Edge, rem_edge!, add_edge!, add_vertex!, has_edge, topological_sort_by_dfs, in_edges, src, dst, in_neighbors, is_cyclic, nv, ne
@@ -59,5 +62,6 @@ include("bayes_nets.jl")
 include("sampling.jl")
 include("learning.jl")
 include("io.jl")
+include("deprecated.jl")
 
 end # module
