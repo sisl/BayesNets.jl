@@ -1,7 +1,7 @@
 Base.mimewritable(::MIME"image/svg+xml", b::BayesNet) = true
 Base.mimewritable(::MIME"text/html", dfs::Vector{DataFrame}) = true
 
-plot(b::BayesNet) = plot(b.dag, ASCIIString[string(s) for s in names(b)])
+plot(b::BayesNet) = plot(b.dag, AbstractString[string(s) for s in names(b)])
 
 function Base.writemime(f::IO, a::MIME"image/svg+xml", b::BayesNet)
  	Base.writemime(f, a, plot(b))
