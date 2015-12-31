@@ -96,7 +96,7 @@ end
 """
 TODO: what is this for?
 """
-function estimateConvergence(f::DataFrame, a::Assignment)
+function estimate_convergence(f::DataFrame, a::Assignment)
 
     n = size(f, 1)
     p = zeros(n)

@@ -9,7 +9,7 @@ function Base.rand(bn::BayesNet)
     a
 end
 
-function rand_table(bn::BayesNet; numSamples=10, consistentWith=Assignment())
+function rand_table(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment())
     ordering = topological_sort_by_dfs(bn.dag)
     t = Dict([node.name => Any[] for node in bn.nodes])
     a = Assignment()
@@ -29,7 +29,7 @@ function rand_table(bn::BayesNet; numSamples=10, consistentWith=Assignment())
     convert(DataFrame, t)
 end
 
-function rand_table_weighted(bn::BayesNet; numSamples=10, consistentWith=Assignment())
+function rand_table_weighted(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment())
     ordering = topological_sort_by_dfs(bn.dag)
     t = Dict([node.name => Any[] for node in bn.nodes])
     w = ones(numSamples)
