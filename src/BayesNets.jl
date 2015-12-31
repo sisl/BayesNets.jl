@@ -55,7 +55,7 @@ include("cpds.jl");
 include("ndgrid.jl")
 include("assignments.jl")
 include("factors.jl")
-include("bayesnets.jl")
+include("bayes_nets.jl")
 include("sampling.jl")
 include("learning.jl")
 include("io.jl")
