@@ -1,6 +1,3 @@
-using LightXML
-export readxdsl
-
 Base.mimewritable(::MIME"image/svg+xml", b::BayesNet) = true
 Base.mimewritable(::MIME"text/html", dfs::Vector{DataFrame}) = true
 
@@ -88,13 +85,15 @@ function discrete_parameter_function(
 	dict = discrete_parameter_dict(assignments, probs, ninst_target)
 
 	syms = keys(assignments[1])
-	return (a)->begin
-		a_extracted = Dict([sym=>a[sym] for sym in names])
+	return (a)->begin a
+		a_extracted = Dict([sym=>a[sym] for sym in syms])
 		dict[a_extracted]
 	end
 end
 function readxdsl( filename::AbstractString )
 	# Loads a discrete Bayesian Net from XDSL format (SMILE / GeNIe)
+	# This currently assumes that the states are Integers
+	# Thus, all <state id="???"/> must be integers
 
 	splitext(filename)[2] == ".xdsl" || error("readxdsl only supports .xdsl format")
 
@@ -115,29 +114,34 @@ function readxdsl( filename::AbstractString )
 
 		node_sym = names[i]
 
-		# set the node's domain
-		states   = [int(match(r"\d", convert(ASCIIString, attribute(s, "id"))).match) for s in get_elements_by_tagname(e, "state")]
-		n_states = length(states)::Int
-		BN.domains[i] = DiscreteDomain(states)
+		for s in get_elements_by_tagname(e, "state")
+			attr = convert(ASCIIString, attribute(s, "id"))
+			@assert(!isa(match(r"\d", attr), Void), "All state ids must be integers")
+		end
 
-		probs = map(s->float64(s), split(content(find_element(e, "probabilities"))))
+		# set the node's domain
+		states   = [parse(Int, match(r"\d", convert(ASCIIString, attribute(s, "id"))).match) for s in get_elements_by_tagname(e, "state")]
+		n_states = length(states)::Int
+		BN.nodes[i].domain = DiscreteDomain(states)
+
+		probs = map(s->parse(Float64, s), split(content(find_element(e, "probabilities"))))
 
 		# set any parents & populate probability table
 		parents_elem = get_elements_by_tagname(e, "parents")
 		if !isempty(parents_elem)
 			parents = map(s->symbol(s), split(content(parents_elem[1])))
 			for pa in parents
-				addEdge!(BN, pa, node_sym)
+				add_edge!(BN, pa, node_sym)
 			end
 
 			# populate probability table
 			reverse!(parents) # because SMILE varies first parent least quickly
 			assigments = assignment_dicts(BN, parents)
 			parameterFunction = discrete_parameter_function(assigments, probs, n_states)
-			setCPD!(BN, node_sym, CPDs.Discrete(states, parameterFunction))
+			set_CPD!(BN, node_sym, DiscreteFunctionCPD(states, parameterFunction))
 		else
 			# no parents
-			setCPD!(BN, node_sym, CPDs.Discrete(states, probs))
+			set_CPD!(BN, node_sym, DiscreteStaticCPD(states, probs))
 		end
 	end
 

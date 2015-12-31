@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<smile version="1.0" id="Unnamed" numsamples="1000" discsamples="10000">
+	<nodes>
+		<cpt id="Success">
+			<state id="1" />
+			<state id="2" />
+			<probabilities>0.2 0.8</probabilities>
+		</cpt>
+		<cpt id="Forecast">
+			<state id="1" />
+			<state id="2" />
+			<state id="3" />
+			<parents>Success</parents>
+			<probabilities>0.4 0.4 0.2 0.1 0.3 0.6</probabilities>
+		</cpt>
+	</nodes>
+	<extensions>
+		<genie version="1.0" app="SMILE Apr 10 2014" name="Unnamed" faultnameformat="nodestate">
+			<node id="Success">
+				<name>Success</name>
+				<interior color="e5f6f7" />
+				<outline color="0000bb" />
+				<font color="000000" name="MS Sans Serif" size="8" />
+				<position>-38 -18 38 18</position>
+			</node>
+			<node id="Forecast">
+				<name>Forecast</name>
+				<interior color="e5f6f7" />
+				<outline color="0000bb" />
+				<font color="000000" name="MS Sans Serif" size="8" />
+				<position>-38 -18 38 18</position>
+			</node>
+		</genie>
+	</extensions>
+</smile>

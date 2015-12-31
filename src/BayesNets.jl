@@ -1,5 +1,7 @@
 module BayesNets
 
+using LightXML
+
 import LightGraphs: DiGraph, Edge, rem_edge!, add_edge!, add_vertex!, has_edge, topological_sort_by_dfs, in_edges, src, dst, in_neighbors, is_cyclic, nv, ne
 import TikzGraphs: plot
 import DataFrames: DataFrame, groupby, array, isna, names
@@ -42,7 +44,9 @@ export
 	log_bayes_score,
 	index_data,
 	statistics,
-	statistics!
+	statistics!,
+
+	readxdsl
 
 using Reexport
 include("cpds.jl");

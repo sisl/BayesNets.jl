@@ -62,7 +62,7 @@ abstract CPD
 abstract DiscreteCPD <: CPD
 domain(d::DiscreteCPD) = DiscreteDomain(d.domain)
 function pdf(d::DiscreteCPD, a::Assignment)
-    (x) -> probvec(d)[d.domainIndex[x]]
+    (x) -> probvec(d, a)[d.domainIndex[x]]
 end
 function Base.rand(d::DiscreteCPD, a::Assignment)
     p = probvec(d, a)
