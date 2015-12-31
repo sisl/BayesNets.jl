@@ -1,0 +1,17 @@
+using Base.depwarn
+
+Base.@deprecate addEdge!(bn::BayesNet, parent::NodeName, child::NodeName) add_edge!(bn, parent, child)
+Base.@deprecate removeEdge!(bn::BayesNet, parent::NodeName, child::NodeName) remove_edge!(bn, parent, child)
+Base.@deprecate addEdges!(bn::BayesNet, pairs::AbstractVector{Tuple{NodeName, NodeName}}) add_edges!(bn, pairs)
+Base.@deprecate removeEdges!(bn::BayesNet, pairs::AbstractVector{Tuple{NodeName, NodeName}}) remove_edges!(bn, pairs)
+Base.@deprecate hasEdge(bn::BayesNet, parent::NodeName, child::NodeName) has_edge(bn, parent, child)
+Base.@deprecate setCPD!(bn::BayesNet, name::NodeName, cpd::CPD) set_CPD!(bn, name, cpd)
+Base.@deprecate setDomain!(bn::BayesNet, name::NodeName, dom::Domain) set_domain!(bn, name, dom)
+Base.@deprecate randBernoulliDict(numParents::Integer) rand_bernoulli_dict(numParents)
+Base.@deprecate randDiscreteDict{V<:AbstractVector}(parentDomains::AbstractVector{V}, dimNode::Integer) rand_discrete_dict(parentDomains, dimNode)
+Base.@deprecate randTable(bn::BayesNet; numSamples=10, consistentWith=Assignment()) rand_table(bn; numSamples=10, consistentWidth=Assignment())
+Base.@deprecate randTableWeighted(bn::BayesNet; numSamples=10, consistentWith=Assignment()) rand_table_weighted(bn; numSamples=10, consistentWidth=Assignment())
+Base.@deprecate isValid(bn::BayesNet) isvalid(bn)
+Base.@deprecate estimateConvergence(f::DataFrame, a::Assignment) estimate_convergence(f, a)
+Base.@deprecate logBayesScore(N::Vector{Any}, alpha::Vector{Any}) log_bayes_score(N, alpha)
+Base.@deprecate indexData(bn::BayesNet, d::DataFrame) index_data(bn, d)
