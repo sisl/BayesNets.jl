@@ -48,6 +48,9 @@ let
 		A = [false, false, true, true, true]
 		))
 	@test elementwise_isapprox(df[:p], [2/5, 3/5])
+
+	# TODO: properly test this
+	estimate_convergence(df, Dict(:A=>true))
 end
 
 # TODO: test estimateConvergence() once we know what it is for
