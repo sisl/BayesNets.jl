@@ -1,7 +1,7 @@
 let
 	bn = BayesNet(
-			[BayesNetNode(:A, BINARY_DOMAIN, BernoulliCPD()),
-					BayesNetNode(:B, BINARY_DOMAIN, BernoulliCPD([:A],
+			[BayesNetNode(:A, BINARY_DOMAIN, CPDs.Bernoulli()),
+					BayesNetNode(:B, BINARY_DOMAIN, CPDs.Bernoulli([:A],
 						                                          Dict(
 						                                          	Dict(:A=>true)=>0.1,
 						                                          	Dict(:A=>false)=>0.2,

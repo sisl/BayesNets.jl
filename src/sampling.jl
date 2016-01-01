@@ -56,7 +56,7 @@ NOTE: entries are [0,1] and not [true, false]
 """
 function rand_bernoulli_dict(numParents::Integer)
     dims = ntuple(i->2, numParents)
-    Dict([[ind2sub(dims, i)...] .- 1 => round(1+rand()*98)/100 for i = 1:prod(dims)])
+    Dict{Vector{Int}, Float64}([[ind2sub(dims, i)...] .- 1 => round(1+rand()*98)/100 for i = 1:prod(dims)])
 end
 
 """

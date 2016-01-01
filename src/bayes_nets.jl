@@ -1,5 +1,5 @@
 #=
-A Bayesian Network (BN) prepresents a probability distribution
+A Bayesian Network (BN) represents a probability distribution
 over a set of variables, P(x₁, x₂, ..., xₙ)
 It leverages relations between variables in order to efficiently encode it.
 A BN is defined by a directed acyclic graph in which each node is a variable
@@ -69,7 +69,7 @@ type BayesNet
 	"""
 	Generate a BayesNet with the given names
 	The DAG will be edgeless, and each variable
-	will be given a BernoulliCPD and binary domain
+	will be given a Bernoulli and binary domain
 	"""
 	function BayesNet(names::AbstractVector{NodeName})
 		n = length(names)
@@ -78,7 +78,7 @@ type BayesNet
 		retval.dag = DiGraph(n)
 		retval.nodes = Array(BayesNetNode, n)
 		for (i,name) in enumerate(names)
-			retval.nodes[i] = BayesNetNode(name, BINARY_DOMAIN, BernoulliCPD())
+			retval.nodes[i] = BayesNetNode(name, BINARY_DOMAIN, CPDs.Bernoulli())
 		end
 
 		retval.name_to_index = Dict{NodeName, Int}()
@@ -109,6 +109,14 @@ Returns the parents as a list of NodeNames
 function parents(bn::BayesNet, name::NodeName)
 	i = bn.name_to_index[name]
 	NodeName[bn.nodes[j].name for j in in_neighbors(bn.dag, i)]
+end
+
+"""
+Returns the children as a list of NodeNames
+"""
+function children(bn::BayesNet, name::NodeName)
+	i = bn.name_to_index[name]
+	NodeName[bn.nodes[j].name for j in out_neighbors(bn.dag, i)]
 end
 
 function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)

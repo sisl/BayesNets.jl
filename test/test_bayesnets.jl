@@ -5,11 +5,11 @@ let
 	@test LightGraphs.ne(bn.dag) == 0
 	@test LightGraphs.nv(bn.dag) == 0
 
-	add_node!(bn, BayesNetNode(:A, BINARY_DOMAIN, BernoulliCPD()))
+	add_node!(bn, BayesNetNode(:A, BINARY_DOMAIN, CPDs.Bernoulli()))
 	@test length(bn.nodes) == 1
 	@test bn.name_to_index[:A] == 1
 
-	add_node!(bn, BayesNetNode(:B, BINARY_DOMAIN, BernoulliCPD()))
+	add_node!(bn, BayesNetNode(:B, BINARY_DOMAIN, CPDs.Bernoulli()))
 	@test length(bn.nodes) == 2
 	@test bn.name_to_index[:A] == 1
 	@test bn.name_to_index[:B] == 2
@@ -26,7 +26,7 @@ let
 	@test isempty(parents(bn, :A)::Vector{NodeName})
 	@test parents(bn, :B) == [:A]
 
-	set_CPD!(bn, :B, BernoulliCPD(m->(m[:A] ? 0.5 : 0.45)))
+	set_CPD!(bn, :B, CPDs.Bernoulli(m->(m[:A] ? 0.5 : 0.45)))
 	my_cpd = cpd(bn, :B)
 	@test probvec(my_cpd, Dict(:A=>true)) == [0.5,0.5]
 	@test probvec(my_cpd, Dict(:A=>false)) == [0.45,0.55]
@@ -91,9 +91,9 @@ let
 	=#
 
 	bn = BayesNet()
-	add_nodes!(bn, [BayesNetNode(:A, BINARY_DOMAIN, BernoulliCPD()),
-					BayesNetNode(:B, BINARY_DOMAIN, BernoulliCPD()),
-					BayesNetNode(:C, BINARY_DOMAIN, BernoulliCPD([:A, :B],
+	add_nodes!(bn, [BayesNetNode(:A, BINARY_DOMAIN, CPDs.Bernoulli()),
+					BayesNetNode(:B, BINARY_DOMAIN, CPDs.Bernoulli()),
+					BayesNetNode(:C, BINARY_DOMAIN, CPDs.Bernoulli([:A, :B],
 						                                          Dict(
 						                                          	Dict(:A=>true,  :B=>true)=>0.1,
 						                                          	Dict(:A=>false, :B=>true)=>0.2,
@@ -110,6 +110,8 @@ let
 	@test isempty(parents(bn, :B))
 	@test sort!(parents(bn, :C)) == [:A, :B]
 	@test isvalid(bn)
+
+	@test size(table(bn, :C)) == (8,4)
 
 	remove_edges!(bn, [(:A,:C), (:B,:C)])
 	@test isempty(parents(bn, :A))
@@ -134,9 +136,9 @@ end
 
 let
 	bn = BayesNet(
-			DAG(3), [BayesNetNode(:A, BINARY_DOMAIN, BernoulliCPD()),
-					BayesNetNode(:B, BINARY_DOMAIN, BernoulliCPD()),
-					BayesNetNode(:C, BINARY_DOMAIN, BernoulliCPD([:A, :B],
+			DAG(3), [BayesNetNode(:A, BINARY_DOMAIN, CPDs.Bernoulli()),
+					BayesNetNode(:B, BINARY_DOMAIN, CPDs.Bernoulli()),
+					BayesNetNode(:C, BINARY_DOMAIN, CPDs.Bernoulli([:A, :B],
 						                                          Dict(
 						                                          	Dict(:A=>true,  :B=>true)=>0.1,
 						                                          	Dict(:A=>false, :B=>true)=>0.2,
@@ -158,9 +160,9 @@ end
 
 let
 	bn = BayesNet(
-			[BayesNetNode(:A, BINARY_DOMAIN, BernoulliCPD()),
-					BayesNetNode(:B, BINARY_DOMAIN, BernoulliCPD()),
-					BayesNetNode(:C, BINARY_DOMAIN, BernoulliCPD([:A, :B],
+			[BayesNetNode(:A, BINARY_DOMAIN, CPDs.Bernoulli()),
+					BayesNetNode(:B, BINARY_DOMAIN, CPDs.Bernoulli()),
+					BayesNetNode(:C, BINARY_DOMAIN, CPDs.Bernoulli([:A, :B],
 						                                          Dict(
 						                                          	Dict(:A=>true,  :B=>true)=>0.1,
 						                                          	Dict(:A=>false, :B=>true)=>0.2,
@@ -180,4 +182,18 @@ let
 	@test isempty(parents(bn, :B))
 	@test sort!(parents(bn, :C)) == [:A, :B]
 	@test isvalid(bn)
+end
+
+let
+	bn = BayesNet([:B, :S, :E, :D, :C]) # construct an edgeless network with five variables
+                                    # note that this defaults to binary variables with 50/50 Bernoulli CPDs
+	add_edges!(bn, [(:B, :E), (:S, :E), (:E, :D), (:E, :C)]) # add edges, does not change CPDs
+
+	set_CPD!(bn, :B, CPDs.Bernoulli(0.1))
+	set_CPD!(bn, :S, CPDs.Bernoulli(0.5))
+	set_CPD!(bn, :E, CPDs.Bernoulli([:B, :S], rand_bernoulli_dict(2)))
+	set_CPD!(bn, :D, CPDs.Bernoulli([:E], rand_bernoulli_dict(1)))
+	set_CPD!(bn, :C, CPDs.Bernoulli([:E], rand_bernoulli_dict(1)))
+
+	table(bn, :D) # ensure that this doens't fail
 end

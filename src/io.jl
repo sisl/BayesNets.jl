@@ -1,7 +1,13 @@
 Base.mimewritable(::MIME"image/svg+xml", b::BayesNet) = true
 Base.mimewritable(::MIME"text/html", dfs::Vector{DataFrame}) = true
 
-plot(b::BayesNet) = plot(b.dag, AbstractString[string(s) for s in names(b)])
+function plot(b::BayesNet)
+	if !isempty(names(b))
+		plot(b.dag, AbstractString[string(s) for s in names(b)])
+	else
+		plot(simple_graph(1), ["Empty Graph"])
+	end
+end
 
 function Base.writemime(f::IO, a::MIME"image/svg+xml", b::BayesNet)
  	Base.writemime(f, a, plot(b))
@@ -138,10 +144,10 @@ function readxdsl( filename::AbstractString )
 			reverse!(parents) # because SMILE varies first parent least quickly
 			assigments = assignment_dicts(BN, parents)
 			parameterFunction = discrete_parameter_function(assigments, probs, n_states)
-			set_CPD!(BN, node_sym, DiscreteFunctionCPD(states, parameterFunction))
+			set_CPD!(BN, node_sym, CPDs.DiscreteFunction(states, parameterFunction))
 		else
 			# no parents
-			set_CPD!(BN, node_sym, DiscreteStaticCPD(states, probs))
+			set_CPD!(BN, node_sym, CPDs.DiscreteStatic(states, probs))
 		end
 	end
 

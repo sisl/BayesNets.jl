@@ -1,9 +1,9 @@
 let
 	# A → C ← B
 	bn = BayesNet(
-			[BayesNetNode(:A, BINARY_DOMAIN, BernoulliCPD(1.0)),
-					BayesNetNode(:B, BINARY_DOMAIN, BernoulliCPD(0.0)),
-					BayesNetNode(:C, BINARY_DOMAIN, BernoulliCPD([:A, :B],
+			[BayesNetNode(:A, BINARY_DOMAIN, CPDs.Bernoulli(1.0)),
+					BayesNetNode(:B, BINARY_DOMAIN, CPDs.Bernoulli(0.0)),
+					BayesNetNode(:C, BINARY_DOMAIN, CPDs.Bernoulli([:A, :B],
 						                                          Dict(
 						                                          	Dict(:A=>true,  :B=>true)=>0.1,
 						                                          	Dict(:A=>false, :B=>true)=>0.2,

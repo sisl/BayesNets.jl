@@ -5,13 +5,14 @@ It represents P(X|Y)
 
 module CPDs
 
-export CPD, DiscreteCPD, DiscreteFunctionCPD, DiscreteDictCPD, DiscreteStaticCPD, BernoulliCPD, NormalCPD
+export CPD
+# export Discrete, DiscreteFunction, DiscreteDict, DiscreteStatic, Bernoulli, Normal
 export Domain, DiscreteDomain, ContinuousDomain, BINARY_DOMAIN, REAL_DOMAIN
 export domain, probvec, pdf
 export Assignment, NodeName
 
-typealias Assignment Dict
 typealias NodeName Symbol
+typealias Assignment Dict
 
 """
 helper function for sampling from a vector of probabilities
@@ -27,8 +28,6 @@ function Base.rand(p::AbstractVector{Float64})
     end
     i
 end
-
-# cpdDict(names::Vector{NodeName}, dict::Dict) = a -> dict[[a[n] for n in names]]
 
 """
 A domain defines the types and values of variables that the variables
@@ -59,12 +58,12 @@ Each CPD should implement:
 """
 abstract CPD
 
-abstract DiscreteCPD <: CPD
-domain(d::DiscreteCPD) = DiscreteDomain(d.domain)
-function pdf(d::DiscreteCPD, a::Assignment)
+abstract Discrete <: CPD
+domain(d::Discrete) = DiscreteDomain(d.domain)
+function pdf(d::Discrete, a::Assignment)
     (x) -> probvec(d, a)[d.domainIndex[x]]
 end
-function Base.rand(d::DiscreteCPD, a::Assignment)
+function Base.rand(d::Discrete, a::Assignment)
     p = probvec(d, a)
     i = rand(p)
     d.domain[i]
@@ -73,36 +72,36 @@ end
 """
 A CPD in which P(x|y) is over discrete values, defined using custom function
 """
-type DiscreteFunctionCPD <: DiscreteCPD
+type DiscreteFunction <: Discrete
     domain::AbstractVector{Any} # set of discrete values the CPD covers
     parameterFunction::Function
     domainIndex::Dict{Any,Integer}
 
-    DiscreteFunctionCPD{T}(domain::AbstractVector{T}, parameterFunction::Function) =
+    DiscreteFunction{T}(domain::AbstractVector{T}, parameterFunction::Function) =
         new(domain, parameterFunction, Dict([domain[i] => i for i in 1:length(domain)]))
-    DiscreteFunctionCPD{T,U}(domain::AbstractVector{T}, parameters::AbstractVector{U}) =
+    DiscreteFunction{T,U}(domain::AbstractVector{T}, parameters::AbstractVector{U}) =
         new(domain, a->parameters, Dict([domain[i] => i for i in 1:length(domain)]))
-    DiscreteFunctionCPD{T}(domain::AbstractVector{T}, names::AbstractVector{NodeName}, dict::Dict) =
+    DiscreteFunction{T}(domain::AbstractVector{T}, names::AbstractVector{NodeName}, dict::Dict) =
         new(domain, a->dict[[a[n] for n in names]], Dict([domain[i] => i for i in 1:length(domain)]))
 end
-probvec(d::DiscreteFunctionCPD, a::Assignment) = d.parameterFunction(a)
+probvec(d::DiscreteFunction, a::Assignment) = d.parameterFunction(a)
 
 """
 A CPD in which P(x|y) is over discrete values, defined using a dictionary
 """
-type DiscreteDictCPD <: DiscreteCPD
+type DiscreteDict <: Discrete
   
     domain::AbstractVector{Any}
     keys::Vector{Symbol}
     probabilitylookup::Dict{Dict, Vector{Float64}} # NOTE(tim): so we don't have functions that cannot be saved by JLD
     domainIndex::Dict{Any,Int}
 
-    function DiscreteDictCPD{T, D<:Dict}(domain::AbstractVector{T}, probabilitylookup::Dict{D, Vector{Float64}})
+    function DiscreteDict{T, D<:Dict}(domain::AbstractVector{T}, probabilitylookup::Dict{D, Vector{Float64}})
         keyset = collect(keys(first(probabilitylookup)[1]))
         new(domain, keyset, probabilitylookup, Dict([domain[i] => i for i in 1:length(domain)]))
     end
 end
-function probvec(d::DiscreteDictCPD, a::Assignment)
+function probvec(d::DiscreteDict, a::Assignment)
     lookup = Dict{Symbol,Any}()
     for sym in d.keys
         lookup[sym] = a[sym]
@@ -113,28 +112,28 @@ end
 """
 A CPD in which P(x|y) is over discrete values and never changes
 """
-type DiscreteStaticCPD <: DiscreteCPD
+type DiscreteStatic <: Discrete
     
     domain::AbstractVector{Any}
     probs::Vector{Float64}
     domainIndex::Dict{Any,Int}
     
-    DiscreteStaticCPD{T}(domain::AbstractVector{T}, probs::AbstractVector{Float64}) =
+    DiscreteStatic{T}(domain::AbstractVector{T}, probs::AbstractVector{Float64}) =
         new(domain, probs, Dict([domain[i] => i for i in 1:length(domain)]))
 end
-probvec(d::DiscreteStaticCPD, a::Assignment) = d.probs
+probvec(d::DiscreteStatic, a::Assignment) = d.probs
 
 """
 A CPD in which P(x|y) is a Bernoulli distribution
 """
-type BernoulliCPD <: CPD
+type Bernoulli <: CPD
     parameterFunction::Function # a → P(x = true | a)
-    BernoulliCPD(parameter::Real = 0.5) = new(a->parameter)
-    BernoulliCPD(parameterFunction::Function) = new(parameterFunction)
-    function BernoulliCPD(names::AbstractVector{NodeName}, dict::Dict)
+    Bernoulli(parameter::Real = 0.5) = new(a->parameter)
+    Bernoulli(parameterFunction::Function) = new(parameterFunction)
+    function Bernoulli{A<:Any}(names::AbstractVector{NodeName}, dict::Dict{Dict{NodeName, A}, Float64})
 
         param_func = a -> begin a
-            a2 = Dict()
+            a2 = Dict{NodeName, Bool}()
             for n in names
                 a2[n] = a[n]
             end
@@ -143,33 +142,52 @@ type BernoulliCPD <: CPD
 
         new(param_func)
     end
+    function Bernoulli(names::AbstractVector{NodeName}, dict::Dict{Vector{Int}, Float64})
+
+        #=
+        NOTE: the dict in this case is typically generated by rand_bernoulli_dict,
+              and maps a list of 0,1 values to true or false
+        =#
+
+        key = Array(Int, length(names))
+
+        param_func = a -> begin a
+            
+            for (i,n) in enumerate(names)
+                key[i] = convert(Int, a[n])
+            end
+            dict[key]
+        end
+
+        new(param_func)
+    end
 end
-domain(d::BernoulliCPD) = BINARY_DOMAIN
-probvec(d::BernoulliCPD, a::Assignment) = [d.parameterFunction(a), 1.0-d.parameterFunction(a)]
-function pdf(d::BernoulliCPD, a::Assignment)
+domain(d::Bernoulli) = BINARY_DOMAIN
+probvec(d::Bernoulli, a::Assignment) = [d.parameterFunction(a), 1.0-d.parameterFunction(a)]
+function pdf(d::Bernoulli, a::Assignment)
     (x) -> x != 0 ? d.parameterFunction(a) : (1 - d.parameterFunction(a))
 end
-function Base.rand(d::BernoulliCPD, a::Assignment)
+function Base.rand(d::Bernoulli, a::Assignment)
     rand() < d.parameterFunction(a)
 end
 
 """
 A CPD in which P(x|y) is a Gaussian
 """
-type NormalCPD <: CPD
+type Normal <: CPD
     parameterFunction::Function # a → (μ, σ)
-    NormalCPD(parameterFunction::Function) = new(parameterFunction)
-    NormalCPD(mu::Real, sigma::Real) = new(a->(mu, sigma))
+    Normal(parameterFunction::Function) = new(parameterFunction)
+    Normal(mu::Real, sigma::Real) = new(a->(mu, sigma))
 end
-domain(d::NormalCPD) = REAL_DOMAIN
-function pdf(d::NormalCPD, a::Assignment)
+domain(d::Normal) = REAL_DOMAIN
+function pdf(d::Normal, a::Assignment)
     (mu::Float64, sigma::Float64) = d.parameterFunction(a)
     x -> begin x
         z = (x - mu)/sigma
         exp(-0.5*z*z)/(√2π*sigma)
     end
 end
-function Base.rand(d::CPDs.NormalCPD, a::Assignment)
+function Base.rand(d::CPDs.Normal, a::Assignment)
     mu, sigma = d.parameterFunction(a)::Tuple{Float64, Float64}
     mu + randn() * sigma
 end

@@ -1,12 +1,17 @@
-VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
+# VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 
 module BayesNets
 
 using Compat
 using LightXML
+using Reexport
 
-import LightGraphs: DiGraph, rem_edge!, add_edge!, add_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, is_cyclic, nv, ne
-import TikzGraphs: plot
+include("cpds.jl")
+@reexport using BayesNets.CPDs
+
+
+import LightGraphs: DiGraph, rem_edge!, add_edge!, add_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, is_cyclic, nv, ne
+import TikzGraphs: plot, simple_graph
 import DataFrames: DataFrame, groupby, names
 
 export
@@ -28,6 +33,7 @@ export
 	cpd,
 	pdf,
 	parents,
+	children,
 	names,
 	plot,
 
@@ -51,9 +57,7 @@ export
 
 	readxdsl
 
-using Reexport
-include("cpds.jl");
-@reexport using BayesNets.CPDs
+
 
 include("ndgrid.jl")
 include("assignments.jl")

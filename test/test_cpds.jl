@@ -4,10 +4,10 @@
 @test rand([0.0, 1.0]) == 2
 
 let
-	# DiscreteFunctionCPD
+	# DiscreteFunction
 	# TODO: test other constructors
 
-	d = DiscreteFunctionCPD(
+	d = CPDs.DiscreteFunction(
 			[1,2],
 			a -> begin a
 				if a == Dict(:A => 1)
@@ -34,8 +34,8 @@ let
 end
 
 let
-	# DiscreteDictCPD
-	d = DiscreteDictCPD(
+	# DiscreteDict
+	d = CPDs.DiscreteDict(
 			[1,2], Dict(Dict(:A => 1) => [0.2, 0.8],
 						Dict(:A => 2) => [0.3, 0.7],
 						Dict(:A => 3) => [1.0, 0.0])
@@ -54,8 +54,8 @@ let
 end
 
 let
-	# DiscreteStaticCPD
-	d = DiscreteStaticCPD(
+	# DiscreteStatic
+	d = CPDs.DiscreteStatic(
 			[1,2], [0.5,0.5]
 		)
 
@@ -71,16 +71,16 @@ let
 end
 
 let
-	# BernoulliCPD
-	d = BernoulliCPD()
+	# Bernoulli
+	d = CPDs.Bernoulli()
 	@test probvec(d, Dict(:A => 1)) == [0.5, 0.5]
 	@test probvec(d, Dict(:A => 2)) == [0.5, 0.5]
 
-	d = BernoulliCPD(0.4)
+	d = CPDs.Bernoulli(0.4)
 	@test probvec(d, Dict(:A => 1)) == [0.4, 0.6]
 	@test probvec(d, Dict(:A => 2)) == [0.4, 0.6]
 
-	d = BernoulliCPD(a -> begin a
+	d = CPDs.Bernoulli(a -> begin a
 			if a == Dict(:A => 1)
 				return 0.2
 			elseif a == Dict(:A => 2)
@@ -96,7 +96,7 @@ let
 	@test probvec(d, Dict(:A => 3)) == [1.0, 0.0]
 
 	# TODO: test the final constructor once we figure out how it works
-	# d = BernoulliCPD(
+	# d = Bernoulli(
 
 	# 		Dict(Dict(:A => 1) => [0.2, 0.8],
 	# 		     Dict(:A => 2) => [0.3, 0.7],
@@ -108,8 +108,8 @@ let
 end
 
 let
-	# NormalCPD
-	d = NormalCPD(0.0, 1.0)
+	# Normal
+	d = CPDs.Normal(0.0, 1.0)
 
 	dom = domain(d)
 	@test isa(dom, ContinuousDomain)
