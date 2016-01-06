@@ -6,7 +6,7 @@ using Compat
 using LightXML
 using Reexport
 
-include("cpds.jl")
+include(joinpath("CPDS", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
 

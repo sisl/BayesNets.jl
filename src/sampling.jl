@@ -9,25 +9,51 @@ function Base.rand(bn::BayesNet)
     a
 end
 
-function rand_table(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment())
-    ordering = topological_sort_by_dfs(bn.dag)
-    t = Dict([node.name => Any[] for node in bn.nodes])
-    a = Assignment()
+# function rand_table(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment())
+#     ordering = topological_sort_by_dfs(bn.dag)
+#     t = Dict([node.name => Any[] for node in bn.nodes])
+#     a = Assignment()
 
-    for i in 1:numSamples
-        for node in bn.nodes[ordering]
-            name = node.name
-            a[name] = rand(cpd(bn, name), a)
-        end
-        if consistent(a, consistentWith)
-            for node in bn.nodes[ordering]
-                name = node.name
-                push!(t[name], a[name])
-            end
-        end
-    end
-    convert(DataFrame, t)
-end
+#     for i in 1:numSamples
+#         for node in bn.nodes[ordering]
+#             name = node.name
+#             a[name] = rand(cpd(bn, name), a)
+#         end
+#         if consistent(a, consistentWith)
+#             for node in bn.nodes[ordering]
+#                 name = node.name
+#                 push!(t[name], a[name])
+#             end
+#         end
+#     end
+#     convert(DataFrame, t)
+# end
+
+# """
+# Generates a DataFrame containing a dataset of variable assignments.
+# Should always return a DataFrame with `numSamples` rows.
+
+# numSamples: the number of rows the resulting DataFrame will contain
+# consistentWith: the assignment that all samples must be consistent with (ie, Dict[:A=>1] means all samples must have :A==1)
+# maxNumSamples: an upper limit on the number of samples that will be tried, needed to ensure zero-prob samples are never used
+# """
+# function rand_table(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment(), maxNumSamples::Integer=numSamples*100)
+#     ordering = topological_sort_by_dfs(bn.dag)
+#     t = Dict([node.name => Any[] for node in bn.nodes])
+#     a = Assignment()
+
+#     for i in 1:numSamples
+#         for node in bn.nodes[ordering]
+#             name = node.name
+#             a[name] = get(consistentWith, name, rand(cpd(bn, name), a))
+#            # TODO: check that resulting CPD is non-zero
+
+
+#             push!(t[name], a[name])
+#         end
+#     end
+#     convert(DataFrame, t)
+# end
 
 function rand_table_weighted(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment())
     ordering = topological_sort_by_dfs(bn.dag)
