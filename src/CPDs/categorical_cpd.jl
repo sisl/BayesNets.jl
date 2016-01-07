@@ -3,20 +3,24 @@ A categorical distribution that assumes discrete parents
 =#
 
 type CategoricalCPD <: CPD{Categorical}
+    name::NodeName
     n_instantiations::Int # number of values in domain, 1:n_instantiations
+    alpha::Float64
 
-    parents::Vector{NodeName} # ordering of the parents
-
+    parent_names::Vector{NodeName} # ordering of the parents
     probabilities::Array{Float64} # n_instantiations × nparental_instantiations of parents
                                   # n_instantiations if no parents
     parental_assignments::Vector{Int} # preallocated array of parental assignments
     parent_instantiation_counts::Tuple{Vararg{Int}} # list of integer instantiation counts
 
-    function CategoricalCPD(n::Int)
+    function CategoricalCPD(name::NodeName, n::Int, alpha::Float64=0.0)
         retval = new()
-        retval.n_instantiations = n
 
-        # other things are NOT instantiated now
+        retval.name = name
+        retval.n_instantiations = n
+        retval.alpha = alpha
+
+        # other things are NOT instantiated yet
 
         retval
     end
@@ -25,22 +29,21 @@ end
 trained(cpd::CategoricalCPD) = isdefined(cpd, :probabilities)
 Distributions.ncategories(cpd::CategoricalCPD) = cpd.n_instantiations
 
-function learn!(cpd::CategoricalCPD, bn::BayesNet, name::NodeName, data::DataFrame, alpha::Float64=0.0)
+function learn!{C<:CPD}(cpd::CategoricalCPD, parents::AbstractVector{C}, data::DataFrame)
 
-    myparents = parents(bn, name)
-    @assert(all(map(p->distribution(node(bn, p).cpd) <: DiscreteUnivariateDistribution, myparents)),
+    @assert(all(map(p->(distribution(p) <: DiscreteUnivariateDistribution), parents)),
             "All parents must be discrete")
 
-    if !isempty(myparents)
+    if !isempty(parents)
 
         # ---------------------
         # pull discrete dataset
         # 1st row is all of the data for the 1st parent
         # 2nd row is all of the data for the 2nd parent, etc.
 
-        nparents = length(myparents)
+        nparents = length(parents)
         discrete_data = Array(Int, nparents, nrow(data))
-        for (i,p) in enumerate(myparents)
+        for (i,p) in enumerate(parents)
             arr = data[p]
             for j in 1 : nrow(data)
                 discrete_data[i,j] = arr[j]
@@ -57,7 +60,7 @@ function learn!(cpd::CategoricalCPD, bn::BayesNet, name::NodeName, data::DataFra
         # calc parent_instantiation_counts
 
         parent_instantiation_counts = Array(Int, nparents)
-        for (i,p) in enumerate(myparents)
+        for (i,p) in enumerate(parents)
             parent_instantiation_counts[i] = ncategories(node(bn,p).cpd)
         end
 
@@ -99,15 +102,15 @@ function learn!(cpd::CategoricalCPD, bn::BayesNet, name::NodeName, data::DataFra
         cpd.probabilities = probabilities
     end
 
-    cpd.parents = myparents
+    cpd.parent_names = convert(Vector{NodeName}, map(p->name(p), parents))
 
     cpd
 end
 function pdf(cpd::CategoricalCPD, a::Assignment)
 
-    if !isempty(cpd.parents)
+    if !isempty(cpd.parent_names)
         # pull the parental assignments
-        for (i,p) in enumerate(cpd.parents)
+        for (i,p) in enumerate(cpd.parent_names)
             cpd.parental_assignments[i] = a[p]
         end
 

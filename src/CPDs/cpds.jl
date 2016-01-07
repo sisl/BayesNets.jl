@@ -34,10 +34,12 @@ Each CPD must implement:
     Distributions.ncategories(CPD)
     learn!(CPD, BayesNet, NodeName, DataFrame)
     pdf(CPD, Assignment)
+    cpd.name or name(CPD)
 =#
 
 distribution{D}(cpd::CPD{D}) = D
 Base.rand(cpd::CPD, a::Assignment) = rand(pdf(cpd, a))
+name(cpd::CPD) = cpd.name # all cpds have names by default
 
 ###########################
 
