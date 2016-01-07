@@ -23,7 +23,7 @@ in the jth sample
 function index_data(bn::BayesNet, d::DataFrame)
     d = d[:, names(bn)]
     n = length(bn.nodes)
-    data = Array(Int, size(d,2), size(d,1))
+    data = Array(Int, size(d,2), size(d,1)) # [nvars × nvalues]
     for (i,node) in enumerate(bn.nodes)
         name = node.name
         elements = domain(bn, name).elements
@@ -38,7 +38,7 @@ end
 function statistics(bn::BayesNet, alpha::Float64 = 0.0)
     n = length(bn.nodes)
     r = [length(domain(bn, node.name).elements) for node in bn.nodes]
-    parentList = [collect(in_neighbors(bn.dag, i)) for i = 1:n]
+    parentList = [collect(in_neighbors(bn.dag, i)) for i in 1:n]
     N = cell(n)
     for i = 1:n
         q = 1
@@ -70,7 +70,7 @@ function statistics!(N::Vector{Any}, bn::BayesNet, d::Matrix{Int})
             end
             js = d[p,:]' * stridevec - sum(stridevec) + 1
             # side note: flipping d to make array access column-major improves speed by a further 10%
-            # this change could be hacked into this method (dT = d'), but should really be made in indext_data
+            # this change could be hacked into this method (dT = d'), but should really be made in index_data
         else
             js = fill(1, m)
         end
