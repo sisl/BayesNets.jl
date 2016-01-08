@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<smile version="1.0" id="Network1" numsamples="1000" discsamples="10000">
+	<nodes>
+		<cpt id="Degree">
+			<state id="Masters" />
+			<state id="PhD" />
+			<probabilities>0.8 0.2</probabilities>
+		</cpt>
+		<cpt id="Job">
+			<state id="InNOut" />
+			<state id="NASA" />
+			<parents>Degree</parents>
+			<probabilities>0.8 0.2 0.25 0.75</probabilities>
+		</cpt>
+		<cpt id="Life">
+			<state id="Happy" />
+			<state id="Sad" />
+			<parents>Degree Job</parents>
+			<probabilities>0.1 0.9 0.9 0.09999999999999998 0.01 0.99 0.99 0.01000000000000001</probabilities>
+		</cpt>
+	</nodes>
+	<extensions>
+		<genie version="1.0" app="GeNIe 2.0.5590.0" name="Network1" faultnameformat="nodestate">
+			<node id="Degree">
+				<name>Degree</name>
+				<interior color="e5f6f7" />
+				<outline color="000080" />
+				<font color="000000" name="Arial" size="8" />
+				<position>83 51 134 82</position>
+			</node>
+			<node id="Life">
+				<name>Life</name>
+				<interior color="e5f6f7" />
+				<outline color="000080" />
+				<font color="000000" name="Arial" size="8" />
+				<position>96 206 148 238</position>
+			</node>
+			<node id="Job">
+				<name>Job</name>
+				<interior color="e5f6f7" />
+				<outline color="000080" />
+				<font color="000000" name="Arial" size="8" />
+				<position>210 98 277 141</position>
+			</node>
+		</genie>
+	</extensions>
+</smile>

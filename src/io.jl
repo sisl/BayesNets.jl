@@ -160,11 +160,17 @@ end
 
 function get_domain( e::LightXML.XMLElement )
 # Check whether any of the domain elements is a non-integer.  If so, the whole domain will be composed of strings
-	
-	states   = [parse(Int, match(r"\d", convert(ASCIIString, attribute(s, "id"))).match) for s in get_elements_by_tagname(e, "state")]
-	if in(false,[convert(ASCIIString, attribute(s, "id"))==match(r"\d", convert(ASCIIString, attribute(s, "id"))).match for s in get_elements_by_tagname(e, "state")])
+
+	states = AbstractString[]
+	if in(true,[isa(match(r"\d", convert(ASCIIString, attribute(s, "id"))),Void) for s in get_elements_by_tagname(e, "state")])
+		# Without this check, the following elseif conditional could return an error (if no integers are in the domain name at all)
+		states   = [convert(ASCIIString, attribute(s, "id")) for s in get_elements_by_tagname(e, "state")]
+	elseif in(false,[convert(ASCIIString, attribute(s, "id"))==match(r"\d", convert(ASCIIString, attribute(s, "id"))).match for s in get_elements_by_tagname(e, "state")])
 		# At least one element of the domain is not an integer:
 		states   = [convert(ASCIIString, attribute(s, "id")) for s in get_elements_by_tagname(e, "state")]
+	else
+		# All domain elements are integers:
+		states   = [parse(Int, match(r"\d", convert(ASCIIString, attribute(s, "id"))).match) for s in get_elements_by_tagname(e, "state")]	
 	end
 
 	states
