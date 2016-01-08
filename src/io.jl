@@ -128,7 +128,8 @@ function readxdsl( filename::AbstractString )
 
 		# set the node's domain
 		#states   = [parse(Int, match(r"\d", convert(ASCIIString, attribute(s, "id"))).match) for s in get_elements_by_tagname(e, "state")]
-		states   = [convert(ASCIIString, attribute(s, "id")) for s in get_elements_by_tagname(e, "state")]
+		#states   = [convert(ASCIIString, attribute(s, "id")) for s in get_elements_by_tagname(e, "state")]
+		states = get_domain(e)
 
 		n_states = length(states)::Int
 		BN.nodes[i].domain = DiscreteDomain(states)
@@ -155,4 +156,16 @@ function readxdsl( filename::AbstractString )
 	end
 
 	BN
+end
+
+function get_domain( e::LightXML.XMLElement )
+# Check whether any of the domain elements is a non-integer.  If so, the whole domain will be composed of strings
+	
+	states   = [parse(Int, match(r"\d", convert(ASCIIString, attribute(s, "id"))).match) for s in get_elements_by_tagname(e, "state")]
+	if in(false,[convert(ASCIIString, attribute(s, "id"))==match(r"\d", convert(ASCIIString, attribute(s, "id"))).match for s in get_elements_by_tagname(e, "state")])
+		# At least one element of the domain is not an integer:
+		states   = [convert(ASCIIString, attribute(s, "id")) for s in get_elements_by_tagname(e, "state")]
+	end
+
+	states
 end
