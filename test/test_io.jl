@@ -66,13 +66,13 @@ let
 	
 	assignments=BayesNets.assignment_dicts(bn,[:Degree,:Life,:Job])
 	@test assignments == 
-			[Dict{Symbol,Any}(:Job=>"InNOut",:Degree=>"Masters",:Life=>"Happy")
-			 Dict{Symbol,Any}(:Job=>"InNOut",:Degree=>"PhD",:Life=>"Happy")    
-			 Dict{Symbol,Any}(:Job=>"InNOut",:Degree=>"Masters",:Life=>"Sad")  
-			 Dict{Symbol,Any}(:Job=>"InNOut",:Degree=>"PhD",:Life=>"Sad")      
-			 Dict{Symbol,Any}(:Job=>"NASA",:Degree=>"Masters",:Life=>"Happy")  
-			 Dict{Symbol,Any}(:Job=>"NASA",:Degree=>"PhD",:Life=>"Happy")      
-			 Dict{Symbol,Any}(:Job=>"NASA",:Degree=>"Masters",:Life=>"Sad")    
-			 Dict{Symbol,Any}(:Job=>"NASA",:Degree=>"PhD",:Life=>"Sad")]	
+			[Dict{Symbol,Any}(:Job=>"InNOut",:Degree=>"Masters",:Life=>"Happy4")
+			 Dict{Symbol,Any}(:Job=>"InNOut",:Degree=>"PhD",:Life=>"Happy4")    
+			 Dict{Symbol,Any}(:Job=>"InNOut",:Degree=>"Masters",:Life=>"Sad5")  
+			 Dict{Symbol,Any}(:Job=>"InNOut",:Degree=>"PhD",:Life=>"Sad5")      
+			 Dict{Symbol,Any}(:Job=>"NASA",:Degree=>"Masters",:Life=>"Happy4")  
+			 Dict{Symbol,Any}(:Job=>"NASA",:Degree=>"PhD",:Life=>"Happy4")      
+			 Dict{Symbol,Any}(:Job=>"NASA",:Degree=>"Masters",:Life=>"Sad5")    
+			 Dict{Symbol,Any}(:Job=>"NASA",:Degree=>"PhD",:Life=>"Sad5")]	
 
 end
