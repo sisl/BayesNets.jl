@@ -120,13 +120,17 @@ function readxdsl( filename::AbstractString )
 
 		node_sym = names[i]
 
-		for s in get_elements_by_tagname(e, "state")
-			attr = convert(ASCIIString, attribute(s, "id"))
-			@assert(!isa(match(r"\d", attr), Void), "All state ids must be integers")
-		end
+		# Want to support strings and other types of state IDs, not just integers.
+		# for s in get_elements_by_tagname(e, "state")
+		# 	attr = convert(ASCIIString, attribute(s, "id"))
+		# 	@assert(!isa(match(r"\d", attr), Void), "All state ids must be integers")
+		# end
 
 		# set the node's domain
-		states   = [parse(Int, match(r"\d", convert(ASCIIString, attribute(s, "id"))).match) for s in get_elements_by_tagname(e, "state")]
+		#states   = [parse(Int, match(r"\d", convert(ASCIIString, attribute(s, "id"))).match) for s in get_elements_by_tagname(e, "state")]
+		#states   = [convert(ASCIIString, attribute(s, "id")) for s in get_elements_by_tagname(e, "state")]
+		states = get_domain(e)
+
 		n_states = length(states)::Int
 		BN.nodes[i].domain = DiscreteDomain(states)
 
@@ -142,8 +146,8 @@ function readxdsl( filename::AbstractString )
 
 			# populate probability table
 			reverse!(parents) # because SMILE varies first parent least quickly
-			assigments = assignment_dicts(BN, parents)
-			parameterFunction = discrete_parameter_function(assigments, probs, n_states)
+			assignments = assignment_dicts(BN, parents)
+			parameterFunction = discrete_parameter_function(assignments, probs, n_states)
 			set_CPD!(BN, node_sym, CPDs.DiscreteFunction(states, parameterFunction))
 		else
 			# no parents
@@ -152,4 +156,22 @@ function readxdsl( filename::AbstractString )
 	end
 
 	BN
+end
+
+function get_domain( e::LightXML.XMLElement )
+# Check whether any of the domain elements is a non-integer.  If so, the whole domain will be composed of strings
+
+	states = AbstractString[]
+	if in(true,[isa(match(r"\d", convert(ASCIIString, attribute(s, "id"))),Void) for s in get_elements_by_tagname(e, "state")])
+		# Without this check, the following elseif conditional could return an error (if no integers are in the domain name at all)
+		states   = [convert(ASCIIString, attribute(s, "id")) for s in get_elements_by_tagname(e, "state")]
+	elseif in(false,[convert(ASCIIString, attribute(s, "id"))==match(r"\d", convert(ASCIIString, attribute(s, "id"))).match for s in get_elements_by_tagname(e, "state")])
+		# At least one element of the domain is not an integer:
+		states   = [convert(ASCIIString, attribute(s, "id")) for s in get_elements_by_tagname(e, "state")]
+	else
+		# All domain elements are integers:
+		states   = [parse(Int, match(r"\d", convert(ASCIIString, attribute(s, "id"))).match) for s in get_elements_by_tagname(e, "state")]	
+	end
+
+	states
 end

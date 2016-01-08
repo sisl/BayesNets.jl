@@ -9,21 +9,27 @@ function Base.rand(bn::BayesNet)
     a
 end
 
-function rand_table(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment())
+function rand_table(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment(), maxRejectedSamples::Integer=100*numSamples)
     ordering = topological_sort_by_dfs(bn.dag)
     t = Dict([node.name => Any[] for node in bn.nodes])
     a = Assignment()
 
-    for i in 1:numSamples
+    numSampled=0
+    rejectedSamples=0
+    while (numSampled<numSamples) && (rejectedSamples<maxRejectedSamples)
         for node in bn.nodes[ordering]
             name = node.name
             a[name] = rand(cpd(bn, name), a)
         end
+
         if consistent(a, consistentWith)
+            numSampled+=1
             for node in bn.nodes[ordering]
                 name = node.name
                 push!(t[name], a[name])
             end
+        else
+            rejectedSamples+=1
         end
     end
     convert(DataFrame, t)
