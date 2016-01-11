@@ -1,12 +1,12 @@
-VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
+# VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 
 module BayesNets
 
 using Compat
-using LightXML
 using Reexport
+# using LightXML
 
-include(joinpath("CPDS", "cpds.jl"))
+include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
 
@@ -31,7 +31,6 @@ export
 	set_domain!,
 	prob,
 	cpd,
-	pdf,
 	parents,
 	children,
 	names,
@@ -60,12 +59,12 @@ export
 
 
 include("ndgrid.jl")
-include("assignments.jl")
-include("factors.jl")
-include("bayes_nets.jl")
-include("sampling.jl")
-include("learning.jl")
-include("io.jl")
-include("deprecated.jl")
+# include("assignments.jl")
+# include("factors.jl")
+# include("bayes_nets.jl")
+# include("sampling.jl")
+# include("learning.jl")
+# include("io.jl")
+# include("deprecated.jl")
 
 end # module
