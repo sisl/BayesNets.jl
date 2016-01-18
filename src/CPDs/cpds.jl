@@ -28,13 +28,12 @@ import Distributions: ncategories, pdf
 typealias NodeName Symbol
 typealias Assignment Dict
 
-abstract CPD{D<:UnivariateDistribution}
+abstract CPD{D<:Distribution}
 #=
 Each CPD must implement:
     trained(CPD)
     learn!(CPD, BayesNet, NodeName, DataFrame)
-    pdf(CPD, Assignment)
-    cpd.name or name(CPD)
+    pdf(CPD, Assignment, parents::AbstractVector{NodeName}) # NOTE: parents must always be in the same topological order
 
     IF DISCRETE:
         ncategories(CPD)

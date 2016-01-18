@@ -6,9 +6,6 @@ A linear gaussian CPD
 
 type LinearGaussianCPD <: CPD{Normal}
 
-	name::NodeName
-	parent_names::Vector{NodeName} # ordering of the parents
-
 	a::Vector{Float64}
 	b::Float64
 	σ::Float64
@@ -27,9 +24,32 @@ end
 
 trained(cpd::LinearGaussianCPD) = isdefined(cpd, :a)
 
-function learn!{C<:CPD}(cpd::LinearGaussianCPD, parents::AbstractVector{C}, data::DataFrame)
+function learn!{C<:CPD}(
+	cpd::LinearGaussianCPD,
+	target_name::NodeName,
+	data::DataFrame,
+	)
 
-	node_name = name(cpd)
+	# no parents
+
+	μ = mean(data[target_name])
+	σ = stdm(data[target_name], μ)
+
+	cpd.a = Array(Float64, 0)
+	cpd.b = μ
+	cpd.σ = σ
+
+	cpd
+end
+function learn!{C<:CPD}(
+	cpd::LinearGaussianCPD,
+	target_name::NodeName,
+	parent_CPDs::AbstractVector{C},
+	parent_names::AbstractVector{NodeName},
+	data::DataFrame,
+	)
+
+	@assert(length(parent_CPDs) == length(parent_names))
 
 	if !isempty(parents)
 
@@ -41,14 +61,14 @@ function learn!{C<:CPD}(cpd::LinearGaussianCPD, parents::AbstractVector{C}, data
 		nparents = length(parents)
 		X = Array(Float64, nrow(data), nparents+1)
 		for (i,p) in enumerate(parents)
-			arr = data[name(p)]
+			arr = data[parent_names[i]]
 			for j in 1 : nrow(data)
 				X[j,i] = convert(Float64, arr[j])
 			end
 		end
 		X[:,end] = 1.0
 
-		y = convert(Vector{Float64}, data[node_name])
+		y = convert(Vector{Float64}, data[target_name])
 
 		# --------------------
 		# solve the regression problem
@@ -67,28 +87,25 @@ function learn!{C<:CPD}(cpd::LinearGaussianCPD, parents::AbstractVector{C}, data
 		cpd.b = β[end]
 		cpd.σ = std(y)
 	else
-		μ = mean(data[node_name])
-		σ = stdm(data[node_name], μ)
-
-		cpd.a = Array(Float64, 0)
-		cpd.b = μ
-		cpd.σ = σ
+		learn!(cpd, target_name, data)
 	end
-
-	cpd.parent_names = convert(Vector{NodeName}, map(p->name(p), parents))
 
 	cpd
 end
-function pdf(cpd::LinearGaussianCPD, a::Assignment)
 
-	if !isempty(cpd.parent_names)
+function pdf(cpd::LinearGaussianCPD, a::Assignment, parent_names::AbstractVector{NodeName})
 
-		parent_values = Array(Float64, length(cpd.parent_names))
-		for (i, sym) in enumerate(cpd.parent_names)
-			parent_values[i] = a[sym]
+	nparents = length(parent_names)
+	@assert(nparents == length(cpd.a))
+
+	if nparents > 0
+
+		# compute A⋅v + b
+		μ = cpd.b
+		for (i, sym) in enumerate(parent_names)
+			μ += a[sym]*cpd.a[i]
 		end
 
-		μ = dot(cpd.a, parent_values) + cpd.b
 		Normal(μ, cpd.σ)
 	else
 		Normal(cpd.b, cpd.σ)
