@@ -19,7 +19,7 @@ type LinearGaussianCPD <: CPD{Normal}
 
 		retval.name = name
 
-		# other things are NOT instantiated yet
+		# other fields are NOT instantiated yet
 
 		retval
 	end
