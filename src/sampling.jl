@@ -9,6 +9,8 @@ function Base.rand(bn::BayesNet)
     a
 end
 
+Distributions.pdf(bn::BayesNet, name::NodeName, a::Assignment) = pdf(cpd(bn, name), a, parents(bn, name))
+
 # function rand_table(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment())
 #     ordering = topological_sort_by_dfs(bn.dag)
 #     t = Dict([node.name => Any[] for node in bn.nodes])
