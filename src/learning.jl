@@ -12,6 +12,17 @@ function Distributions.fit(::Type{BayesNet}, data::DataFrame, dag::DAG, cpd_type
 
     BayesNet(cpds)
 end
+function Distributions.fit{C<:CPD}(::Type{BayesNet}, data::DataFrame, dag::DAG, ::Type{C})
+
+    cpds = Array(C, nv(dag))
+    tablenames = names(data)
+    for (i, target) in enumerate(tablenames)
+        parents = tablenames[in_neighbors(dag, i)]
+        cpds[i] = fit(C, data, target, parents)
+    end
+
+    BayesNet(cpds)
+end
 
 # bn = fit(BayesNet, df) # uses inference to determine
 # Float -> Cond. Linear Gaussian, Other -> Categorical

@@ -8,7 +8,7 @@ function Base.rand!(a::Assignment, bn::BayesNet)
     end
     a
 end
-Base.rand(bn::BayesNet) = rand!(Assignment(), bn)
+Base.rand(bn::BayesNet) = rand!(Dict{Symbol,Any}(), bn)
 
 # function rand_table(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment())
 #     ordering = topological_sort_by_dfs(bn.dag)

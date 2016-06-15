@@ -12,7 +12,7 @@ function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F}, y::Abstract
 	rtol::F=sqrt(eps(F)),
 	atol::F=zero(F),
 	)
-	
+
 	if length(x) != length(y)
 		return false
 	end
@@ -22,17 +22,17 @@ function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F}, y::Abstract
 			return false
 		end
 	end
-	
+
 	true
 end
 
-include("test_ndgrid.jl")
+# include("test_ndgrid.jl")
 include("test_cpds.jl")
-include(joinpath("CPDs", "test_categorical_cpd.jl"))
-include(joinpath("CPDs", "test_linear_gaussian.jl"))
+# include(joinpath("CPDs", "test_categorical_cpd.jl"))
+# include(joinpath("CPDs", "test_linear_gaussian.jl"))
 # include("test_assignments.jl")
 # include("test_factors.jl")
-# include("test_bayesnets.jl")
+include("test_bayesnets.jl")
 # include("test_sampling.jl")
 # include("test_learning.jl")
 # include("test_io.jl")
