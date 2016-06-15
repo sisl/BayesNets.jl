@@ -27,3 +27,14 @@ function sub2ind_vec{T<:Integer}(dims::Tuple{Vararg{Integer}}, I::AbstractVector
 
     ex + 1
 end
+
+"""
+Infer the number of instantiations, N, for a data type, assuming
+that it takes on the values 1:N
+"""
+function infer_number_of_instantiations{I<:Int}(arr::AbstractVector{I})
+    lo, hi = extrema(arr)
+    lo ≥ 1 || error("infer_number_of_instantiations assumes values in 1:N, value $lo found!")
+    lo == 1 || warn("infer_number_of_instantiations assumes values in 1:N, lowest value is $(lo)!")
+    hi
+end

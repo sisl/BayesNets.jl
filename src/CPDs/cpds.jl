@@ -5,23 +5,32 @@ Each node in a Bayesian Network is associated with a variable,
 and contains the CPD relating that var to its parents, P(x | parents(x))
 =#
 
-# module CPDs
+module CPDs
 
 using Reexport
 @reexport using Distributions
 @reexport using DataFrames
 
-# export
-#     CPD,                         # the abstract CPD type
+export
+    CPD,                         # the abstract CPD type
 
-#     Assignment,                  # variable assignment type, complete or partial, for a Bayesian Network
-#     NodeName,                    # variable name type
+    Assignment,                  # variable assignment type, complete or partial, for a Bayesian Network
+    NodeName,                    # variable name type
 
-#     name,                        # obtain the name of the CPD
-#     distribution,                # returns the CPD's distribution type
-#     trained,                     # whether the CPD has been trained
-#     pdf,                         # probability density function or probability distribution function (continuous or discrete)
-#     learn!                       # train a CPD based on data
+    CPDCore,                     # contains core data for every CPD
+    StaticCPD,                   # static distribution (never uses parental information)
+    CategoricalCPD,
+    LinearGaussianCPD,
+
+    name,                        # obtain the name of the CPD
+    parents,                     # obtain the parents in the CPD
+    parentless,                  # whether the given variable is parentless
+    distribution,                # returns the CPD's distribution type
+    disttype,                    # returns the distribution type
+    condition!,                  # update the conditional distribution with the observation
+
+    sub2ind_vec,
+    infer_number_of_instantiations
 
 typealias NodeName Symbol
 typealias Assignment Dict
@@ -41,6 +50,8 @@ Each CPD must implement:
 
 disttype{D}(cpd::CPD{D}) = D
 Base.rand(cpd::CPD, a::Assignment) = rand(pdf(cpd, a))
+
+parentless(cpd::CPD) = isempty(parents(cpd))
 
 Distributions.pdf(cpd::CPD, a::Assignment) = pdf(distribution(cpd), a[name(cpd)])
 function pdf!(cpd::CPD, a::Assignment)
@@ -76,7 +87,7 @@ end
 ###########################
 
 include("utils.jl")
-# include("categorical_cpd.jl")
-# include("linear_gaussian.jl")
+include("categorical_cpd.jl")
+include("linear_gaussian_cpd.jl")
 
-# end # module CPDs
+end # module CPDs
