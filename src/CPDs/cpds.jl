@@ -1,6 +1,6 @@
 #=
 A CPD is a Conditional Probability Distribution
-In general, theyrepresent distribtions of the form P(X|Y)
+In general, they represent distribtions of the form P(X|Y)
 Each node in a Bayesian Network is associated with a variable,
 and contains the CPD relating that var to its parents, P(x | parents(x))
 =#
