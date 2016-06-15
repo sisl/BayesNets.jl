@@ -50,6 +50,7 @@ type BayesNet{C<:CPD}
 	cpds::Vector{C} # the CPDs associated with each node in the dag
 	name_to_index::Dict{NodeName,Int} # NodeName → index in dag and cpds
 end
+BayesNet() = BayesNet(DAG(0), CPD[], Dict{NodeName, Int}())
 function BayesNet{C<:CPD}(cpds::AbstractVector{C})
 
 	name_to_index = Dict{NodeName, Int}()
@@ -65,7 +66,6 @@ function BayesNet{C<:CPD}(cpds::AbstractVector{C})
 
 	BayesNet(dag2, cpds2, name_to_index2)
 end
-
 
 Base.get(bn::BayesNet, i::Int) = bn.cpds[i]
 Base.get(bn::BayesNet, name::NodeName) = bn.cpds[bn.name_to_index[name]]
@@ -85,14 +85,14 @@ end
 """
 Returns the parents as a list of NodeNames
 """
-CPDs.parents(bn::BayesNet, name::NodeName) = parents(bn[name])
+CPDs.parents(bn::BayesNet, name::NodeName) = parents(get(bn, name))
 
 """
 Returns the children as a list of NodeNames
 """
-function children(bn::BayesNet, name::NodeName)
-	i = bn.name_to_index[name]
-	NodeName[bn.cpds[j].name for j in out_neighbors(bn.dag, i)]
+function children(bn::BayesNet, target::NodeName)
+	i = bn.name_to_index[target]
+	NodeName[name(bn.cpds[j]) for j in out_neighbors(bn.dag, i)]
 end
 
 function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)
@@ -102,7 +102,7 @@ function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)
 end
 
 function enforce_topological_order!(bn)
-	dag2, cpds2, name_to_index2 = _enforce_topological_order!(dag, cpds, name_to_index)
+	dag2, cpds2, name_to_index2 = _enforce_topological_order(bn.dag, bn.cpds, bn.name_to_index)
 	bn.dag = dag2
 	bn.cpds = cpds2
 	bn.name_to_index = name_to_index2
@@ -110,9 +110,13 @@ function enforce_topological_order!(bn)
 end
 
 function Base.push!(bn::BayesNet, cpd::CPD)
+
+	cpdname = name(cpd)
+	!haskey(bn.name_to_index, cpdname) || error("A CPD with that name already exists!")
+
 	add_vertex!(bn.dag)
 	push!(bn.cpds, cpd)
-	bn.name_to_index[cpd.name] = j = length(bn.cpds)
+	bn.name_to_index[cpdname] = j = length(bn.cpds)
 
 	# add the necessary edges
 	for p in parents(cpd)
