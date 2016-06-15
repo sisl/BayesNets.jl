@@ -38,3 +38,17 @@ function infer_number_of_instantiations{I<:Int}(arr::AbstractVector{I})
     lo == 1 || warn("infer_number_of_instantiations assumes values in 1:N, lowest value is $(lo)!")
     hi
 end
+
+"""
+True if all common keys between the two assignments have the same value
+"""
+function consistent(a::Assignment, b::Assignment)
+
+    for key in keys(a)
+        if !haskey(b, key) || b[key] != a[key]
+            return false
+        end
+    end
+
+    true
+end

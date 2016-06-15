@@ -64,7 +64,7 @@ function Distributions.fit(::Type{LinearGaussianCPD}, data::DataFrame, target::N
 	)
 
 	if isempty(parents)
-	    return fit(cpd, data, target, min_stdev=min_stdev)
+	    return fit(LinearGaussianCPD, data, target, min_stdev=min_stdev)
 	end
 
 	# ---------------------

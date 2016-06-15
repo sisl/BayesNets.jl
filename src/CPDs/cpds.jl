@@ -22,6 +22,8 @@ export
     CategoricalCPD,
     LinearGaussianCPD,
 
+    pdf!,                        # condition and obtain the pdf
+    logpdf!,                     # condition and obtain the logpdf
     name,                        # obtain the name of the CPD
     parents,                     # obtain the parents in the CPD
     parentless,                  # whether the given variable is parentless
@@ -30,7 +32,8 @@ export
     condition!,                  # update the conditional distribution with the observation
 
     sub2ind_vec,
-    infer_number_of_instantiations
+    infer_number_of_instantiations,
+    consistent
 
 typealias NodeName Symbol
 typealias Assignment Dict
@@ -49,14 +52,20 @@ Each CPD must implement:
 =#
 
 disttype{D}(cpd::CPD{D}) = D
-Base.rand(cpd::CPD, a::Assignment) = rand(pdf(cpd, a))
+Base.rand(cpd::CPD) = rand(distribution(cpd))
+Base.rand!(cpd::CPD, a::Assignment) = rand(condition!(cpd, a))
 
 parentless(cpd::CPD) = isempty(parents(cpd))
 
 Distributions.pdf(cpd::CPD, a::Assignment) = pdf(distribution(cpd), a[name(cpd)])
+Distributions.logpdf(cpd::CPD, a::Assignment) = logpdf(distribution(cpd), a[name(cpd)])
 function pdf!(cpd::CPD, a::Assignment)
     condition!(cpd, a)
     pdf(cpd, a)
+end
+function logpdf!(cpd::CPD, a::Assignment)
+    condition!(cpd, a)
+    logpdf(cpd, a)
 end
 
 ###########################

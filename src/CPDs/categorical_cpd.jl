@@ -78,7 +78,7 @@ function Distributions.fit(::Type{CategoricalCPD}, data::DataFrame, target::Node
     # with parents
 
     if isempty(parents)
-        return fit(cpd, data, target, dirichlet_prior=dirichlet_prior)
+        return fit(CategoricalCPD, data, target, dirichlet_prior=dirichlet_prior)
     end
 
     # ---------------------
