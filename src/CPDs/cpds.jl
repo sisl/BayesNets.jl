@@ -13,6 +13,7 @@ using Reexport
 
 export
     CPD,                         # the abstract CPD type
+    CPDForm,                     # describes how CPDs are updated and learned
 
     Assignment,                  # variable assignment type, complete or partial, for a Bayesian Network
     NodeName,                    # variable name type
@@ -66,11 +67,11 @@ Distributions.pdf(cpd::CPD, a::Assignment) = pdf(cpd.d, a[cpd.name])
 Distributions.logpdf(cpd::CPD, a::Assignment) = logpdf(cpd.d, a[cpd.name])
 function pdf!(cpd::CPD, a::Assignment)
     condition!(cpd, a)
-    pdf(cpd.d, a)
+    pdf(cpd.d, a[cpd.name])
 end
 function logpdf!(cpd::CPD, a::Assignment)
     condition!(cpd, a)
-    logpdf(cpd.d, a)
+    logpdf(cpd.d, a[cpd.name])
 end
 
 #=

@@ -82,7 +82,7 @@ function Distributions.fit{D<:Categorical,C<:CategoricalCPD}(
     # with parents
 
     if isempty(parents)
-        return fit(CategoricalCPD, data, target, dirichlet_prior=dirichlet_prior)
+        return fit(CPD{D,C}, data, target, dirichlet_prior=dirichlet_prior)
     end
 
     # ---------------------

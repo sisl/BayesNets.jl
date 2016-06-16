@@ -8,9 +8,11 @@ and contains an associated conditional probability distribution P(xⱼ | parents
 
 typealias DAG DiGraph
 
-DAG(n) = DiGraph(n)
+function _build_dag_from_cpds{T<:CPD}(
+	cpds::AbstractVector{T},
+	name_to_index::Dict{NodeName, Int}
+	)
 
-function _build_dag_from_cpds{C<:CPD}(cpds::AbstractVector{C}, name_to_index::Dict{NodeName, Int})
 	dag = DAG(length(cpds))
 	for cpd in cpds
 		j = name_to_index[name(cpd)]
@@ -21,15 +23,15 @@ function _build_dag_from_cpds{C<:CPD}(cpds::AbstractVector{C}, name_to_index::Di
 	end
 	dag
 end
-function _enforce_topological_order{C<:CPD}(
+function _enforce_topological_order{T<:CPD}(
 	dag::DAG,
-	cpds::AbstractVector{C},
+	cpds::AbstractVector{T},
 	name_to_index::Dict{NodeName, Int},
 	)
 
 	topo = topological_sort_by_dfs(dag)
 
-	cpds2 = Array(C, length(cpds))
+	cpds2 = Array(T, length(cpds))
 	name_to_index2 = Dict{NodeName, Int}()
 	for (i,j) in enumerate(topo)
 		# i is the new index
@@ -45,13 +47,14 @@ function _enforce_topological_order{C<:CPD}(
 	(dag2, cpds2, name_to_index2)
 end
 
-type BayesNet{C<:CPD}
+type BayesNet{T<:CPD}
 	dag::DAG # nodes are in topological order
-	cpds::Vector{C} # the CPDs associated with each node in the dag
+	cpds::Vector{T} # the CPDs associated with each node in the dag
 	name_to_index::Dict{NodeName,Int} # NodeName → index in dag and cpds
 end
 BayesNet() = BayesNet(DAG(0), CPD[], Dict{NodeName, Int}())
-function BayesNet{C<:CPD}(cpds::AbstractVector{C})
+BayesNet{T <: CPD}(::Type{T}) = BayesNet(DAG(0), T[], Dict{NodeName, Int}())
+function BayesNet{T <: CPD}(cpds::AbstractVector{T})
 
 	name_to_index = Dict{NodeName, Int}()
 	for (i, cpd) in enumerate(cpds)
@@ -77,7 +80,7 @@ Returns the ordered list of NodeNames
 function Base.names(bn::BayesNet)
 	retval = Array(NodeName, length(bn))
 	for (i,cpd) in enumerate(bn.cpds)
-		retval[i] = name(cpd)
+		retval[i] = cpd.name
 	end
 	retval
 end
@@ -101,7 +104,7 @@ function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)
 	has_edge(bn.dag, u, v)
 end
 
-function enforce_topological_order!(bn)
+function enforce_topological_order!(bn::BayesNet)
 	dag2, cpds2, name_to_index2 = _enforce_topological_order(bn.dag, bn.cpds, bn.name_to_index)
 	bn.dag = dag2
 	bn.cpds = cpds2
@@ -115,6 +118,7 @@ function Base.push!(bn::BayesNet, cpd::CPD)
 	!haskey(bn.name_to_index, cpdname) || error("A CPD with that name already exists!")
 
 	add_vertex!(bn.dag)
+
 	push!(bn.cpds, cpd)
 	bn.name_to_index[cpdname] = j = length(bn.cpds)
 

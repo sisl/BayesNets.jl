@@ -53,7 +53,7 @@ function Distributions.fit{D<:Normal{Float64},C<:LinearGaussianCPD}(
 	)
 
 	if isempty(parents)
-	    return fit(LinearGaussianCPD, data, target, min_stdev=min_stdev)
+	    return fit(CPD{D,C}, data, target, min_stdev=min_stdev)
 	end
 
 	# ---------------------

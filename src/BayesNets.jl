@@ -19,16 +19,16 @@ export
     parents,
     children,
     has_edge,
-    enforce_topological_order!
+    enforce_topological_order!,
 
 # 	node,
 # 	add_node!,
 # 	add_nodes!,
-# 	add_edge!,
+	add_edge!,
 # 	remove_edge!,
 # 	add_edges!,
 # 	remove_edges!,
-# 	has_edge,
+	has_edge
 # 	set_CPD!,
 # 	set_domain!,
 # 	prob,
