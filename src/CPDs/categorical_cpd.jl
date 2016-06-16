@@ -132,6 +132,7 @@ function Distributions.fit{D<:Categorical,C<:CategoricalCPD}(
     parental_assignments = Array(Int, nparents)
     parent_instantiation_counts = tuple(parent_instantiation_counts...)
 
+    # DEBUG
     form = CategoricalCPD(parental_assignments, parent_instantiation_counts, probabilities)
     CPD(target, parents, Categorical(n_instantiations), form)
 end

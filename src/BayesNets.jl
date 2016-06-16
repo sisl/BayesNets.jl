@@ -21,22 +21,10 @@ export
     has_edge,
     enforce_topological_order!,
 
-# 	node,
-# 	add_node!,
-# 	add_nodes!,
 	add_edge!,
+    has_edge,
 # 	remove_edge!,
-# 	add_edges!,
 # 	remove_edges!,
-	has_edge
-# 	set_CPD!,
-# 	set_domain!,
-# 	prob,
-# 	cpd,
-# 	parents,
-# 	children,
-# 	names,
-# 	plot,
 
 # 	rand_bernoulli_dict,
 # 	rand_discrete_dict,
@@ -44,11 +32,21 @@ export
 # 	table,
 # 	rand_table,
 # 	rand_table_weighted,
-# 	sumout,
-# 	normalize,
-# 	consistent,
-# 	estimate,
-# 	estimate_convergence,
+# 	consistent,,
+
+    table,
+    sumout,
+    normalize,
+    estimate,
+    estimate_convergence,
+
+    statistics,
+    bayesian_score_component,
+    bayesian_score,
+
+    DirichletPrior,
+    UniformPrior,
+    BDeuPrior
 
 # 	prior,
 # 	log_bayes_score,
@@ -64,7 +62,11 @@ include("io.jl")
 include("sampling.jl")
 include("learning.jl")
 
-# include("ndgrid.jl")
+include("DiscreteBayesNet/ndgrid.jl")
+include("DiscreteBayesNet/factors.jl")
+include("DiscreteBayesNet/dirichlet_priors.jl")
+include("DiscreteBayesNet/discrete_bayes_net.jl")
+
 # include("factors.jl")
 # include("deprecated.jl")
 
