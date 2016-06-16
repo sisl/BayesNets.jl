@@ -1,57 +1,58 @@
 #=
 A categorical distribution
 
+    Is compatible with Categorical
+
     P(x|parents(x)) ∈ Categorical
 
     Assumes the target and all parents are discrete integers 1:Nᵢ
 =#
 
-type CategoricalCPD <: CPD{Categorical}
-
-    core::CPDCore{Categorical}
+type CategoricalCPD <: CPDForm
 
     # data only initialized if has parents
     parental_assignments::Vector{Int} # preallocated array of parental assignments, in BN topological order
     parent_instantiation_counts::Tuple{Vararg{Int}} # list of integer instantiation counts, in BN topological order
     probabilities::Matrix{Float64} # n_instantiations × nparental_instantiations of parents
 
-    CategoricalCPD(core::CPDCore) = new(core)
+    CategoricalCPD() = new()
     function CategoricalCPD(
-        core::CPDCore,
         parental_assignments::Vector{Int},
         parent_instantiation_counts::Tuple{Vararg{Int}},
         probabilities::Matrix{Float64},
         )
-        new(core, parental_assignments, parent_instantiation_counts, probabilities)
+        new(parental_assignments, parent_instantiation_counts, probabilities)
     end
 end
 
-name(cpd::CategoricalCPD) = cpd.core.name
-parents(cpd::CategoricalCPD) = cpd.core.parents
-distribution(cpd::CategoricalCPD) = cpd.core.d
+function condition!{D<:Categorical,C<:CategoricalCPD}(cpd::CPD{D,C}, a::Assignment)
 
-function condition!(cpd::CategoricalCPD, a::Assignment)
     if !parentless(cpd)
 
+        form = cpd.form
+
         # pull the parental assignments
-        for (i,p) in enumerate(cpd.core.parents)
-            cpd.parental_assignments[i] = a[p]
+        for (i,p) in enumerate(cpd.parents)
+            form.parental_assignments[i] = a[p]
         end
 
         # get the parental assignment index
-        j = sub2ind_vec(cpd.parent_instantiation_counts, cpd.parental_assignments)
+        j = sub2ind_vec(form.parent_instantiation_counts, form.parental_assignments)
 
         # build the distribution
-        p = cpd.core.d.p
+        p = cpd.d.p
         for i in 1 : length(p)
-            p[i] = cpd.probabilities[i,j]
+            p[i] = form.probabilities[i,j]
         end
     end
 
-    cpd.core.d
+    cpd.d
 end
 
-function Distributions.fit(::Type{CategoricalCPD}, data::DataFrame, target::NodeName;
+function Distributions.fit{D<:Categorical,C<:CategoricalCPD}(
+    ::Type{CPD{D,C}},
+    data::DataFrame,
+    target::NodeName;
     dirichlet_prior::Float64=0.0, # prior counts
     )
 
@@ -68,10 +69,13 @@ function Distributions.fit(::Type{CategoricalCPD}, data::DataFrame, target::Node
     end
     probabilities ./= nrow(data)
 
-    core = CPDCore(target, NodeName[], Categorical(probabilities))
-    CategoricalCPD(core)
+    CPD(target, Categorical(probabilities), CategoricalCPD())
 end
-function Distributions.fit(::Type{CategoricalCPD}, data::DataFrame, target::NodeName, parents::Vector{NodeName};
+function Distributions.fit{D<:Categorical,C<:CategoricalCPD}(
+    ::Type{CPD{D,C}},
+    data::DataFrame,
+    target::NodeName,
+    parents::Vector{NodeName};
     dirichlet_prior::Float64=0.0, # prior counts
     )
 
@@ -128,7 +132,7 @@ function Distributions.fit(::Type{CategoricalCPD}, data::DataFrame, target::Node
     parental_assignments = Array(Int, nparents)
     parent_instantiation_counts = tuple(parent_instantiation_counts...)
 
-    core = CPDCore(target, parents, Categorical(n_instantiations))
-    CategoricalCPD(core, parental_assignments, parent_instantiation_counts, probabilities)
+    form = CategoricalCPD(parental_assignments, parent_instantiation_counts, probabilities)
+    CPD(target, parents, Categorical(n_instantiations), form)
 end
 

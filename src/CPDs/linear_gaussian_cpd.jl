@@ -1,65 +1,54 @@
 #=
 A linear gaussian CPD
 
+    Is compatible with Normal{Float64}
+
 	Assumes that target and all parents can be converted to Float64 (ie, are numeric)
 
 	P(x|parents(x)) = Normal(μ=a*parents(x) + b, σ)
 =#
 
-type LinearGaussianCPD <: CPD{Normal{Float64}}
-
-	core::CPDCore{Normal{Float64}}
-
-	# data only initialized if has parents
+type LinearGaussianCPD <: CPDForm
 	a::Vector{Float64}
 	b::Float64
+end
 
-	LinearGaussianCPD(core::CPDCore{Normal{Float64}}) = new(core)
-	function LinearGaussianCPD(
-		core::CPDCore{Normal{Float64}},
-		a::Vector{Float64},
-		b::Float64,
-		)
+function condition!{D<:Normal{Float64},C<:LinearGaussianCPD}(cpd::CPD{D,C}, a::Assignment)
 
-		new(core, a, b)
+    # compute A⋅v + b
+	μ = cpd.form.b
+	for (i, p) in enumerate(cpd.parents)
+		μ += a[p]*cpd.form.a[i]
 	end
+
+    cpd.d = Normal(μ, cpd.d.σ)
+    cpd.d
 end
 
-name(cpd::LinearGaussianCPD) = cpd.core.name
-parents(cpd::LinearGaussianCPD) = cpd.core.parents
-distribution(cpd::LinearGaussianCPD) = cpd.core.d
 
-function condition!(cpd::LinearGaussianCPD, a::Assignment)
-    if !parentless(cpd)
-
-        # compute A⋅v + b
-		μ = cpd.b
-		for (i, p) in enumerate(cpd.core.parents)
-			μ += a[p]*cpd.a[i]
-		end
-
-		cpd.core.d = Normal(μ, cpd.core.d.σ)
-    end
-
-    cpd.core.d
-end
-
-function Distributions.fit(::Type{LinearGaussianCPD}, data::DataFrame, target::NodeName;
+function Distributions.fit{D<:Normal{Float64},C<:LinearGaussianCPD}(
+    ::Type{CPD{D,C}},
+    data::DataFrame,
+    target::NodeName;
     min_stdev::Float64=0.0, # an optional minimum on the standard deviation
     )
 
     # no parents
 
     arr = data[target]
-    eltype(arr) <: Real || error("fit CategoricalCPD requrires target to be numeric")
+    eltype(arr) <: Real || error("fit LinearGaussianCPD requrires target to be numeric")
 
-    μ = mean(arr)
-    σ = max(stdm(arr, μ), min_stdev)
+    μ = convert(Float64, mean(arr))
+    σ = convert(Float64, stdm(arr, μ))
+    σ = max(σ, min_stdev)
 
-    core = CPDCore{Normal{Float64}}(target, NodeName[], Normal(μ, σ))
-    LinearGaussianCPD(core)
+    CPD(target, Normal(μ, σ), LinearGaussianCPD(Float64[], μ))
 end
-function Distributions.fit(::Type{LinearGaussianCPD}, data::DataFrame, target::NodeName, parents::Vector{NodeName};
+function Distributions.fit{D<:Normal{Float64},C<:LinearGaussianCPD}(
+    ::Type{CPD{D,C}},
+    data::DataFrame,
+    target::NodeName,
+    parents::Vector{NodeName};
 	min_stdev::Float64=0.0, # an optional minimum on the standard deviation
 	)
 
@@ -101,6 +90,5 @@ function Distributions.fit(::Type{LinearGaussianCPD}, data::DataFrame, target::N
 	b = β[end]
 	σ = max(std(y), min_stdev)
 
-	core = CPDCore(target, parents, Normal(NaN, σ))
-	LinearGaussianCPD(core, a, b)
+    CPD(target, parents, Normal(NaN, σ), LinearGaussianCPD(a, b))
 end
