@@ -41,12 +41,19 @@ export
     estimate_convergence,
 
     statistics,
+    adding_edge_preserves_acyclicity,
     bayesian_score_component,
+    bayesian_score_components,
     bayesian_score,
+
+    ScoreComponentCache,
 
     DirichletPrior,
     UniformPrior,
-    BDeuPrior
+    BDeuPrior,
+
+    GraphSearchStrategy,
+    GreedyHillClimbing
 
 # 	prior,
 # 	log_bayes_score,

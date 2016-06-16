@@ -1,16 +1,16 @@
-Base.mimewritable(::MIME"image/svg+xml", b::BayesNet) = true
+Base.mimewritable(::MIME"image/svg+xml", bn::BayesNet) = true
 Base.mimewritable(::MIME"text/html", dfs::Vector{DataFrame}) = true
 
-function plot(b::BayesNet)
-	if !isempty(names(b))
-		plot(b.dag, AbstractString[string(s) for s in names(b)])
+function plot(bn::BayesNet)
+	if !isempty(names(bn))
+		plot(bn.dag, AbstractString[string(s) for s in names(bn)]) # NOTE: sometimes the same var shows up twice
 	else
 		plot(simple_graph(1), ["Empty Graph"])
 	end
 end
 
-function Base.writemime(f::IO, a::MIME"image/svg+xml", b::BayesNet)
- 	Base.writemime(f, a, plot(b))
+function Base.writemime(f::IO, a::MIME"image/svg+xml", bn::BayesNet)
+ 	Base.writemime(f, a, plot(bn))
 end
 
 function Base.writemime(io::IO, a::MIME"text/html", dfs::Vector{DataFrame})

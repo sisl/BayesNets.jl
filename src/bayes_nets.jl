@@ -111,6 +111,22 @@ function enforce_topological_order!(bn::BayesNet)
 	bn.name_to_index = name_to_index2
 	bn
 end
+function adding_edge_preserves_acyclicity(parent_list::Vector{Vector{Int}}, u::Int, v::Int)
+    n = length(parent_list)
+    visited = falses(n)
+    propagate = [u]
+    while !isempty(propagate)
+        x = pop!(propagate)
+        if x == v
+            return false
+        end
+        if !visited[x]
+            visited[x] = true
+            append!(propagate, parent_list[x])
+        end
+    end
+    return true
+end
 
 function Base.push!(bn::BayesNet, cpd::CPD)
 

@@ -152,7 +152,7 @@ This function uses sparse matrix black magic and was
 mercilessly stolen from Ed Schmerling.
 """
 function statistics(
-    parents::Vector{Vector{Int}},
+    parent_list::Vector{Vector{Int}},
     bincounts::AbstractVector{Int},
     data::AbstractMatrix{Int},
     )
@@ -160,7 +160,7 @@ function statistics(
     n, m = size(data)
     N = Array(Matrix{Int}, n)
     for i in 1 : n
-        N[i] = statistics(i, parents[i], bincounts, data)
+        N[i] = statistics(i, parent_list[i], bincounts, data)
     end
     N
 end
@@ -230,14 +230,14 @@ function bayesian_score_component{I<:Integer}(
 end
 
 function bayesian_score(
-    parents::Vector{Vector{Int}},
+    parent_list::Vector{Vector{Int}},
     bincounts::AbstractVector{Int},
     data::Matrix{Int},
     prior::DirichletPrior,
     )
 
     tot = 0.0
-    for (i, p) in enumerate(parents)
+    for (i, p) in enumerate(parent_list)
         tot += bayesian_score_component(i, p, bincounts, data, prior)
     end
     tot
@@ -257,307 +257,144 @@ function bayesian_score(bn::DiscreteBayesNet, data::DataFrame, prior::DirichletP
     bayesian_score(parents, bincounts, datamat, prior)
 end
 
-# function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame)
 
 
+import Base.Collections: PriorityQueue, peek
+typealias ScoreComponentCache Vector{PriorityQueue{Vector{Int}, Float64}}
 
-# end
+"""
+Construct an empty ScoreComponentCache the size of ncol(data)
+"""
+function ScoreComponentCache(data::DataFrame)
+    cache = Array(PriorityQueue{Vector{Int}, Float64}, ncol(data))
+    for i in 1 : ncol(data)
+        cache[i] = PriorityQueue{Vector{Int}, Float64, Base.Order.ForwardOrdering}()
+    end
+    cache
+end
 
+function bayesian_score_component(
+    i::Int,
+    parents::AbstractVector{Int},
+    bincounts::AbstractVector{Int},
+    data::AbstractMatrix{Int},
+    prior::DirichletPrior,
+    cache::ScoreComponentCache,
+    )
 
-# function optimize_structure!(
-#     modelparams::ModelParams,
-#     data::Union{ModelData, BN_PreallocatedData};
-#     forced::Tuple{Vector{Int}, Vector{Int}}=(Int[], Int[]), # lat, lon
-#     verbosity::Integer=0,
-#     max_parents::Integer=6
-#     )
+    if !haskey(cache[i], parents)
+        (cache[i][parents] = bayesian_score_component(i, parents, bincounts, data, prior))
+    end
 
-#     binmaps = modelparams.binmaps
-#     parents_lat = deepcopy(modelparams.parents_lat)
-#     parents_lon = deepcopy(modelparams.parents_lon)
+    cache[i][parents]
+end
+function bayesian_score_components(
+    parent_list::Vector{Vector{Int}},
+    bincounts::AbstractVector{Int},
+    data::Matrix{Int},
+    prior::DirichletPrior,
+    cache::ScoreComponentCache,
+    )
 
-#     forced_lat, forced_lon = forced
-#     parents_lat = sort(unique([parents_lat; forced_lat]))
-#     parents_lon = sort(unique([parents_lon; forced_lon]))
+    score_components = Array(Float64, length(parent_list))
+    for (i,p) in enumerate(parent_list)
+        score_components[i] = bayesian_score_component(i, p, bincounts, data, prior, cache)
+    end
+    score_components
+end
 
-#     features = modelparams.features
-#     ind_lat = modelparams.ind_lat
-#     ind_lon = modelparams.ind_lon
-#     binmap_lat = modelparams.binmaps[ind_lat]
-#     binmap_lon = modelparams.binmaps[ind_lon]
+abstract GraphSearchStrategy
+type GreedyHillClimbing <: GraphSearchStrategy
+    cache::ScoreComponentCache
+    max_n_parents::Int
+    prior::DirichletPrior
 
-#     n_targets = 2
-#     n_indicators = length(features)-n_targets
+    function GreedyHillClimbing(
+        cache::ScoreComponentCache;
+        max_n_parents::Int=3,
+        prior::DirichletPrior=UniformPrior(1.0),
+        )
 
-#     chosen_lat = map(i->in(n_targets+i, parents_lat), 1:n_indicators)
-#     chosen_lon = map(i->in(n_targets+i, parents_lon), 1:n_indicators)
+        new(cache, max_n_parents, prior)
+    end
+end
 
-#     score_cache_lat = Dict{Vector{Int}, Float64}()
-#     score_cache_lon = Dict{Vector{Int}, Float64}()
+function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::GreedyHillClimbing)
 
-#     α = modelparams.dirichlet_prior
-#     score_lat = calc_component_score(ind_lat, parents_lat, binmap_lat, data, α, score_cache_lat)
-#     score_lon = calc_component_score(ind_lon, parents_lon, binmap_lon, data, α, score_cache_lon)
-#     score = score_lat + score_lon
+    n = ncol(data)
+    parent_list = Array(Vector{Int}, n)
+    bincounts = Array(Int, n)
+    datamat = convert(Matrix{Int}, data)'
 
-#     if verbosity > 0
-#         println("Starting Score: ", score)
-#     end
+    for i in 1:n
+        parent_list[i] = Int[]
+        bincounts[i] = infer_number_of_instantiations(data[i])
+    end
 
-#     n_iter = 0
-#     score_diff = 1.0
-#     while score_diff > 0.0
-#         n_iter += 1
+    score_components = bayesian_score_components(parent_list, bincounts, datamat, params.prior, params.cache)
 
-#         selected_lat = false
-#         selected_index = 0
-#         new_parents_lat = copy(parents_lat)
-#         new_parents_lon = copy(parents_lon)
-#         score_diff = 0.0
+    while true
+        best_diff = 0.0
+        best_parent_list = parent_list
+        for i in 1:n
 
-#         # check edges for indicators -> lat
-#         if length(parents_lat) < max_parents
-#             for i = 1 : n_indicators
-#                 # add edge if it does not exist
-#                 if !chosen_lat[i]
-#                     new_parents = sort!(push!(copy(parents_lat), n_targets+i))
-#                     new_score_diff = calc_component_score(ind_lat, new_parents, binmap_lat, data, α, score_cache_lat) - score_lat
-#                     if new_score_diff > score_diff + BAYESIAN_SCORE_IMPROVEMENT_THRESOLD
-#                         selected_lat = true
-#                         score_diff = new_score_diff
-#                         new_parents_lat = new_parents
-#                     end
-#                 end
-#             end
-#         elseif verbosity > 0
-#             warn("DBNB: optimize_structure: max parents lat reached")
-#         end
-#         for (idx, i) in enumerate(parents_lat)
-#             # remove edge if it does exist
-#             if !in(features[i], forced_lat)
-#                 new_parents = deleteat!(copy(parents_lat), idx)
-#                 new_score_diff = calc_component_score(ind_lat, new_parents, binmap_lat, data, α, score_cache_lat) - score_lat
-#                 if new_score_diff > score_diff + BAYESIAN_SCORE_IMPROVEMENT_THRESOLD
-#                     selected_lat = true
-#                     score_diff = new_score_diff
-#                     new_parents_lat = new_parents
-#                 end
-#             end
-#         end
+            # 1) add an edge (j->i)
+            if length(parent_list[i]) < params.max_n_parents
+                for j in deleteat!(collect(1:n), parent_list[i])
+                    if adding_edge_preserves_acyclicity(parent_list, j, i)
+                        new_parents = sort!(push!(copy(parent_list[i]), j))
+                        new_component_score = bayesian_score_component(i, new_parents, bincounts, datamat, params.prior, params.cache)
+                        if new_component_score - score_components[i] > best_diff
+                            best_diff = new_component_score - score_components[i]
+                            best_parent_list = deepcopy(parent_list)
+                            best_parent_list[i] = new_parents
+                        end
+                    end
+                end
+            end
 
-#         # check edges for indicators -> lon
-#         if length(parents_lon) < max_parents
-#             for i = 1 : n_indicators
-#                 # add edge if it does not exist
-#                 if !chosen_lon[i]
-#                     new_parents = sort!(push!(copy(parents_lon), n_targets+i))
-#                     new_score_diff = calc_component_score(ind_lon, new_parents, binmap_lon, data, α, score_cache_lon) - score_lon
-#                     if new_score_diff > score_diff + BAYESIAN_SCORE_IMPROVEMENT_THRESOLD
-#                         selected_lat = false
-#                         score_diff = new_score_diff
-#                         new_parents_lon = new_parents
-#                     end
-#                 end
-#             end
-#         elseif verbosity > 0
-#             warn("DBNB: optimize_structure: max parents lon reached")
-#         end
-#         for (idx, i) in enumerate(parents_lon)
-#             # remove edge if it does exist
-#             if !in(features[i], forced_lon)
-#                 new_parents = deleteat!(copy(parents_lon), idx)
-#                 new_score_diff = calc_component_score(ind_lon, new_parents, binmap_lon, data, α, score_cache_lon) - score_lon
-#                 if new_score_diff > score_diff + BAYESIAN_SCORE_IMPROVEMENT_THRESOLD
-#                     selected_lat = false
-#                     score_diff = new_score_diff
-#                     new_parents_lon = new_parents
-#                 end
-#             end
-#         end
+            # 2) remove an edge
+            for (idx, j) in enumerate(parent_list[i])
 
-#         # check edge between lat <-> lon
-#         if !in(ind_lon, parents_lat) && !in(ind_lat, parents_lon)
-#             # lon -> lat
-#             if length(parents_lat) < max_parents
-#                 new_parents = unshift!(copy(parents_lat), ind_lon)
-#                 new_score_diff = calc_component_score(ind_lat, new_parents, binmap_lat, data, α, score_cache_lat) - score_lat
-#                 if new_score_diff > score_diff + BAYESIAN_SCORE_IMPROVEMENT_THRESOLD
-#                     selected_lat = true
-#                     score_diff = new_score_diff
-#                     new_parents_lat = new_parents
-#                 end
-#             end
+                new_parents = deleteat!(copy(parent_list[i]), idx)
+                new_component_score = bayesian_score_component(i, new_parents, bincounts, datamat, params.prior, params.cache)
+                if new_component_score - score_components[i] > best_diff
+                    best_diff = new_component_score - score_components[i]
+                    best_parent_list = deepcopy(parent_list)
+                    best_parent_list[i] = new_parents
+                end
 
-#             # lat -> lon
-#             if length(parents_lon) < max_parents
-#                 new_parents = unshift!(copy(parents_lon), ind_lat)
-#                 new_score_diff = calc_component_score(ind_lon, new_parents, binmap_lon, data, α, score_cache_lon) - score_lon
-#                 if new_score_diff > score_diff + BAYESIAN_SCORE_IMPROVEMENT_THRESOLD
-#                     selected_lat = false
-#                     score_diff = new_score_diff
-#                     new_parents_lon = new_parents
-#                 end
-#             end
-#         # elseif in(ind_lon, parents_lat) && !in(features[ind_lon], forced_lat)
+                # 3) flip an edge
+                new_parent_list = deepcopy(parent_list) # TODO: make this more efficient
+                deleteat!(new_parent_list[i], idx)
 
-#         #     # try edge removal
-#         #     new_parents = deleteat!(copy(parents_lat), ind_lat)
-#         #     new_score_diff = calc_component_score(ind_lat, new_parents, binmap_lat, data, α, score_cache_lat) - score_lat
-#         #     if new_score_diff > score_diff + BAYESIAN_SCORE_IMPROVEMENT_THRESOLD
-#         #         selected_lat = true
-#         #         score_diff = new_score_diff
-#         #         new_parents_lat = new_parents
-#         #     end
+                if adding_edge_preserves_acyclicity(new_parent_list, i, j)
+                    sort!(push!(new_parent_list[j], i))
+                    new_diff = bayesian_score_component(i, new_parent_list[i], bincounts, datamat, params.prior, params.cache) - score_components[i]
+                    new_diff += bayesian_score_component(j, new_parent_list[j], bincounts, datamat, params.prior, params.cache) - score_components[j]
+                    if new_diff > best_diff
+                        best_diff = new_diff
+                        best_parent_list = new_parent_list
+                    end
+                end
+            end
+        end
 
-#         #     # try edge reversal (lat -> lon)
-#         #     if length(parents_lon) < max_parents
-#         #         new_parents = unshift!(copy(parents_lon), ind_lat)
-#         #         new_score_diff = calc_component_score(ind_lon, new_parents, binmap_lon, data, α, score_cache_lon) - score_lon
-#         #         if new_score_diff > score_diff + BAYESIAN_SCORE_IMPROVEMENT_THRESOLD
-#         #             selected_lat = false
-#         #             score_diff = new_score_diff
-#         #             new_parents_lon = new_parents
-#         #         end
-#         #     end
-#         # elseif in(ind_lat, parents_lon)  && !in(features[ind_lat], forced_lon)
+        if best_diff > 0.0
+            parent_list = best_parent_list
+            score_components = bayesian_score_components(parent_list, bincounts, datamat, params.prior, params.cache)
+        else
+            break
+        end
+    end
 
-#         #     # try edge removal
-#         #     new_parents = deleteat!(copy(parents_lon), ind_lat)
-#         #     new_score_diff = calc_component_score(ind_lon, new_parents, binmap_lon, data, α, score_cache_lon) - score_lon
-#         #     if new_score_diff > score_diff + BAYESIAN_SCORE_IMPROVEMENT_THRESOLD
-#         #         selected_lat = false
-#         #         score_diff = new_score_diff
-#         #         new_parents_lon = new_parents
-#         #     end
-
-#         #     # try edge reversal (lon -> lat)
-#         #     if length(parents_lat) < max_parents
-#         #         new_parents = unshift!(copy(parents_lat), ind_lon)
-#         #         new_score_diff = calc_component_score(ind_lat, new_parents, binmap_lat, data, α, score_cache_lat) - score_lat
-#         #         if new_score_diff > score_diff + BAYESIAN_SCORE_IMPROVEMENT_THRESOLD
-#         #             selected_lat = true
-#         #             score_diff = new_score_diff
-#         #             new_parents_lat = new_parents
-#         #         end
-#         #     end
-#         end
-
-#         # select best
-#         if score_diff > 0.0
-#             if selected_lat
-#                 parents_lat = new_parents_lat
-#                 chosen_lat = map(k->in(n_targets+k, parents_lat), 1:n_indicators)
-#                 score += score_diff
-#                 score_lat += score_diff
-#                 if verbosity > 0
-#                     println("changed lat:", map(f->symbol(f), features[parents_lat]))
-#                     println("new score: ", score)
-#                 end
-#             else
-#                 parents_lon = new_parents_lon
-#                 chosen_lon = map(k->in(n_targets+k, parents_lon), 1:n_indicators)
-#                 score += score_diff
-#                 score_lon += score_diff
-#                 if verbosity > 0
-#                     println("changed lon:", map(f->symbol(f), features[parents_lon]))
-#                     println("new score: ", score)
-#                 end
-#             end
-#         end
-#     end
-
-#     empty!(modelparams.parents_lat)
-#     empty!(modelparams.parents_lon)
-#     append!(modelparams.parents_lat, parents_lat)
-#     append!(modelparams.parents_lon, parents_lon)
-
-#     modelparams
-# end
-
-# Base.count(bn::BayesNet, d::DataFrame) = [count(bn, node.name, d) for node in bn.nodes]
-
-# """
-# Converts a dataframe containing node assignments to a Matrix{Int}
-# of node assignments, where M[i,j] is the assignment for the ith variable
-# in the jth sample
-# """
-# function index_data(bn::BayesNet, d::DataFrame)
-#     d = d[:, names(bn)]
-#     n = length(bn.nodes)
-#     data = Array(Int, size(d,2), size(d,1))
-#     for (i,node) in enumerate(bn.nodes)
-#         name = node.name
-#         elements = domain(bn, name).elements
-#         m = Dict([elements[i]=>i for i = 1:length(elements)])
-#         for j = 1:size(d, 1)
-#             data[i,j] = m[d[j,i]]
-#         end
-#     end
-#     data
-# end
-
-# function statistics(bn::BayesNet, alpha::Float64 = 0.0)
-#     n = length(bn.nodes)
-#     r = [length(domain(bn, node.name).elements) for node in bn.nodes]
-#     parentList = [collect(in_neighbors(bn.dag, i)) for i = 1:n]
-#     N = cell(n)
-#     for i = 1:n
-#         q = 1
-#         if !isempty(parentList[i])
-#             q = prod(r[parentList[i]])
-#         end
-#         N[i] = ones(r[i], q) * alpha
-#     end
-#     N
-# end
-# function statistics(bn::BayesNet, d::Matrix{Int})
-#     N = statistics(bn)
-#     statistics!(N, bn, d)
-#     N
-# end
-# statistics(bn::BayesNet, d::DataFrame) = statistics(bn, index_data(bn, d))
-
-# function statistics!(N::Vector{Any}, bn::BayesNet, d::Matrix{Int})
-#     r = [length(domain(bn, node.name).elements) for node in bn.nodes]
-#     (n, m) = size(d)
-#     parentList = [collect(in_neighbors(bn.dag, i)) for i = 1:n]
-#     for i = 1:n
-#         p = parentList[i]
-#         if !isempty(p)
-#             Np = length(p)
-#             stridevec = fill(1, length(p))
-#             for k = 2:Np
-#                 stridevec[k] = stridevec[k-1] * r[p[k-1]]
-#             end
-#             js = d[p,:]' * stridevec - sum(stridevec) + 1
-#             # side note: flipping d to make array access column-major improves speed by a further 10%
-#             # this change could be hacked into this method (dT = d'), but should really be made in indext_data
-#         else
-#             js = fill(1, m)
-#         end
-#         N[i] += sparse(vec(d[i,:]), vec(js), 1, size(N[i])...)
-#     end
-#     N
-# end
-
-# prior(bn::BayesNet, alpha::Real = 1.0) = statistics(bn, alpha)
-
-# function log_bayes_score(N::Vector{Any}, alpha::Vector{Any})
-#     @assert length(N) == length(alpha)
-#     n = length(N)
-#     p = 0.
-#     for i = 1:n
-#         if !isempty(N[i])
-#             p += sum(lgamma(alpha[i] + N[i]))
-#             p -= sum(lgamma(alpha[i]))
-#             p += sum(lgamma(sum(alpha[i],1)))
-#             p -= sum(lgamma(sum(alpha[i],1) + sum(N[i],1)))
-#         end
-#     end
-#     p
-# end
-# function log_bayes_score(bn::BayesNet, d::Union{DataFrame, Matrix{Int}}, alpha::Real = 1.0)
-#     alpha = prior(bn)
-#     N = statistics(bn, d)
-#     log_bayes_score(N, alpha)
-# end
+    # construct the BayesNet
+    cpds = Array(CPD{Categorical, CategoricalCPD}, n)
+    varnames = names(data)
+    for i in 1:n
+        name = varnames[i]
+        parents = varnames[parent_list[i]]
+        cpds[i] = fit(CPD{Categorical, CategoricalCPD}, data, name, parents)
+    end
+    BayesNet(cpds)
+end
