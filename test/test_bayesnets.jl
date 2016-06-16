@@ -2,7 +2,7 @@ let
 	bn = BayesNet()
 	@test length(bn) == 0
 
-	push!(bn, StaticCPD(CPDCore(:a, NodeName[], Normal(0.0,1.0))))
+	push!(bn, CPD(:a, Normal(0.0,1.0), StaticCPD()))
 
 	@test length(bn) == 1
 	@test name(get(bn, :a)) == :a
@@ -10,13 +10,13 @@ let
 	@test names(bn) == [:a]
 	@test parents(bn, :a) == NodeName[]
 	@test children(bn, :a) == NodeName[]
-	@test pdf!(bn, Dict(:a=>0.0)) == pdf(Normal(0.0,1.0), 0.0)
-	@test logpdf!(bn, Dict(:a=>0.0)) == logpdf(Normal(0.0,1.0), 0.0)
+	@test pdf!(bn, Assignment(:a=>0.0)) == pdf(Normal(0.0,1.0), 0.0)
+	@test logpdf!(bn, Assignment(:a=>0.0)) == logpdf(Normal(0.0,1.0), 0.0)
 	@test isapprox(pdf!(bn, DataFrame(a=[0.0, 1.0])), pdf(Normal(0.0,1.0), 0.0) * pdf(Normal(0.0,1.0), 1.0))
 	@test isapprox(logpdf!(bn, DataFrame(a=[0.0, 1.0])), logpdf(Normal(0.0,1.0), 0.0) + logpdf(Normal(0.0,1.0), 1.0))
 
 	# b = 2a + 1
-	push!(bn, LinearGaussianCPD(CPDCore(:b, [:a], Normal(0.0,1.0)), [2.0], 1.0))
+	push!(bn, CPD(:b, [:a], Normal(0.0,1.0), LinearGaussianCPD([2.0], 1.0)))
 	@test length(bn) == 2
 	@test name(get(bn, :b)) == :b
 	@test name(get(bn, 2)) == :b
@@ -26,8 +26,8 @@ let
 	@test children(bn, :a) == [:b]
 	@test parents(bn, :b) == [:a]
 	@test children(bn, :b) == NodeName[]
-	@test pdf!(bn, Dict(:a=>1.0, :b=>2.0)) == pdf(Normal(0.0,1.0), 1.0) * pdf(Normal(3.0, 1.0), 2.0)
-	@test logpdf!(bn, Dict(:a=>1.0, :b=>2.0)) == logpdf(Normal(0.0,1.0), 1.0) + logpdf(Normal(3.0, 1.0), 2.0)
+	@test pdf!(bn, Assignment(:a=>1.0, :b=>2.0)) == pdf(Normal(0.0,1.0), 1.0) * pdf(Normal(3.0, 1.0), 2.0)
+	@test logpdf!(bn, Assignment(:a=>1.0, :b=>2.0)) == logpdf(Normal(0.0,1.0), 1.0) + logpdf(Normal(3.0, 1.0), 2.0)
 end
 
 # 	#=
