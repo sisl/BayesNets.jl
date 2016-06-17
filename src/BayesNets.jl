@@ -1,4 +1,4 @@
-# VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
+VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 
 module BayesNets
 
@@ -9,62 +9,72 @@ using Reexport
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
-
 import LightGraphs: DiGraph, rem_edge!, add_edge!, add_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, is_cyclic, nv, ne
 import TikzGraphs: plot, simple_graph
-import DataFrames: DataFrame, groupby, names
 
 export
 	BayesNet,
-	BayesNetNode,
 	DAG,
 
-	node,
-	add_node!,
-	add_nodes!,
+    parents,
+    children,
+    has_edge,
+    enforce_topological_order!,
+
 	add_edge!,
-	remove_edge!,
-	add_edges!,
-	remove_edges!,
-	has_edge,
-	set_CPD!,
-	set_domain!,
-	prob,
-	cpd,
-	parents,
-	children,
-	names,
-	plot,
+    has_edge,
+# 	remove_edge!,
+# 	remove_edges!,
 
-	rand_bernoulli_dict,
-	rand_discrete_dict,
+# 	rand_bernoulli_dict,
+# 	rand_discrete_dict,
 
-	table,
-	rand_table,
-	rand_table_weighted,
-	sumout,
-	normalize,
-	consistent,
-	estimate,
-	estimate_convergence,
+# 	table,
+# 	rand_table,
+# 	rand_table_weighted,
+# 	consistent,,
 
-	prior,
-	log_bayes_score,
-	index_data,
-	statistics,
-	statistics!,
+    table,
+    sumout,
+    normalize,
+    estimate,
+    estimate_convergence,
 
-	readxdsl
+    statistics,
+    adding_edge_preserves_acyclicity,
+    bayesian_score_component,
+    bayesian_score_components,
+    bayesian_score,
+
+    ScoreComponentCache,
+
+    DirichletPrior,
+    UniformPrior,
+    BDeuPrior,
+
+    GraphSearchStrategy,
+    GreedyHillClimbing
+
+# 	prior,
+# 	log_bayes_score,
+# 	index_data,
+# 	statistics,
+# 	statistics!,
+
+# 	readxdsl
 
 
+include("bayes_nets.jl")
+include("io.jl")
+include("sampling.jl")
+include("learning.jl")
 
-include("ndgrid.jl")
-# include("assignments.jl")
+include("DiscreteBayesNet/ndgrid.jl")
+include("DiscreteBayesNet/factors.jl")
+include("DiscreteBayesNet/dirichlet_priors.jl")
+include("DiscreteBayesNet/discrete_bayes_net.jl")
+
 # include("factors.jl")
-# include("bayes_nets.jl")
-# include("sampling.jl")
-# include("learning.jl")
-# include("io.jl")
 # include("deprecated.jl")
 
 end # module

@@ -8,10 +8,12 @@ https://en.wikipedia.org/wiki/Factor_graph
 These can be obtained using the table() function
 =#
 
+typealias Factor DataFrame
+
 """
 Factor multiplication
 """
-function Base.(:(*))(f1::DataFrame, f2::DataFrame)
+function Base.(:(*))(f1::Factor, f2::Factor)
     onnames = setdiff(intersect(names(f1), names(f2)), [:p])
     finalnames = vcat(setdiff(union(names(f1), names(f2)), [:p]), :p)
     if isempty(onnames)
@@ -31,7 +33,7 @@ end
 """
 Factor marginalization
 """
-function sumout(f::DataFrame, v::Symbol)
+function sumout(f::Factor, v::Symbol)
     @assert issubset(unique(f[:,v]), [false, true])
     remainingvars = setdiff(names(f), [v, :p])
     g = groupby(f, v)
@@ -42,7 +44,7 @@ function sumout(f::DataFrame, v::Symbol)
     j[:,:p] += j[:,:p_1]
     j[:,vcat(remainingvars, :p)]
 end
-function sumout(f::DataFrame, v::AbstractVector{Symbol})
+function sumout(f::Factor, v::AbstractVector{Symbol})
     while !isempty(v)
         f = sumout(f, pop!(v))
     end
@@ -53,16 +55,16 @@ end
 Factor normalization
 Ensures that the :p column sums to one
 """
-function normalize(f::DataFrame)
+function normalize(f::Factor)
     f[:,:p] /= sum(f[:,:p])
     f
 end
 
 """
-Given a DataFrame representation of a factor,
+Given a Factor,
 extract the rows which match the given assignment
 """
-function Base.select(f::DataFrame, a::Assignment)
+function Base.select(f::Factor, a::Assignment)
     commonNames = intersect(names(f), keys(a))
     mask = trues(size(f,1))
     for s in commonNames

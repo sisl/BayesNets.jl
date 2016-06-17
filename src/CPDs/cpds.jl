@@ -1,6 +1,6 @@
 #=
 A CPD is a Conditional Probability Distribution
-In general, theyrepresent distribtions of the form P(X|Y)
+In general, they represent distribtions of the form P(X|Y)
 Each node in a Bayesian Network is associated with a variable,
 and contains the CPD relating that var to its parents, P(x | parents(x))
 =#
@@ -13,71 +13,100 @@ using Reexport
 
 export
     CPD,                         # the abstract CPD type
+    CPDForm,                     # describes how CPDs are updated and learned
 
     Assignment,                  # variable assignment type, complete or partial, for a Bayesian Network
     NodeName,                    # variable name type
 
-    name,                        # obtain the name of the CPD
-    distribution,                # returns the CPD's distribution type
-    trained,                     # whether the CPD has been trained
-    pdf,                         # probability density function or probability distribution function (continuous or discrete)
-    learn!                       # train a CPD based on data
+    StaticCPD,                   # static distribution (never uses parental information)
+    CategoricalCPD,
+    LinearGaussianCPD,
 
-import Distributions: ncategories, pdf
+    pdf!,                        # condition and obtain the pdf
+    logpdf!,                     # condition and obtain the logpdf
+    name,                        # obtain the name of the CPD
+    parents,                     # obtain the parents in the CPD
+    parentless,                  # whether the given variable is parentless
+    distribution,                # returns the CPD's distribution type
+    condition!,                  # update the conditional distribution with the observation
+
+    sub2ind_vec,
+    infer_number_of_instantiations,
+    consistent
 
 typealias NodeName Symbol
-typealias Assignment Dict
+typealias Assignment Dict{Symbol, Any}
 
-abstract CPD{D<:Distribution}
+#############################################
+
+abstract CPDForm
+type CPD{D<:Distribution, C<:CPDForm}
+    name::NodeName
+    parents::Vector{NodeName}
+    d::D
+    form::C
+end
+function CPD{D<:Distribution, C<:CPDForm}(
+    name::NodeName,
+    d::D,
+    form::C,
+    )
+
+    CPD{D,C}(name, NodeName[], d, form)
+end
+function CPD{D<:Distribution}(
+    name::NodeName,
+    d::D,
+    )
+
+    CPD{D,StaticCPD}(name, NodeName[], d, StaticCPD())
+end
+
+name(cpd::CPD) = cpd.name
+parents(cpd::CPD) = cpd.parents
+parentless(cpd::CPD) = isempty(cpd.parents)
+distribution(cpd::CPD) = cpd.d
+
+Base.rand(cpd::CPD) = rand(distribution(cpd))
+Base.rand!(cpd::CPD, a::Assignment) = rand(condition!(cpd, a))
+
+Distributions.pdf(cpd::CPD, a::Assignment) = pdf(cpd.d, a[cpd.name])
+Distributions.logpdf(cpd::CPD, a::Assignment) = logpdf(cpd.d, a[cpd.name])
+function pdf!(cpd::CPD, a::Assignment)
+    condition!(cpd, a)
+    pdf(cpd.d, a[cpd.name])
+end
+function logpdf!(cpd::CPD, a::Assignment)
+    condition!(cpd, a)
+    logpdf(cpd.d, a[cpd.name])
+end
+
 #=
-Each CPD must implement:
-    trained(CPD)
-    learn!(CPD, BayesNet, NodeName, DataFrame)
-    pdf(CPD, Assignment, parents::AbstractVector{NodeName}) # NOTE: parents must always be in the same topological order
-
-    IF DISCRETE:
-        ncategories(CPD)
+Each CPDForm must implement:
+    condition!{D, C}(cpd::CPD{D,C}, assignment)         - update the CPD distribution based on the assignment
+    fit{D, C}(::Type{CPD{D,C}}, data, target, parents)  - fit the CPDForm (and possible CPD.d) based on data
 =#
 
-distribution{D}(cpd::CPD{D}) = D
-Base.rand(cpd::CPD, a::Assignment) = rand(pdf(cpd, a))
-name(cpd::CPD) = cpd.name # all cpds have names by default
 
 ###########################
 
-"""
-The ordering of the parental instantiations in discrete networks follows the convention
-defined in Decision Making Under Uncertainty.
+type StaticCPD <: CPDForm end
 
-Suppose a variable has three discrete parents. The first parental instantiation
-assigns all parents to their first bin. The second will assign the first
-parent (as defined in `parents`) to its second bin and the other parents
-to their first bin. The sequence continues until all parents are instantiated
-to their last bins.
+condition!{D,C<:StaticCPD}(cpd::CPD{D,C}, a::Assignment) = cpd.d # no update
+function Distributions.fit{D,C<:StaticCPD}(::Type{CPD{D,C}},
+    data::DataFrame,
+    target::NodeName,
+    parents::Vector{NodeName}=NodeName[],
+    )
 
-This is a directly copy from Base.sub2ind but allows for passing a vector instead of separate items
-
-Note that this does NOT check bounds
-"""
-function sub2ind_vec{T<:Integer}(dims::Tuple{Vararg{Integer}}, I::AbstractVector{T})
-    N = length(dims)
-    @assert(N == length(I))
-
-    ex = I[N] - 1
-    for i in N-1:-1:1
-        if i > N
-            ex = (I[i] - 1 + ex)
-        else
-            ex = (I[i] - 1 + dims[i]*ex)
-        end
-    end
-
-    ex + 1
+    d = fit(D, data[target])
+    CPD(target, parents, d, StaticCPD())
 end
 
 ###########################
 
+include("utils.jl")
 include("categorical_cpd.jl")
-include("linear_gaussian.jl")
+include("linear_gaussian_cpd.jl")
 
 end # module CPDs
