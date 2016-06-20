@@ -11,6 +11,7 @@ type StaticCPD{D} <: CPD{D}
     parents::Vector{NodeName}
     d::D
 end
+StaticCPD(target::NodeName, d::Distribution) = StaticCPD(target, NodeName[], d)
 
 name(cpd::StaticCPD) = cpd.target
 parents(cpd::StaticCPD) = cpd.parents

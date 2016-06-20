@@ -19,13 +19,14 @@ function Base.rand(bn::BayesNet, nsamples::Integer)
     a = Assignment()
     df = DataFrame()
     for cpd in bn.cpds
-        df[cpd.name] = Array(eltype(cpd.d), nsamples)
+        df[name(cpd)] = Array(eltype(cpd), nsamples)
     end
 
     for i in 1:nsamples
         rand!(a, bn)
         for cpd in bn.cpds
-            df[i, cpd.name] = a[cpd.name]
+            n = name(cpd)
+            df[i, n] = a[n]
         end
     end
 
@@ -45,7 +46,7 @@ function Base.rand(bn::BayesNet, nsamples::Integer, consistent_with::Assignment,
     a = Assignment()
     df = DataFrame()
     for cpd in bn.cpds
-        df[cpd.name] = Array(eltype(cpd.d), nsamples)
+        df[name(cpd)] = Array(eltype(cpd), nsamples)
     end
 
     sample_count = 0
@@ -55,7 +56,7 @@ function Base.rand(bn::BayesNet, nsamples::Integer, consistent_with::Assignment,
             sample_count += 1
 
             rand!(a, bn)
-            if consistent(a::Assignment, b::Assignment)
+            if consistent(a, consistent_with)
                 break
             end
         end
@@ -63,7 +64,8 @@ function Base.rand(bn::BayesNet, nsamples::Integer, consistent_with::Assignment,
         sample_count ≤ max_nsamples || error("rand hit sample threshold of $max_nsamples")
 
         for cpd in bn.cpds
-            df[i, cpd.name] = a[cpd.name]
+            n = name(cpd)
+            df[i, n] = a[n]
         end
     end
 

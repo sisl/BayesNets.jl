@@ -8,7 +8,7 @@ let
 
 	# TODO: make this test more rigorous
 	@test isa(BayesNets.ndgrid([1], [2], [3]), Tuple{Array{Int64,3},Array{Int64,3},Array{Int64,3}})
-	
+
 	@test BayesNets.meshgrid([1,2]) == (
 										[1 2
 										 1 2],

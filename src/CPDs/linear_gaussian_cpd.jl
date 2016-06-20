@@ -13,6 +13,7 @@ type LinearGaussianCPD <: CPD{Normal{Float64}}
 	b::Float64
     σ::Float64
 end
+LinearGaussianCPD(target::NodeName, μ::Float64, σ::Float64) = LinearGaussianCPD(target, NodeName[], Float64[], μ, σ)
 
 name(cpd::LinearGaussianCPD) = cpd.target
 parents(cpd::LinearGaussianCPD) = cpd.parents
@@ -52,7 +53,7 @@ function Distributions.fit(::Type{LinearGaussianCPD},
     )
 
     if isempty(parents)
-        return fit(CPD{D,C}, data, target, min_stdev=min_stdev)
+        return fit(LinearGaussianCPD, data, target, min_stdev=min_stdev)
     end
 
     # ---------------------

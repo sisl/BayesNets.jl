@@ -9,6 +9,7 @@ type CategoricalCPD{D} <: CPD{D}
     parental_ncategories::Vector{Int} # list of instantiation counts for each parent, in same order as parents
     distributions::Vector{D}
 end
+CategoricalCPD(target::NodeName, d::Distribution) = CategoricalCPD(target, NodeName[], Int[], D[d])
 
 name(cpd::CategoricalCPD) = cpd.target
 parents(cpd::CategoricalCPD) = cpd.parents

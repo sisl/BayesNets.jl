@@ -102,8 +102,10 @@ pdf!(cpd::CPD, a::Assignment) = pdf(cpd(a), a[name(cpd)])
     rand!(cpd::CPD)
 Condition and then return the logpdf
 """
-logpdf!(cpd::CPD, a::Assignment) = pdf(cpd(a), a[name(cpd)])
+logpdf!(cpd::CPD, a::Assignment) = logpdf(cpd(a), a[name(cpd)])
 
+
+Base.eltype{D}(cpd::CPD{D}) = eltype(D)
 
 ###########################
 

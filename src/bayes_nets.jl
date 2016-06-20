@@ -80,7 +80,7 @@ Returns the ordered list of NodeNames
 function Base.names(bn::BayesNet)
 	retval = Array(NodeName, length(bn))
 	for (i,cpd) in enumerate(bn.cpds)
-		retval[i] = cpd.name
+		retval[i] = name(cpd)
 	end
 	retval
 end

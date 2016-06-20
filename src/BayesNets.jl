@@ -23,16 +23,6 @@ export
 
 	add_edge!,
     has_edge,
-# 	remove_edge!,
-# 	remove_edges!,
-
-# 	rand_bernoulli_dict,
-# 	rand_discrete_dict,
-
-# 	table,
-# 	rand_table,
-# 	rand_table_weighted,
-# 	consistent,,
 
     table,
     sumout,
@@ -41,6 +31,7 @@ export
     estimate_convergence,
 
     statistics,
+    index_data,
     adding_edge_preserves_acyclicity,
     bayesian_score_component,
     bayesian_score_components,
@@ -55,14 +46,6 @@ export
     GraphSearchStrategy,
     GreedyHillClimbing
 
-# 	prior,
-# 	log_bayes_score,
-# 	index_data,
-# 	statistics,
-# 	statistics!,
-
-# 	readxdsl
-
 
 include("bayes_nets.jl")
 include("io.jl")
@@ -73,8 +56,5 @@ include("DiscreteBayesNet/ndgrid.jl")
 include("DiscreteBayesNet/factors.jl")
 include("DiscreteBayesNet/dirichlet_priors.jl")
 include("DiscreteBayesNet/discrete_bayes_net.jl")
-
-# include("factors.jl")
-# include("deprecated.jl")
 
 end # module

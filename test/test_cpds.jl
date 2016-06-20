@@ -1,14 +1,3 @@
-@test CPDs.sub2ind_vec((2,2), [1,1]) == 1
-@test CPDs.sub2ind_vec((2,2), [2,1]) == 2
-@test CPDs.sub2ind_vec((2,2), [1,2]) == 3
-@test CPDs.sub2ind_vec((2,2), [2,2]) == 4
-@test CPDs.sub2ind_vec((3,2,2), [1,1,1]) == 1
-@test CPDs.sub2ind_vec((3,2,2), [2,1,1]) == 2
-@test CPDs.sub2ind_vec((3,2,2), [3,1,1]) == 3
-@test CPDs.sub2ind_vec((3,2,2), [1,2,1]) == 4
-@test CPDs.sub2ind_vec((3,2,2), [2,2,1]) == 5
-@test CPDs.sub2ind_vec((3,2,2), [1,1,2]) == 7
-
 # StaticCPD
 let
     df = DataFrame(a=randn(100))

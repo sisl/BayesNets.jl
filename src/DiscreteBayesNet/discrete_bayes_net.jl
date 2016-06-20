@@ -8,9 +8,10 @@ within 1:Nᵢ and every distribution is Categorical.
 This representation is very common, and allows for the use of factors, for
 example in _Probabilistic Graphical Models_ by Koller and Friedman
 """
-typealias DiscreteBayesNet BayesNet{CPD{Categorical, CategoricalCPD}}
+typealias DiscreteBayesNet BayesNet{CategoricalCPD{Categorical}}
 
 """
+    table(bn::DiscreteBayesNet, name::NodeName)
 TODO: rename table() to factor()?
 Constructs the CPD factor associated with the given node in the BayesNet
 """
@@ -22,12 +23,13 @@ function table(bn::DiscreteBayesNet, name::NodeName)
 
     nparents = length(names)-1
     if nparents > 0
-        A = ndgrid([1:ncategories(distribution(get(bn, name))) for name in names]...)
+        assignment = Assignment([names[j]=>1 for j in 1:length(names)])
+        A = ndgrid([1:ncategories(get(bn, name)(assignment)) for name in names]...)
         for (i,name2) in enumerate(names)
             d[name2] = vec(A[i])
         end
     else
-        d[name] = 1:ncategories(distribution(cpd))
+        d[name] = 1:ncategories(cpd(assignment))
     end
 
     p = ones(size(d,1)) # the probability column
@@ -39,13 +41,14 @@ function table(bn::DiscreteBayesNet, name::NodeName)
     d
 end
 
-table(bn::BayesNet, name::NodeName, a::Assignment) = select(table(bn, name), a)
+table(bn::DiscreteBayesNet, name::NodeName, a::Assignment) = select(table(bn, name), a)
 
 """
+    Base.count(bn::BayesNet, name::NodeName, data::DataFrame)
 returns a table containing all observed assignments and their
 corresponding counts
 """
-function Base.count(bn::BayesNet, name::NodeName, data::DataFrame)
+function Base.count(bn::DiscreteBayesNet, name::NodeName, data::DataFrame)
 
     # find relevant variable names based on structure of network
     varnames = push!(deepcopy(parents(bn, name)), name)
@@ -57,8 +60,16 @@ function Base.count(bn::BayesNet, name::NodeName, data::DataFrame)
     tu[:count] = Int[sum(Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]) for j = 1:size(tu,1)]
     tu
 end
+Base.count(bn::DiscreteBayesNet, data::DataFrame) = map(nodename->count(bn, nodename, data), names(bn))
+
 
 """
+    statistics(
+        targetind::Int,
+        parents::AbstractVector{Int},
+        bincounts::AbstractVector{Int},
+        data::AbstractMatrix{Int}
+        )
 outputs a sufficient statistics table for the target variable
 that is r × q where
 r = bincounts[i] is the number of variable instantiations and
@@ -72,14 +83,14 @@ The q-values are ordered in the same ordering as ind2sub() in Julia Base
 ex:
     Variable 1 has parents 2 and 3, with r₁ = 2, r₂ = 2, r₃ = 3
     q for variable 1 is q = r₂×r₃ = 6
-    N[1] will be a 6×2 matrix where:
-        N[1][1,1] is the number of time v₁ = 1, v₂ = 1, v₃ = 1
-        N[1][2,1] is the number of time v₁ = 1, v₂ = 2, v₃ = 1
-        N[1][3,1] is the number of time v₁ = 1, v₂ = 1, v₃ = 2
-        N[1][4,1] is the number of time v₁ = 1, v₂ = 2, v₃ = 2
-        N[1][5,1] is the number of time v₁ = 1, v₂ = 1, v₃ = 3
-        N[1][6,1] is the number of time v₁ = 1, v₂ = 2, v₃ = 3
-        N[1][6,2] is the number of time v₁ = 2, v₂ = 1, v₃ = 1
+    N will be a 6×2 matrix where:
+        N[1,1] is the number of time v₁ = 1, v₂ = 1, v₃ = 1
+        N[2,1] is the number of time v₁ = 1, v₂ = 2, v₃ = 1
+        N[3,1] is the number of time v₁ = 1, v₂ = 1, v₃ = 2
+        N[4,1] is the number of time v₁ = 1, v₂ = 2, v₃ = 2
+        N[5,1] is the number of time v₁ = 1, v₂ = 1, v₃ = 3
+        N[6,1] is the number of time v₁ = 1, v₂ = 2, v₃ = 3
+        N[6,2] is the number of time v₁ = 2, v₂ = 1, v₃ = 1
         ...
 """
 function statistics(
@@ -105,6 +116,11 @@ function statistics(
 end
 
 """
+    statistics(
+        parent_list::Vector{Vector{Int}},
+        bincounts::AbstractVector{Int},
+        data::AbstractMatrix{Int},
+        )
 Computes sufficient statistics from a discrete dataset
 for a Discrete Bayesian Net structure
 
@@ -176,6 +192,17 @@ function statistics(dag::DAG, data::DataFrame)
     datamat = convert(Matrix{Int}, data)'
 
     statistics(parents, bincounts, datamat)
+end
+statistics(bn::DiscreteBayesNet, data::DataFrame) = statistics(bn.dag, data)
+function statistics(bn::DiscreteBayesNet, target::NodeName, data::DataFrame)
+
+    n = nv(bn.dag)
+    targetind = bn.name_to_index[target]
+    parents = in_neighbors(bn.dag, targetind)
+    bincounts = [Int(infer_number_of_instantiations(data[i])) for i in 1 : n]
+    datamat = convert(Matrix{Int}, data)'
+
+    statistics(targetind, parents, bincounts, datamat)
 end
 
 """
@@ -251,7 +278,7 @@ function bayesian_score(bn::DiscreteBayesNet, data::DataFrame, prior::DirichletP
 
     for (i,cpd) in enumerate(bn.cpds)
         parents[i] = in_neighbors(bn.dag, i)
-        bincounts[i] = infer_number_of_instantiations(data[i])
+        bincounts[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
     end
 
     bayesian_score(parents, bincounts, datamat, prior)
@@ -389,12 +416,12 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
     end
 
     # construct the BayesNet
-    cpds = Array(CPD{Categorical, CategoricalCPD}, n)
+    cpds = Array(CategoricalCPD{Categorical}, n)
     varnames = names(data)
     for i in 1:n
         name = varnames[i]
         parents = varnames[parent_list[i]]
-        cpds[i] = fit(CPD{Categorical, CategoricalCPD}, data, name, parents)
+        cpds[i] = fit(CategoricalCPD{Categorical}, data, name, parents)
     end
     BayesNet(cpds)
 end
