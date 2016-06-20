@@ -12,12 +12,16 @@
 # StaticCPD
 let
     df = DataFrame(a=randn(100))
-    cpd = fit(CPD{Normal, StaticCPD}, df, :a)
+    cpd = fit(StaticCPD{Normal}, df, :a)
     @test name(cpd) == :a
     @test parentless(cpd)
-    @test condition!(cpd, Assignment()) === distribution(cpd)
-    @test pdf(cpd, Assignment(:a=>0.5)) > 0.2
-    @test pdf(cpd, Assignment(:a=>0.0)) > pdf(cpd, Assignment(:a=>0.5))
+    @test parents(cpd) == NodeName[]
+    @test disttype(cpd) <: Normal
+    @test isa(cpd(Assignment()), Normal)
+    @test pdf!(cpd, Assignment(:a=>0.5)) > 0.2
+    @test pdf!(cpd, Assignment(:a=>0.0)) > pdf!(cpd, Assignment(:a=>0.5))
+    @test logpdf!(cpd, Assignment(:a=>0.5)) > log(0.2)
+    rand!(cpd, Assignment(:a=>0.5))
 end
 
 # CategoricalCPD

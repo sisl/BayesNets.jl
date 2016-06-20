@@ -13,7 +13,6 @@ using Reexport
 
 export
     CPD,                         # the abstract CPD type
-    CPDForm,                     # describes how CPDs are updated and learned
 
     Assignment,                  # variable assignment type, complete or partial, for a Bayesian Network
     NodeName,                    # variable name type
@@ -22,91 +21,92 @@ export
     CategoricalCPD,
     LinearGaussianCPD,
 
-    pdf!,                        # condition and obtain the pdf
-    logpdf!,                     # condition and obtain the logpdf
     name,                        # obtain the name of the CPD
     parents,                     # obtain the parents in the CPD
     parentless,                  # whether the given variable is parentless
-    distribution,                # returns the CPD's distribution type
-    condition!,                  # update the conditional distribution with the observation
+    disttype,                    # returns the CPD's distribution type
 
+    pdf!,
+    logpdf!,
+
+    # utils
+    strip_arg,
+    required_func,
     sub2ind_vec,
     infer_number_of_instantiations,
     consistent
 
+#############################################
+
 typealias NodeName Symbol
 typealias Assignment Dict{Symbol, Any}
 
+include("utils.jl")
+
 #############################################
 
-abstract CPDForm
-type CPD{D<:Distribution, C<:CPDForm}
-    name::NodeName
-    parents::Vector{NodeName}
-    d::D
-    form::C
-end
-function CPD{D<:Distribution, C<:CPDForm}(
-    name::NodeName,
-    d::D,
-    form::C,
-    )
+abstract CPD{D<:Distribution}
 
-    CPD{D,C}(name, NodeName[], d, form)
-end
-function CPD{D<:Distribution}(
-    name::NodeName,
-    d::D,
-    )
+"""
+    name(cpd::CPD)
+Return the NodeName for the variable this CPD is defined for.
+"""
+@required_func name(cpd::CPD)
 
-    CPD{D,StaticCPD}(name, NodeName[], d, StaticCPD())
-end
+"""
+    parents(cpd::CPD)
+Return the parents for this CPD as a vector of NodeNames.
+"""
+@required_func parents(cpd::CPD)
 
-name(cpd::CPD) = cpd.name
-parents(cpd::CPD) = cpd.parents
-parentless(cpd::CPD) = isempty(cpd.parents)
-distribution(cpd::CPD) = cpd.d
+"""
+    cpd(a::Assignment)
+Use the parental values in `a` to return the conditional distribution
+"""
+@required_func call(cpd::CPD, a::Assignment)
 
-Base.rand(cpd::CPD) = rand(distribution(cpd))
-Base.rand!(cpd::CPD, a::Assignment) = rand(condition!(cpd, a))
+"""
+    fit(::Type{CPD}, data::DataFrame, target::NodeName, parents::Vector{NodeName})
+Construct a CPD for target by fitting it to the provided data
+"""
+@required_func Distributions.fit(cpdtype::Type{CPD}, data::DataFrame, target::NodeName, parents::Vector{NodeName})
+@required_func Distributions.fit(cpdtype::Type{CPD}, data::DataFrame, target::NodeName)
 
-Distributions.pdf(cpd::CPD, a::Assignment) = pdf(cpd.d, a[cpd.name])
-Distributions.logpdf(cpd::CPD, a::Assignment) = logpdf(cpd.d, a[cpd.name])
-function pdf!(cpd::CPD, a::Assignment)
-    condition!(cpd, a)
-    pdf(cpd.d, a[cpd.name])
-end
-function logpdf!(cpd::CPD, a::Assignment)
-    condition!(cpd, a)
-    logpdf(cpd.d, a[cpd.name])
-end
+"""
+    parentless(cpd::CPD)
+Return whether this CPD has parents.
+"""
+parentless(cpd::CPD) = isempty(parents(cpd))
 
-#=
-Each CPDForm must implement:
-    condition!{D, C}(cpd::CPD{D,C}, assignment)         - update the CPD distribution based on the assignment
-    fit{D, C}(::Type{CPD{D,C}}, data, target, parents)  - fit the CPDForm (and possible CPD.d) based on data
-=#
+"""
+    disttype(cpd::CPD)
+Return the type of the CPD's distribution
+"""
+disttype{D}(cpd::CPD{D}) = D
 
+"""
+    rand!(cpd::CPD)
+Condition and then draw from the distribution
+"""
+Base.rand!(cpd::CPD, a::Assignment) = rand(cpd(a))
 
-###########################
+"""
+    rand!(cpd::CPD)
+Condition and then return the pdf
+"""
+pdf!(cpd::CPD, a::Assignment) = pdf(cpd(a), a[name(cpd)])
 
-type StaticCPD <: CPDForm end
+"""
+    rand!(cpd::CPD)
+Condition and then return the logpdf
+"""
+logpdf!(cpd::CPD, a::Assignment) = pdf(cpd(a), a[name(cpd)])
 
-condition!{D,C<:StaticCPD}(cpd::CPD{D,C}, a::Assignment) = cpd.d # no update
-function Distributions.fit{D,C<:StaticCPD}(::Type{CPD{D,C}},
-    data::DataFrame,
-    target::NodeName,
-    parents::Vector{NodeName}=NodeName[],
-    )
-
-    d = fit(D, data[target])
-    CPD(target, parents, d, StaticCPD())
-end
 
 ###########################
 
-include("utils.jl")
-include("categorical_cpd.jl")
-include("linear_gaussian_cpd.jl")
+include("static_cpd.jl")
+# include("categorical_cpd.jl")
+# include("linear_gaussian_cpd.jl")
 
 end # module CPDs
