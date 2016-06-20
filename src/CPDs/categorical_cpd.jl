@@ -1,88 +1,57 @@
-#=
-A categorical distribution
+"""
+A categorical distribution, P(x|parents(x)) where all parents are discrete integers 1:Nᵢ
+"""
+type CategoricalCPD{D} <: CPD{D}
 
-    Is compatible with Categorical
+    target::NodeName
+    parents::Vector{NodeName}
 
-    P(x|parents(x)) ∈ Categorical
-
-    Assumes the target and all parents are discrete integers 1:Nᵢ
-=#
-
-type CategoricalCPD <: CPDForm
-
-    # data only initialized if has parents
-    parental_assignments::Vector{Int} # preallocated array of parental assignments, in BN topological order
-    parent_instantiation_counts::Tuple{Vararg{Int}} # list of integer instantiation counts, in BN topological order
-    probabilities::Matrix{Float64} # n_instantiations × nparental_instantiations of parents
-
-    CategoricalCPD() = new()
-    function CategoricalCPD(
-        parental_assignments::Vector{Int},
-        parent_instantiation_counts::Tuple{Vararg{Int}},
-        probabilities::Matrix{Float64},
-        )
-        new(parental_assignments, parent_instantiation_counts, probabilities)
-    end
+    parental_ncategories::Vector{Int} # list of instantiation counts for each parent, in same order as parents
+    distributions::Vector{D}
 end
 
-function condition!{D<:Categorical,C<:CategoricalCPD}(cpd::CPD{D,C}, a::Assignment)
+name(cpd::CategoricalCPD) = cpd.target
+parents(cpd::CategoricalCPD) = cpd.parents
 
-    if !parentless(cpd)
 
-        form = cpd.form
+function Base.call(cpd::CategoricalCPD, a::Assignment)
 
-        # pull the parental assignments
-        for (i,p) in enumerate(cpd.parents)
-            form.parental_assignments[i] = a[p]
+    idx = 1
+    if !isempty(cpd.parents)
+
+        # get the index in cpd.distributions
+
+        N = length(cpd.parents)
+        idx = a[cpd.parents[N]] - 1
+        for i in N-1:-1:1
+            idx = (a[cpd.parents[i]] - 1 + cpd.parental_ncategories[i]*idx)
         end
-
-        # get the parental assignment index
-        j = sub2ind_vec(form.parent_instantiation_counts, form.parental_assignments)
-
-        # build the distribution
-        p = cpd.d.p
-        for i in 1 : length(p)
-            p[i] = form.probabilities[i,j]
-        end
+        idx += 1
     end
 
-    cpd.d
+    cpd.distributions[idx]
 end
 
-function Distributions.fit{D<:Categorical,C<:CategoricalCPD}(
-    ::Type{CPD{D,C}},
+function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     data::DataFrame,
-    target::NodeName;
-    dirichlet_prior::Float64=0.0, # prior counts
+    target::NodeName,
     )
 
     # no parents
 
-    arr = data[target]
-    eltype(arr) <: Int || error("fit CategoricalCPD requrires target to be an integer")
-
-    n_instantiations = infer_number_of_instantiations(arr)
-
-    probabilities = fill(dirichlet_prior, n_instantiations)
-    for v in data[target]
-        probabilities[v] += 1.0
-    end
-    probabilities ./= nrow(data)
-
-    CPD(target, Categorical(probabilities), CategoricalCPD())
+    d = fit(D, data[target])
+    CategoricalCPD(target, NodeName[], Int[], D[d])
 end
-function Distributions.fit{D<:Categorical,C<:CategoricalCPD}(
-    ::Type{CPD{D,C}},
+function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     data::DataFrame,
     target::NodeName,
-    parents::Vector{NodeName};
-    dirichlet_prior::Float64=0.0, # prior counts
+    parents::Vector{NodeName},
     )
 
     # with parents
 
     if isempty(parents)
-        return fit(CPD{D,C}, data, target, dirichlet_prior=dirichlet_prior)
+        return fit(CategoricalCPD{D}, data, target)
     end
 
     # ---------------------
@@ -92,48 +61,72 @@ function Distributions.fit{D<:Categorical,C<:CategoricalCPD}(
     # calc parent_instantiation_counts
 
     nparents = length(parents)
-    discrete_data = Array(Int, nparents, nrow(data))
-    parent_instantiation_counts = Array(Int, nparents)
+    parental_ncategories = Array(Int, nparents)
+    dims = Array(UnitRange{Int64}, nparents)
     for (i,p) in enumerate(parents)
-        arr = data[p]
-        parent_instantiation_counts[i] = infer_number_of_instantiations(arr)
-
-        for j in 1 : nrow(data)
-            discrete_data[i,j] = arr[j]
-        end
+        parental_ncategories[i] = infer_number_of_instantiations(data[p])
+        dims[i] = 1:parental_ncategories[i]
     end
 
     # ---------------------
-    # pull sufficient statistics
+    # fit distributions
 
-    q = prod(parent_instantiation_counts)
-    stridevec = fill(1, nparents)
-    for k = 2 : nparents
-        stridevec[k] = stridevec[k-1] * parent_instantiation_counts[k-1]
-    end
-    js = (discrete_data - 1)' * stridevec + 1
-
-    target_data = convert(Vector{Int}, data[target])
-    n_instantiations = infer_number_of_instantiations(target_data)
-
-    probs = full(sparse(target_data, vec(js), 1.0, n_instantiations, q)) # currently a set of counts
-    probs = probs + dirichlet_prior
-
-    for i in 1 : q
-        tot = sum(probs[:,i])
-        if tot > 0.0
-            probs[:,i] ./= tot
-        else
-            probs[:,i] = 1.0/n_instantiations
+    distributions = Array(D, prod(parental_ncategories))
+    for (q, parent_instantiation) in enumerate(product(dims...))
+        arr = Array(eltype(data[target]), 0)
+        for i in 1 : nrow(data)
+            if all(j->data[i,parents[j]]==parent_instantiation[j], 1:nparents) # parental instantiation matches
+                push!(arr, data[i, target])
+            end
         end
+        distributions[q] = fit(D, arr)
     end
 
-    probabilities = probs
-    parental_assignments = Array(Int, nparents)
-    parent_instantiation_counts = tuple(parent_instantiation_counts...)
+    CategoricalCPD(target, parents, parental_ncategories, distributions)
+end
 
-    # DEBUG
-    form = CategoricalCPD(parental_assignments, parent_instantiation_counts, probabilities)
-    CPD(target, parents, Categorical(n_instantiations), form)
+# For CategoricalCPD{Categorical} we want to ensure that all distributions fit with the corrent number of categories
+function Distributions.fit(::Type{CategoricalCPD{Categorical}},
+    data::DataFrame,
+    target::NodeName,
+    parents::Vector{NodeName},
+    )
+
+    # with parents
+
+    if isempty(parents)
+        return fit(CategoricalCPD{Categorical}, data, target)
+    end
+
+    # ---------------------
+    # pull discrete dataset
+    # 1st row is all of the data for the 1st parent
+    # 2nd row is all of the data for the 2nd parent, etc.
+    # calc parent_instantiation_counts
+
+    nparents = length(parents)
+    parental_ncategories = Array(Int, nparents)
+    dims = Array(UnitRange{Int64}, nparents)
+    for (i,p) in enumerate(parents)
+        parental_ncategories[i] = infer_number_of_instantiations(data[p])
+        dims[i] = 1:parental_ncategories[i]
+    end
+
+    # ---------------------
+    # fit distributions
+
+    k = infer_number_of_instantiations(data[target])
+    distributions = Array(Categorical, prod(parental_ncategories))
+    for (q, parent_instantiation) in enumerate(product(dims...))
+        arr = Array(eltype(data[target]), 0)
+        for i in 1 : nrow(data)
+            if all(j->data[i,parents[j]]==parent_instantiation[j], 1:nparents) # parental instantiation matches
+                push!(arr, data[i, target])
+            end
+        end
+        distributions[q] = fit_mle(Categorical, k, arr)
+    end
+
+    CategoricalCPD(target, parents, parental_ncategories, distributions)
 end
 

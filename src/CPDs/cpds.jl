@@ -11,6 +11,8 @@ using Reexport
 @reexport using Distributions
 @reexport using DataFrames
 
+import Iterators: product
+
 export
     CPD,                         # the abstract CPD type
 
@@ -106,7 +108,7 @@ logpdf!(cpd::CPD, a::Assignment) = pdf(cpd(a), a[name(cpd)])
 ###########################
 
 include("static_cpd.jl")
-# include("categorical_cpd.jl")
-# include("linear_gaussian_cpd.jl")
+include("categorical_cpd.jl")
+include("linear_gaussian_cpd.jl")
 
 end # module CPDs

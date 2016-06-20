@@ -30,29 +30,50 @@ let
     # no parents
     let
         df = DataFrame(a=[1,2,1,2,3])
-        cpd = fit(CPD{Categorical, CategoricalCPD}, df, :a)
+        cpd = fit(CategoricalCPD{Categorical}, df, :a)
 
         @test name(cpd) == :a
         @test parentless(cpd)
-        @test distribution(cpd) === condition!(cpd, Assignment())
-        @test pdf(distribution(cpd), 1) == 0.4
-        @test pdf(distribution(cpd), 2) == 0.4
-        @test pdf(distribution(cpd), 3) == 0.2
+
+        d = cpd(Assignment())
+        @test isa(d, Categorical) && isa(d, disttype(cpd))
+        @test pdf(d, 1) == 0.4
+        @test pdf(d, 2) == 0.4
+        @test pdf(d, 3) == 0.2
+
+        df = DataFrame(a=randn(100))
+        cpd = fit(CategoricalCPD{Normal}, df, :a)
+
+        @test isa(cpd(Assignment()), disttype(cpd))
+        @test pdf!(cpd, Assignment(:a=>0.5)) > 0.2
+        @test pdf!(cpd, Assignment(:a=>0.0)) > pdf!(cpd, Assignment(:a=>0.55))
     end
 
     # with parents
     let
+        # Example with Categorical
         df = DataFrame(a=[1,2,1,2,3], b=[1,1,2,1,2])
-        cpd = fit(CPD{Categorical, CategoricalCPD}, df, :b, [:a])
+        cpd = fit(CategoricalCPD{Categorical}, df, :b, [:a])
 
-        @test condition!(cpd, Assignment(:a=>1)).p == [0.5,0.5]
-        @test condition!(cpd, Assignment(:a=>2)).p == [1.0,0.0]
-        @test condition!(cpd, Assignment(:a=>3)).p == [0.0,1.0]
+        @test name(cpd) == :b
+        @test parents(cpd) == [:a]
+        @test !parentless(cpd)
 
-        cpd = fit(CPD{Categorical, CategoricalCPD}, df, :b, [:a], dirichlet_prior=1.0)
-        @test condition!(cpd, Assignment(:a=>1)).p == [0.50,0.50]
-        @test condition!(cpd, Assignment(:a=>2)).p == [0.75,0.25]
-        @test condition!(cpd, Assignment(:a=>3)).p == [ 1/3, 2/3]
+        @test cpd(Assignment(:a=>1)).p == [0.5,0.5]
+        @test cpd(Assignment(:a=>2)).p == [1.0,0.0]
+        @test cpd(Assignment(:a=>3)).p == [0.0,1.0]
+
+        # Example with Bernoulli and more than one parent
+        df = DataFrame(a=[   1,    1,    1,    1,    2,    2,    2,    2],
+                       b=[   1,    1,    2,    2,    1,    1,    2,    2],
+                       c=[true, true,false,false, true,false,false, true])
+        cpd = fit(CategoricalCPD{Bernoulli}, df, :c, [:a, :b])
+
+        @test isa(cpd(Assignment(:a=>1, :b=>1)), disttype(cpd))
+        @test cpd(Assignment(:a=>1, :b=>1)).p == 1.0
+        @test cpd(Assignment(:a=>1, :b=>2)).p == 0.0
+        @test cpd(Assignment(:a=>2, :b=>1)).p == 0.5
+        @test cpd(Assignment(:a=>2, :b=>2)).p == 0.5
     end
 end
 
@@ -62,14 +83,14 @@ let
     # no parents
     let
         df = DataFrame(a=randn(100))
-        cpd = fit(CPD{Normal{Float64}, LinearGaussianCPD}, df, :a, min_stdev=0.0)
+        cpd = fit(LinearGaussianCPD, df, :a, min_stdev=0.0)
 
         @test name(cpd) == :a
+        @test parents(cpd) == NodeName[]
         @test parentless(cpd)
-        @test distribution(cpd) == condition!(cpd, Assignment())
-        @test abs(distribution(cpd).σ - 1.0) < 0.2
-        @test pdf(cpd, Dict{Symbol, Any}(:a=>0.5)) > 0.2
-        @test pdf(cpd, Dict{Symbol, Any}(:a=>0.0)) > pdf(cpd, Dict{Symbol, Any}(:a=>0.5))
+        @test disttype(cpd) <: Normal
+        @test pdf!(cpd, Assignment(:a=>0.5)) > 0.2
+        @test pdf!(cpd, Assignment(:a=>0.0)) > pdf!(cpd, Assignment(:a=>0.55))
     end
 
     # with parents
@@ -78,19 +99,20 @@ let
         b = randn(1000) .+ 2*a .+ 1
 
         df = DataFrame(a=a, b=b)
-        cpd = fit(CPD{Normal{Float64}, LinearGaussianCPD}, df, :b, [:a])
+        cpd = fit(LinearGaussianCPD, df, :b, [:a])
 
         @test !parentless(cpd)
+        @test parents(cpd) == [:a]
 
-        p = condition!(cpd, Assignment(:a=>0.0))
+        p = cpd(Assignment(:a=>0.0))
         @test isapprox(p.μ, 1.0, atol=0.25)
         @test isapprox(p.σ, 2.0, atol=0.50)
 
-        p = condition!(cpd, Assignment(:a=>1.0))
+        p = cpd(Assignment(:a=>1.0))
         @test isapprox(p.μ, 3.0, atol=0.25)
         @test isapprox(p.σ, 2.0, atol=0.50)
 
-        cpd = fit(CPD{Normal{Float64}, LinearGaussianCPD}, df, :b, [:a], min_stdev=10.0)
-        @test distribution(cpd).σ == 10.0
+        cpd = fit(LinearGaussianCPD, df, :b, [:a], min_stdev=10.0)
+        @test cpd(Assignment(:a=>1.0)).σ == 10.0
     end
 end
