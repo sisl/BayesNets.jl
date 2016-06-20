@@ -4,4 +4,4 @@
 
 This library supports representation, inference, and learning in Bayesian networks.
 
-Please read the [documentation](http://nbviewer.ipython.org/github/sisl/BayesNets.jl/blob/distributions/doc/test_BN.ipynb).
+Please read the [documentation](http://nbviewer.ipython.org/github/sisl/BayesNets.jl/blob/distributions/doc/BayesNets.ipynb).
