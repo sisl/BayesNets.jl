@@ -105,3 +105,39 @@ let
         @test cpd(Assignment(:a=>1.0)).σ == 10.0
     end
 end
+
+# ConditionalLinearGaussianCPD
+let
+
+    # no parents
+    let
+        df = DataFrame(a=randn(10))
+        cpd = fit(ConditionalLinearGaussianCPD, df, :a)
+
+        @test name(cpd) == :a
+        @test parentless(cpd)
+
+        d = cpd(Assignment())
+        @test isa(d, Normal) && isa(d, disttype(cpd))
+    end
+
+    # with parents
+    let
+        df = DataFrame(a=[  1,   1,   1,   1,     2,   2,   2,   2],
+                       b=[0.5, 1.0, 1.5, 1.0,   2.5, 3.0, 3.5, 3.0],
+                       c=[0.55,1.05,1.53,1.02,  2.52,3.01,3.55,3.03])
+        cpd = fit(ConditionalLinearGaussianCPD, df, :c, [:a, :b])
+
+        @test name(cpd) == :c
+        @test parents(cpd) == [:a, :b]
+        @test !parentless(cpd)
+
+        d = cpd(Assignment(:a=>1, :b=>0.5))
+        @test isapprox(d.μ, 0.538, atol=0.001)
+        @test isapprox(d.σ, 1.130, atol=0.001)
+
+        d = cpd(Assignment(:a=>2, :b=>3.0))
+        @test isapprox(d.μ, 3.029, atol=0.001)
+        @test isapprox(d.σ, 1.130, atol=0.001)
+    end
+end

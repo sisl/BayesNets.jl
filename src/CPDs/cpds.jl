@@ -14,19 +14,20 @@ using Reexport
 import Iterators: product
 
 export
-    CPD,                         # the abstract CPD type
+    CPD,                           # the abstract CPD type
 
-    Assignment,                  # variable assignment type, complete or partial, for a Bayesian Network
-    NodeName,                    # variable name type
+    Assignment,                    # variable assignment type, complete or partial, for a Bayesian Network
+    NodeName,                      # variable name type
 
-    StaticCPD,                   # static distribution (never uses parental information)
-    CategoricalCPD,
-    LinearGaussianCPD,
+    StaticCPD,                     # static distribution (never uses parental information)
+    CategoricalCPD,                # a table lookup based on discrete parental assignment
+    LinearGaussianCPD,             # Normal with linear mean
+    ConditionalLinearGaussianCPD,  # a LinearGaussianCPD lookup based on discrete parental assignment
 
-    name,                        # obtain the name of the CPD
-    parents,                     # obtain the parents in the CPD
-    parentless,                  # whether the given variable is parentless
-    disttype,                    # returns the CPD's distribution type
+    name,                          # obtain the name of the CPD
+    parents,                       # obtain the parents in the CPD
+    parentless,                    # whether the given variable is parentless
+    disttype,                      # returns the CPD's distribution type
 
     pdf!,
     logpdf!,
@@ -112,5 +113,6 @@ Base.eltype{D}(cpd::CPD{D}) = eltype(D)
 include("static_cpd.jl")
 include("categorical_cpd.jl")
 include("linear_gaussian_cpd.jl")
+include("conditional_linear_gaussian_cpd.jl")
 
 end # module CPDs
