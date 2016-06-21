@@ -11,10 +11,7 @@ example in _Probabilistic Graphical Models_ by Koller and Friedman
 typealias DiscreteBayesNet BayesNet{DiscreteCPD}
 DiscreteBayesNet() = BayesNet(DiscreteCPD)
 
-function rand_cpd!(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, parents::Vector{NodeName}=NodeName[])
-
-    !haskey(bn.name_to_index, target) || error("A CPD with name $target already exists!")
-
+function _get_parental_ncategories(bn::DiscreteBayesNet, parents::Vector{NodeName})
     parental_ncategories = Array(Int, length(parents))
     for (i,p) in enumerate(parents)
         parent_cpd = get(bn, p)::CategoricalCPD
@@ -23,6 +20,15 @@ function rand_cpd!(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, par
         dist = parent_cpd.distributions[1]
         parental_ncategories[i] = Distributions.ncategories(parent_cpd.distributions[1])
     end
+
+    parental_ncategories
+end
+
+function rand_cpd!(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, parents::Vector{NodeName}=NodeName[])
+
+    !haskey(bn.name_to_index, target) || error("A CPD with name $target already exists!")
+
+    parental_ncategories = _get_parental_ncategories(bn, parents)
 
     Q = prod(parental_ncategories)
     distributions = Array(Categorical, Q)

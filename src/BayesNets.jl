@@ -4,7 +4,6 @@ module BayesNets
 
 using Compat
 using Reexport
-# using LightXML
 
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
@@ -32,6 +31,7 @@ export
     sumout,
     normalize,
     estimate_convergence,
+    readxdsl,
 
     statistics,
     index_data,
