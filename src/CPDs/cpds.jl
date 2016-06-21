@@ -8,6 +8,7 @@ and contains the CPD relating that var to its parents, P(x | parents(x))
 module CPDs
 
 using Reexport
+using Discretizers
 @reexport using Distributions
 @reexport using DataFrames
 
@@ -20,9 +21,13 @@ export
     NodeName,                      # variable name type
 
     StaticCPD,                     # static distribution (never uses parental information)
+    FunctionalCPD,                 # for implementing quick and easy custom CPDs
     CategoricalCPD,                # a table lookup based on discrete parental assignment
     LinearGaussianCPD,             # Normal with linear mean
     ConditionalLinearGaussianCPD,  # a LinearGaussianCPD lookup based on discrete parental assignment
+    DiscreteCPD,                   # a typealias to CategoricalCPD{Categorical}
+
+    NamedCategorical,              # a custom distribution, a Categorical with named values
 
     name,                          # obtain the name of the CPD
     parents,                       # obtain the parents in the CPD
@@ -64,7 +69,9 @@ Return the parents for this CPD as a vector of NodeNames.
     cpd(a::Assignment)
 Use the parental values in `a` to return the conditional distribution
 """
-@required_func call(cpd::CPD, a::Assignment)
+@required_func Base.call(cpd::CPD, a::Assignment)
+Base.call(cpd::CPD) = call(cpd, Assignment()) # cpd()
+Base.call{N<:Any}(cpd::CPD, pair::Pair{NodeName,N}) = call(cpd, Assignment(pair)) # cpd(:A=>1)
 
 """
     fit(::Type{CPD}, data::DataFrame, target::NodeName, parents::Vector{NodeName})
@@ -96,18 +103,21 @@ disttype{D}(cpd::CPD{D}) = D
 Condition and then draw from the distribution
 """
 Base.rand(cpd::CPD, a::Assignment) = rand(cpd(a))
+Base.rand{N<:Any}(cpd::CPD, pair::Pair{NodeName,N}) = rand(cpd, Assignment(pair))
 
 """
     pdf(cpd::CPD)
 Condition and then return the pdf
 """
 Distributions.pdf(cpd::CPD, a::Assignment) = pdf(cpd(a), a[name(cpd)])
+Distributions.pdf{N<:Any}(cpd::CPD, pair::Pair{NodeName,N}) = pdf(cpd, Assignment(pair))
 
 """
     logpdf(cpd::CPD)
 Condition and then return the logpdf
 """
 Distributions.logpdf(cpd::CPD, a::Assignment) = logpdf(cpd(a), a[name(cpd)])
+Distributions.logpdf{N<:Any}(cpd::CPD, pair::Pair{NodeName,N}) = logpdf(cpd, Assignment(pair))
 
 """
     logpdf(cpd::CPD, data::DataFrame)
@@ -129,8 +139,6 @@ Return the pdf across the dataset
 """
 Distributions.pdf(cpd::CPD, data::DataFrame) = exp(logpdf(cpd, data))
 
-Base.eltype{D}(cpd::CPD{D}) = eltype(D)
-
 ###########################
 
 """
@@ -148,7 +156,10 @@ end
 
 ###########################
 
+include("named_categorical.jl")
+
 include("static_cpd.jl")
+include("functional_cpd.jl")
 include("categorical_cpd.jl")
 include("linear_gaussian_cpd.jl")
 include("conditional_linear_gaussian_cpd.jl")

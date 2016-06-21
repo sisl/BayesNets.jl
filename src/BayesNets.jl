@@ -25,10 +25,12 @@ export
 	add_edge!,
     has_edge,
 
+    rand_cpd!,
+    rand_table_weighted,
+
     table,
     sumout,
     normalize,
-    estimate,
     estimate_convergence,
 
     statistics,

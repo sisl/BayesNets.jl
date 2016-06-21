@@ -72,7 +72,7 @@ True if all common keys between the two assignments have the same value
 function consistent(a::Assignment, b::Assignment)
 
     for key in keys(a)
-        if !haskey(b, key) || b[key] != a[key]
+        if haskey(b,key) && b[key] != a[key]
             return false
         end
     end

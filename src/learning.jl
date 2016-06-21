@@ -25,6 +25,45 @@ function Distributions.fit{C<:CPD}(::Type{BayesNet}, data::DataFrame, dag::DAG, 
 end
 Distributions.fit{T<:CPD}(::Type{BayesNet{T}}, data::DataFrame, dag::DAG) = fit(BayesNet, data, dag, T)
 
+function _get_dag(data::DataFrame, edges::Tuple{Vararg{Pair{NodeName, NodeName}}})
+    varnames = names(data)
+    dag = DAG(length(varnames))
+    for (a,b) in edges
+        i = findfirst(varnames, a)
+        j = findfirst(varnames, b)
+        add_edge!(dag, i, j)
+    end
+    dag
+end
+
+"""
+    fit(::Type{BayesNet}, data, edges)
+Fit a Bayesian Net whose variables are the columns in data
+and whose edges are given in edges
+
+    ex: fit(DiscreteBayesNet, data, (:A=>:B, :C=>B))
+"""
+function Distributions.fit{T<:CPD}(::Type{BayesNet{T}}, data::DataFrame, edges::Tuple{Vararg{Pair{NodeName, NodeName}}})
+    dag = _get_dag(data, edges)
+    fit(BayesNet, data, dag, T)
+end
+function Distributions.fit(::Type{BayesNet}, data::DataFrame, edges::Tuple{Vararg{Pair{NodeName, NodeName}}}, cpd_types::Vector{DataType})
+    dag = _get_dag(data, edges)
+    fit(BayesNet, data, dag, cpd_types)
+end
+function Distributions.fit{T<:CPD}(::Type{BayesNet{T}}, data::DataFrame, edge::Pair{NodeName, NodeName})
+    dag = _get_dag(data, tuple(edge))
+    fit(BayesNet, data, dag, T)
+end
+function Distributions.fit(::Type{BayesNet}, data::DataFrame, edge::Pair{NodeName, NodeName}, cpd_types::Vector{DataType})
+    dag = _get_dag(data, tuple(edge))
+    fit(BayesNet, data, dag, cpd_types)
+end
+function Distributions.fit{T<:CPD}(::Type{BayesNet}, data::DataFrame, edge::Pair{NodeName, NodeName}, ::Type{T})
+    dag = _get_dag(data, tuple(edge))
+    fit(BayesNet, data, dag, T)
+end
+
 ############################
 
 abstract ScoringFunction
@@ -87,7 +126,7 @@ end
     Distributions.fit(::Type{BayesNet}, data::DataFrame, params::K2GraphSearch)
 Runs the K2 structure search algorithm on the data with the given cpd types and fixed ordering
 """
-function Distributions.fit{C}(::Type{BayesNet{C}}, data::DataFrame, params::K2GraphSearch)
+function Distributions.fit{C<:CPD}(::Type{BayesNet{C}}, data::DataFrame, params::K2GraphSearch)
 
     N = length(params.order)
     cpds = Array(C, N)
@@ -115,3 +154,4 @@ function Distributions.fit{C}(::Type{BayesNet{C}}, data::DataFrame, params::K2Gr
 
     BayesNet(cpds)
 end
+Distributions.fit(::Type{BayesNet}, data::DataFrame, params::K2GraphSearch) = fit(BayesNet{CPD}, data, params)

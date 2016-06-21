@@ -131,7 +131,7 @@ end
 function Base.push!(bn::BayesNet, cpd::CPD)
 
 	cpdname = name(cpd)
-	!haskey(bn.name_to_index, cpdname) || error("A CPD with that name already exists!")
+	!haskey(bn.name_to_index, cpdname) || error("A CPD with name $cpdname already exists!")
 
 	add_vertex!(bn.dag)
 

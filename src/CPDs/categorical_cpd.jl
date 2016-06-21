@@ -1,5 +1,12 @@
 """
 A categorical distribution, P(x|parents(x)) where all parents are discrete integers 1:Nᵢ
+
+The ordering of `distributions` arrayfollows the convention in Decision Making Under Uncertainty.
+Suppose a variable has three discrete parents. The first parental instantiation
+assigns all parents to their first bin. The second will assign the first
+parent (as defined in `parents`) to its second bin and the other parents
+to their first bin. The sequence continues until all parents are instantiated
+to their last bins.
 """
 type CategoricalCPD{D} <: CPD{D}
 
@@ -9,7 +16,7 @@ type CategoricalCPD{D} <: CPD{D}
     parental_ncategories::Vector{Int} # list of instantiation counts for each parent, in same order as parents
     distributions::Vector{D}
 end
-CategoricalCPD(target::NodeName, d::Distribution) = CategoricalCPD(target, NodeName[], Int[], D[d])
+CategoricalCPD{D<:Distribution}(target::NodeName, d::D) = CategoricalCPD(target, NodeName[], Int[], D[d])
 
 name(cpd::CategoricalCPD) = cpd.target
 parents(cpd::CategoricalCPD) = cpd.parents
@@ -86,8 +93,14 @@ function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     CategoricalCPD(target, parents, parental_ncategories, distributions)
 end
 
-# For CategoricalCPD{Categorical} we want to ensure that all distributions fit with the corrent number of categories
-function Distributions.fit(::Type{CategoricalCPD{Categorical}},
+#####
+
+typealias DiscreteCPD CategoricalCPD{Categorical}
+
+DiscreteCPD(target::NodeName, prob::Vector{Float64}) = CategoricalCPD(target, Categorical(prob./sum(prob)))
+
+# For DiscreteCPD we want to ensure that all distributions fit with the corrent number of categories
+function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
     target::NodeName,
     parents::Vector{NodeName},
@@ -96,7 +109,7 @@ function Distributions.fit(::Type{CategoricalCPD{Categorical}},
     # with parents
 
     if isempty(parents)
-        return fit(CategoricalCPD{Categorical}, data, target)
+        return fit(DiscreteCPD, data, target)
     end
 
     # ---------------------
@@ -130,4 +143,3 @@ function Distributions.fit(::Type{CategoricalCPD{Categorical}},
 
     CategoricalCPD(target, parents, parental_ncategories, distributions)
 end
-

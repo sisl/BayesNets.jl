@@ -7,11 +7,10 @@ let
     @test parents(cpd) == NodeName[]
     @test disttype(cpd) <: Normal
     @test nparams(cpd) == 2
-    @test isa(cpd(Assignment()), Normal)
-    @test pdf(cpd, Assignment(:a=>0.5)) > 0.2
-    @test pdf(cpd, Assignment(:a=>0.0)) > pdf(cpd, Assignment(:a=>0.5))
-    @test logpdf(cpd, Assignment(:a=>0.5)) > log(0.2)
-    rand(cpd, Assignment(:a=>0.5))
+    @test isa(cpd(), Normal)
+    @test pdf(cpd, :a=>0.5) > 0.2
+    @test pdf(cpd, :a=>0.0) > pdf(cpd, :a=>0.5)
+    @test logpdf(cpd, :a=>0.5) > log(0.2)
 end
 
 # CategoricalCPD
@@ -20,7 +19,7 @@ let
     # no parents
     let
         df = DataFrame(a=[1,2,1,2,3])
-        cpd = fit(CategoricalCPD{Categorical}, df, :a)
+        cpd = fit(DiscreteCPD, df, :a)
 
         @test name(cpd) == :a
         @test parentless(cpd)
@@ -35,25 +34,25 @@ let
         df = DataFrame(a=randn(100))
         cpd = fit(CategoricalCPD{Normal}, df, :a)
 
-        @test isa(cpd(Assignment()), disttype(cpd))
-        @test pdf(cpd, Assignment(:a=>0.5)) > 0.2
-        @test pdf(cpd, Assignment(:a=>0.0)) > pdf(cpd, Assignment(:a=>0.55))
+        @test isa(cpd(), disttype(cpd))
+        @test pdf(cpd, :a=>0.5) > 0.2
+        @test pdf(cpd, :a=>0.0) > pdf(cpd, :a=>0.55)
     end
 
     # with parents
     let
         # Example with Categorical
         df = DataFrame(a=[1,2,1,2,3], b=[1,1,2,1,2])
-        cpd = fit(CategoricalCPD{Categorical}, df, :b, [:a])
+        cpd = fit(DiscreteCPD, df, :b, [:a])
 
         @test name(cpd) == :b
         @test parents(cpd) == [:a]
         @test !parentless(cpd)
         @test nparams(cpd) == 6
 
-        @test cpd(Assignment(:a=>1)).p == [0.5,0.5]
-        @test cpd(Assignment(:a=>2)).p == [1.0,0.0]
-        @test cpd(Assignment(:a=>3)).p == [0.0,1.0]
+        @test cpd(:a=>1).p == [0.5,0.5]
+        @test cpd(:a=>2).p == [1.0,0.0]
+        @test cpd(:a=>3).p == [0.0,1.0]
 
         # Example with Bernoulli and more than one parent
         df = DataFrame(a=[   1,    1,    1,    1,    2,    2,    2,    2],
@@ -84,8 +83,8 @@ let
         @test parentless(cpd)
         @test disttype(cpd) <: Normal
         @test nparams(cpd) == 2
-        @test pdf(cpd, Assignment(:a=>0.5)) > 0.2
-        @test pdf(cpd, Assignment(:a=>0.0)) > pdf(cpd, Assignment(:a=>0.55))
+        @test pdf(cpd, :a=>0.5) > 0.2
+        @test pdf(cpd, :a=>0.0) > pdf(cpd, :a=>0.55)
     end
 
     # with parents
@@ -100,16 +99,16 @@ let
         @test parents(cpd) == [:a]
         @test nparams(cpd) == 3
 
-        p = cpd(Assignment(:a=>0.0))
+        p = cpd(:a=>0.0)
         @test isapprox(p.μ, 1.0, atol=0.25)
         @test isapprox(p.σ, 2.0, atol=0.50)
 
-        p = cpd(Assignment(:a=>1.0))
+        p = cpd(:a=>1.0)
         @test isapprox(p.μ, 3.0, atol=0.25)
         @test isapprox(p.σ, 2.0, atol=0.50)
 
         cpd = fit(LinearGaussianCPD, df, :b, [:a], min_stdev=10.0)
-        @test cpd(Assignment(:a=>1.0)).σ == 10.0
+        @test cpd(:a=>1.0).σ == 10.0
     end
 end
 
@@ -125,7 +124,7 @@ let
         @test parentless(cpd)
         @test nparams(cpd) == 2
 
-        d = cpd(Assignment())
+        d = cpd()
         @test isa(d, Normal) && isa(d, disttype(cpd))
     end
 

@@ -16,10 +16,10 @@ Always return a DataFrame with `nsamples` rows.
 """
 function Base.rand(bn::BayesNet, nsamples::Integer)
 
-    a = Assignment()
+    a = rand(bn)
     df = DataFrame()
     for cpd in bn.cpds
-        df[name(cpd)] = Array(eltype(cpd), nsamples)
+        df[name(cpd)] = Array(typeof(a[name(cpd)]), nsamples)
     end
 
     for i in 1:nsamples
@@ -43,22 +43,23 @@ max_nsamples: an upper limit on the number of samples that will be tried, needed
 """
 function Base.rand(bn::BayesNet, nsamples::Integer, consistent_with::Assignment, max_nsamples::Integer=nsamples*100)
 
-    a = Assignment()
+    a = rand(bn)
     df = DataFrame()
     for cpd in bn.cpds
-        df[name(cpd)] = Array(eltype(cpd), nsamples)
+        df[name(cpd)] = Array(typeof(a[name(cpd)]), nsamples)
     end
 
     sample_count = 0
     for i in 1:nsamples
 
-        while sample_count < max_nsamples
-            sample_count += 1
+        while sample_count ≤ max_nsamples
 
             rand!(a, bn)
             if consistent(a, consistent_with)
                 break
             end
+
+            sample_count += 1
         end
 
         sample_count ≤ max_nsamples || error("rand hit sample threshold of $max_nsamples")
@@ -71,49 +72,34 @@ function Base.rand(bn::BayesNet, nsamples::Integer, consistent_with::Assignment,
 
     df
 end
+function Base.rand{N<:Any}(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName,N}, max_nsamples::Integer=nsamples*100)
+    a = Assignment(pair)
+    rand(bn, nsamples, a, max_nsamples=max_nsamples)
+end
 
-# function rand_table_weighted(bn::BayesNet; numSamples::Integer=10, consistentWith::Assignment=Assignment())
-#     ordering = topological_sort_by_dfs(bn.dag)
-#     t = Dict([node.name => Any[] for node in bn.nodes])
-#     w = ones(numSamples)
-#     a = Assignment()
-#     for i in 1:numSamples
-#         for node in bn.nodes[ordering]
-#             name = node.name
-#             if haskey(consistentWith, name)
-#                 a[name] = consistentWith[name]
-#                 w[i] *= pdf(cpd(bn, name), a)(a[name])
-#             else
-#                 a[name] = rand(cpd(bn, name), a)
-#             end
-#             push!(t[name], a[name])
-#         end
-#     end
-#     t[:p] = w / sum(w)
-#     convert(DataFrame, t)
-# end
+"""
+    rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with::Assignment=Assignment())
+Generates a DataFrame containing a dataset of variable assignments using weighted sampling.
+Always return a DataFrame with `nsamples` rows.
+"""
+function rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with::Assignment=Assignment())
 
-# """
-# construct a random dictionary for a Bernoulli CPD
-# NOTE: entries are [0,1] and not [true, false]
-# """
-# function rand_bernoulli_dict(numParents::Integer)
-#     dims = ntuple(i->2, numParents)
-#     Dict{Vector{Int}, Float64}([[ind2sub(dims, i)...] .- 1 => round(1+rand()*98)/100 for i = 1:prod(dims)])
-# end
+    t = Dict([name => Any[] for name in names(bn)])
+    w = ones(Float64, nsamples)
+    a = Assignment()
 
-# """
-# construct a random dictionary for a discrete CPD
-# """
-# function rand_discrete_dict{V<:AbstractVector}(parentDomains::AbstractVector{V}, dimNode::Integer)
-#     dims = ntuple(i -> length(parentDomains[i]), length(parentDomains))
-
-#     if isempty(dims)
-#         return [_normalize_values(rand(dimNode))]
-#     else
-#         return Dict([[_map_names(ind2sub(dims, i), parentDomains)...] => _normalize_values(rand(dimNode)) for i = 1:prod(dims)])
-#     end
-# end
-
-# _map_names(dim, names) = ntuple(i -> names[i][dim[i]], length(dim))
-# _normalize_values(d) = d /= sum(d)
+    for i in 1:nsamples
+        for cpd in bn.cpds
+            varname = name(cpd)
+            if haskey(consistent_with, varname)
+                a[varname] = consistent_with[varname]
+                w[i] *= pdf(cpd, a)
+            else
+                a[varname] = rand(cpd, a)
+            end
+            push!(t[varname], a[varname])
+        end
+    end
+    t[:p] = w / sum(w)
+    convert(DataFrame, t)
+end

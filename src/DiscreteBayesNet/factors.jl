@@ -27,14 +27,12 @@ function Base.(:(*))(f1::Factor, f2::Factor)
     end
 end
 
-# TODO: this currently only supports binary-valued variables
 # TODO: implement factoring out final value in factor table,
 #       or throwing an error in that case
 """
 Factor marginalization
 """
 function sumout(f::Factor, v::Symbol)
-    @assert issubset(unique(f[:,v]), [false, true])
     remainingvars = setdiff(names(f), [v, :p])
     g = groupby(f, v)
     if length(g) == 1
@@ -80,7 +78,7 @@ takes the unique assignments,
 and estimates the associated probability of each assignment
 based on its frequency of occurrence.
 """
-function estimate(f::DataFrame)
+function Distributions.estimate(f::DataFrame)
     w = ones(size(f, 1))
     t = f
     if haskey(f, :p)

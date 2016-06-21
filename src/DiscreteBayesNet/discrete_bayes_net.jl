@@ -8,7 +8,32 @@ within 1:Nᵢ and every distribution is Categorical.
 This representation is very common, and allows for the use of factors, for
 example in _Probabilistic Graphical Models_ by Koller and Friedman
 """
-typealias DiscreteBayesNet BayesNet{CategoricalCPD{Categorical}}
+typealias DiscreteBayesNet BayesNet{DiscreteCPD}
+DiscreteBayesNet() = BayesNet(DiscreteCPD)
+
+function rand_cpd!(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, parents::Vector{NodeName}=NodeName[])
+
+    !haskey(bn.name_to_index, target) || error("A CPD with name $target already exists!")
+
+    parental_ncategories = Array(Int, length(parents))
+    for (i,p) in enumerate(parents)
+        parent_cpd = get(bn, p)::CategoricalCPD
+
+        # assumes all distributions in cpd have same num categories
+        dist = parent_cpd.distributions[1]
+        parental_ncategories[i] = Distributions.ncategories(parent_cpd.distributions[1])
+    end
+
+    Q = prod(parental_ncategories)
+    distributions = Array(Categorical, Q)
+    dir = Dirichlet(ncategories, 1.0) # draw random categoricals from a uniform Dirichlet
+    for q in 1:Q
+        distributions[q] = Categorical(rand(dir))
+    end
+
+    CategoricalCPD(target, parents, parental_ncategories, distributions)
+end
+
 
 """
     table(bn::DiscreteBayesNet, name::NodeName)
@@ -19,13 +44,13 @@ function table(bn::DiscreteBayesNet, name::NodeName)
 
     d = DataFrame()
     cpd = get(bn, name)
-    names = push!(deepcopy(parents(bn, name)), name)
+    varnames = push!(deepcopy(parents(bn, name)), name)
 
-    nparents = length(names)-1
+    nparents = length(varnames)-1
+    assignment = Assignment([name=>1 for name in names(bn)])
     if nparents > 0
-        assignment = Assignment([names[j]=>1 for j in 1:length(names)])
-        A = ndgrid([1:ncategories(get(bn, name)(assignment)) for name in names]...)
-        for (i,name2) in enumerate(names)
+        A = ndgrid([1:ncategories(get(bn, name)(assignment)) for name in varnames]...)
+        for (i,name2) in enumerate(varnames)
             d[name2] = vec(A[i])
         end
     else
@@ -34,7 +59,7 @@ function table(bn::DiscreteBayesNet, name::NodeName)
 
     p = ones(size(d,1)) # the probability column
     for i in 1:size(d,1)
-        assignment = Assignment([names[j]=>d[i,j] for j in 1:length(names)])
+        assignment = Assignment([varnames[j]=>d[i,j] for j in 1:length(varnames)])
         p[i] = pdf(cpd, assignment)
     end
     d[:p] = p
@@ -42,6 +67,7 @@ function table(bn::DiscreteBayesNet, name::NodeName)
 end
 
 table(bn::DiscreteBayesNet, name::NodeName, a::Assignment) = select(table(bn, name), a)
+table{N<:Any}(bn::DiscreteBayesNet, name::NodeName, pair::Pair{NodeName,N}) = table(bn, name, Assignment(pair))
 
 """
     Base.count(bn::BayesNet, name::NodeName, data::DataFrame)
@@ -272,16 +298,16 @@ end
 function bayesian_score(bn::DiscreteBayesNet, data::DataFrame, prior::DirichletPrior=UniformPrior())
 
     n = length(bn)
-    parents = Array(Vector{Int}, n)
+    parent_list = Array(Vector{Int}, n)
     bincounts = Array(Int, n)
     datamat = convert(Matrix{Int}, data)'
 
     for (i,cpd) in enumerate(bn.cpds)
-        parents[i] = in_neighbors(bn.dag, i)
+        parent_list[i] = in_neighbors(bn.dag, i)
         bincounts[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
     end
 
-    bayesian_score(parents, bincounts, datamat, prior)
+    bayesian_score(parent_list, bincounts, datamat, prior)
 end
 
 import Base.Collections: PriorityQueue, peek
@@ -318,6 +344,19 @@ function bayesian_score_components(
     bincounts::AbstractVector{Int},
     data::Matrix{Int},
     prior::DirichletPrior,
+    )
+
+    score_components = Array(Float64, length(parent_list))
+    for (i,p) in enumerate(parent_list)
+        score_components[i] = bayesian_score_component(i, p, bincounts, data, prior)
+    end
+    score_components
+end
+function bayesian_score_components(
+    parent_list::Vector{Vector{Int}},
+    bincounts::AbstractVector{Int},
+    data::Matrix{Int},
+    prior::DirichletPrior,
     cache::ScoreComponentCache,
     )
 
@@ -326,6 +365,20 @@ function bayesian_score_components(
         score_components[i] = bayesian_score_component(i, p, bincounts, data, prior, cache)
     end
     score_components
+end
+function bayesian_score_components(bn::DiscreteBayesNet, data::DataFrame, prior::DirichletPrior=UniformPrior())
+
+    n = length(bn)
+    parent_list = Array(Vector{Int}, n)
+    bincounts = Array(Int, n)
+    datamat = convert(Matrix{Int}, data)'
+
+    for (i,cpd) in enumerate(bn.cpds)
+        parent_list[i] = in_neighbors(bn.dag, i)
+        bincounts[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
+    end
+
+    bayesian_score_components(parent_list, bincounts, datamat, prior)
 end
 
 #########################
@@ -415,12 +468,12 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
     end
 
     # construct the BayesNet
-    cpds = Array(CategoricalCPD{Categorical}, n)
+    cpds = Array(DiscreteCPD, n)
     varnames = names(data)
     for i in 1:n
         name = varnames[i]
         parents = varnames[parent_list[i]]
-        cpds[i] = fit(CategoricalCPD{Categorical}, data, name, parents)
+        cpds[i] = fit(DiscreteCPD, data, name, parents)
     end
     BayesNet(cpds)
 end
