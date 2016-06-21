@@ -6,11 +6,12 @@ let
     @test parentless(cpd)
     @test parents(cpd) == NodeName[]
     @test disttype(cpd) <: Normal
+    @test nparams(cpd) == 2
     @test isa(cpd(Assignment()), Normal)
-    @test pdf!(cpd, Assignment(:a=>0.5)) > 0.2
-    @test pdf!(cpd, Assignment(:a=>0.0)) > pdf!(cpd, Assignment(:a=>0.5))
-    @test logpdf!(cpd, Assignment(:a=>0.5)) > log(0.2)
-    rand!(cpd, Assignment(:a=>0.5))
+    @test pdf(cpd, Assignment(:a=>0.5)) > 0.2
+    @test pdf(cpd, Assignment(:a=>0.0)) > pdf(cpd, Assignment(:a=>0.5))
+    @test logpdf(cpd, Assignment(:a=>0.5)) > log(0.2)
+    rand(cpd, Assignment(:a=>0.5))
 end
 
 # CategoricalCPD
@@ -23,6 +24,7 @@ let
 
         @test name(cpd) == :a
         @test parentless(cpd)
+        @test nparams(cpd) == 3
 
         d = cpd(Assignment())
         @test isa(d, Categorical) && isa(d, disttype(cpd))
@@ -34,8 +36,8 @@ let
         cpd = fit(CategoricalCPD{Normal}, df, :a)
 
         @test isa(cpd(Assignment()), disttype(cpd))
-        @test pdf!(cpd, Assignment(:a=>0.5)) > 0.2
-        @test pdf!(cpd, Assignment(:a=>0.0)) > pdf!(cpd, Assignment(:a=>0.55))
+        @test pdf(cpd, Assignment(:a=>0.5)) > 0.2
+        @test pdf(cpd, Assignment(:a=>0.0)) > pdf(cpd, Assignment(:a=>0.55))
     end
 
     # with parents
@@ -47,6 +49,7 @@ let
         @test name(cpd) == :b
         @test parents(cpd) == [:a]
         @test !parentless(cpd)
+        @test nparams(cpd) == 6
 
         @test cpd(Assignment(:a=>1)).p == [0.5,0.5]
         @test cpd(Assignment(:a=>2)).p == [1.0,0.0]
@@ -57,6 +60,8 @@ let
                        b=[   1,    1,    2,    2,    1,    1,    2,    2],
                        c=[true, true,false,false, true,false,false, true])
         cpd = fit(CategoricalCPD{Bernoulli}, df, :c, [:a, :b])
+
+        @test nparams(cpd) == 4
 
         @test isa(cpd(Assignment(:a=>1, :b=>1)), disttype(cpd))
         @test cpd(Assignment(:a=>1, :b=>1)).p == 1.0
@@ -78,8 +83,9 @@ let
         @test parents(cpd) == NodeName[]
         @test parentless(cpd)
         @test disttype(cpd) <: Normal
-        @test pdf!(cpd, Assignment(:a=>0.5)) > 0.2
-        @test pdf!(cpd, Assignment(:a=>0.0)) > pdf!(cpd, Assignment(:a=>0.55))
+        @test nparams(cpd) == 2
+        @test pdf(cpd, Assignment(:a=>0.5)) > 0.2
+        @test pdf(cpd, Assignment(:a=>0.0)) > pdf(cpd, Assignment(:a=>0.55))
     end
 
     # with parents
@@ -92,6 +98,7 @@ let
 
         @test !parentless(cpd)
         @test parents(cpd) == [:a]
+        @test nparams(cpd) == 3
 
         p = cpd(Assignment(:a=>0.0))
         @test isapprox(p.μ, 1.0, atol=0.25)
@@ -116,6 +123,7 @@ let
 
         @test name(cpd) == :a
         @test parentless(cpd)
+        @test nparams(cpd) == 2
 
         d = cpd(Assignment())
         @test isa(d, Normal) && isa(d, disttype(cpd))
@@ -131,6 +139,7 @@ let
         @test name(cpd) == :c
         @test parents(cpd) == [:a, :b]
         @test !parentless(cpd)
+        @test nparams(cpd) == 6
 
         d = cpd(Assignment(:a=>1, :b=>0.5))
         @test isapprox(d.μ, 0.538, atol=0.001)

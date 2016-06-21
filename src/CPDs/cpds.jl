@@ -28,9 +28,7 @@ export
     parents,                       # obtain the parents in the CPD
     parentless,                    # whether the given variable is parentless
     disttype,                      # returns the CPD's distribution type
-
-    pdf!,
-    logpdf!,
+    nparams,                       # returns the number of free parameters required for the distribution
 
     # utils
     strip_arg,
@@ -76,6 +74,12 @@ Construct a CPD for target by fitting it to the provided data
 @required_func Distributions.fit(cpdtype::Type{CPD}, data::DataFrame, target::NodeName)
 
 """
+    nparams(cpd::CPD)
+Return the number of free parameters that needed to be estimated for the CPD
+"""
+@required_func nparams(cpd::CPD)
+
+"""
     parentless(cpd::CPD)
 Return whether this CPD has parents.
 """
@@ -88,25 +92,59 @@ Return the type of the CPD's distribution
 disttype{D}(cpd::CPD{D}) = D
 
 """
-    rand!(cpd::CPD)
+    rand(cpd::CPD)
 Condition and then draw from the distribution
 """
-Base.rand!(cpd::CPD, a::Assignment) = rand(cpd(a))
+Base.rand(cpd::CPD, a::Assignment) = rand(cpd(a))
 
 """
-    rand!(cpd::CPD)
+    pdf(cpd::CPD)
 Condition and then return the pdf
 """
-pdf!(cpd::CPD, a::Assignment) = pdf(cpd(a), a[name(cpd)])
+Distributions.pdf(cpd::CPD, a::Assignment) = pdf(cpd(a), a[name(cpd)])
 
 """
-    rand!(cpd::CPD)
+    logpdf(cpd::CPD)
 Condition and then return the logpdf
 """
-logpdf!(cpd::CPD, a::Assignment) = logpdf(cpd(a), a[name(cpd)])
+Distributions.logpdf(cpd::CPD, a::Assignment) = logpdf(cpd(a), a[name(cpd)])
 
+"""
+    logpdf(cpd::CPD, data::DataFrame)
+Return the logpdf across the dataset
+"""
+function Distributions.logpdf(cpd::CPD, data::DataFrame)
+    retval = 0.0
+    a = Assignment()
+    for i in 1 : nrow(data)
+        get!(a, cpd, data, i)
+        retval += logpdf(cpd, a)
+    end
+    retval
+end
+
+"""
+    pdf(cpd::CPD, data::DataFrame)
+Return the pdf across the dataset
+"""
+Distributions.pdf(cpd::CPD, data::DataFrame) = exp(logpdf(cpd, data))
 
 Base.eltype{D}(cpd::CPD{D}) = eltype(D)
+
+###########################
+
+"""
+    get!(a::Assignment, b::Assignment)
+Modify and return the assignment to contain the ith entry
+"""
+function Base.get!(a::Assignment, cpd::CPD, data::DataFrame, i::Int)
+    target = name(cpd)
+    a[target] = data[i,target]
+    for j in parents(cpd)
+        a[j] = data[i,j]
+    end
+    a
+end
 
 ###########################
 

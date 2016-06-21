@@ -4,7 +4,7 @@ Overwrites assignment with a joint sample from bn
 """
 function Base.rand!(a::Assignment, bn::BayesNet)
     for cpd in bn.cpds
-        a[name(cpd)] = rand!(cpd, a)
+        a[name(cpd)] = rand(cpd, a)
     end
     a
 end

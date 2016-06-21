@@ -157,10 +157,10 @@ end
 """
 The pdf of a given assignment after conditioning on the values
 """
-function CPDs.pdf!(bn::BayesNet, assignment::Assignment)
+function CPDs.pdf(bn::BayesNet, assignment::Assignment)
 	retval = 1.0
 	for cpd in bn.cpds # NOTE: guaranteed in topological order
-		retval *= pdf!(cpd, assignment)
+		retval *= pdf(cpd, assignment)
 	end
  	retval
 end
@@ -168,10 +168,10 @@ end
 """
 The logpdf of a given assignment after conditioning on the values
 """
-function CPDs.logpdf!(bn::BayesNet, assignment::Assignment)
+function CPDs.logpdf(bn::BayesNet, assignment::Assignment)
 	retval = 0.0
 	for cpd in bn.cpds # NOTE: guaranteed in topological order
-		retval += logpdf!(cpd, assignment)
+		retval += logpdf(cpd, assignment)
 	end
  	retval
 end
@@ -179,7 +179,7 @@ end
 """
 The logpdf of a set of assignment after conditioning on the values
 """
-function CPDs.logpdf!(bn::BayesNet, df::DataFrame)
+function CPDs.logpdf(bn::BayesNet, df::DataFrame)
 
 	logl = 0.0
 
@@ -191,7 +191,7 @@ function CPDs.logpdf!(bn::BayesNet, df::DataFrame)
 			a[name] = df[i, name]
 		end
 
-		logl += logpdf!(bn, a)
+		logl += logpdf(bn, a)
 	end
 
 	logl
@@ -200,5 +200,5 @@ end
 """
 The pdf of a set of assignment after conditioning on the values
 """
-CPDs.pdf!(bn::BayesNet, df::DataFrame) = exp(logpdf!(bn, df))
+CPDs.pdf(bn::BayesNet, df::DataFrame) = exp(logpdf(bn, df))
 

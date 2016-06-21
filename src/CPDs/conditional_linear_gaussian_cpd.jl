@@ -20,6 +20,7 @@ end
 
 name(cpd::ConditionalLinearGaussianCPD) = cpd.target
 parents(cpd::ConditionalLinearGaussianCPD) = cpd.parents
+nparams(cpd::ConditionalLinearGaussianCPD) = sum(d->nparams(d), cpd.linear_gaussians)
 
 function Base.call(cpd::ConditionalLinearGaussianCPD, a::Assignment)
 
@@ -35,7 +36,8 @@ function Base.call(cpd::ConditionalLinearGaussianCPD, a::Assignment)
         idx += 1
     end
 
-    cpd.linear_gaussians[idx](a)
+    lingaussian = cpd.linear_gaussians[idx]
+    lingaussian(a)
 end
 
 function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
@@ -77,26 +79,33 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
     # calc parent_instantiation_counts
 
     nparents_disc = length(parents_disc)
-    parental_ncategories = Array(Int, nparents_disc)
-    dims = Array(UnitRange{Int64}, nparents_disc)
-    for (i,p) in enumerate(parents_disc)
-        parental_ncategories[i] = infer_number_of_instantiations(data[p])
-        dims[i] = 1:parental_ncategories[i]
-    end
 
-    # ---------------------
-    # fit linear gaussians
+    if nparents_disc != 0
 
-    linear_gaussians = Array(LinearGaussianCPD, prod(parental_ncategories))
-    for (q, parent_instantiation) in enumerate(product(dims...))
-        arr = Array(eltype(data[target]), 0)
-        for i in 1 : nrow(data)
-            if all(j->data[i,parents_disc[j]]==parent_instantiation[j], 1:nparents_disc) # parental instantiation matches
-                push!(arr, data[i, target])
-            end
+        parental_ncategories = Array(Int, nparents_disc)
+        dims = Array(UnitRange{Int64}, nparents_disc)
+        for (i,p) in enumerate(parents_disc)
+            parental_ncategories[i] = infer_number_of_instantiations(data[p])
+            dims[i] = 1:parental_ncategories[i]
         end
-        linear_gaussians[q] = fit(LinearGaussianCPD, data, target, parents_cont, min_stdev=min_stdev)
-    end
 
-    ConditionalLinearGaussianCPD(target, parents, parents_disc, parental_ncategories, linear_gaussians)
+        # ---------------------
+        # fit linear gaussians
+
+        linear_gaussians = Array(LinearGaussianCPD, prod(parental_ncategories))
+        for (q, parent_instantiation) in enumerate(product(dims...))
+            arr = Array(eltype(data[target]), 0)
+            for i in 1 : nrow(data)
+                if all(j->data[i,parents_disc[j]]==parent_instantiation[j], 1:nparents_disc) # parental instantiation matches
+                    push!(arr, data[i, target])
+                end
+            end
+            linear_gaussians[q] = fit(LinearGaussianCPD, data, target, parents_cont, min_stdev=min_stdev)
+        end
+        ConditionalLinearGaussianCPD(target, parents, parents_disc, parental_ncategories, linear_gaussians)
+
+    else # no discrete parents
+        lingaussian = fit(LinearGaussianCPD, data, target, parents, min_stdev=min_stdev)
+        ConditionalLinearGaussianCPD(target, parents, NodeName[], Int[], [lingaussian])
+    end
 end

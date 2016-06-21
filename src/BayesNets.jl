@@ -11,6 +11,7 @@ include(joinpath("CPDs", "cpds.jl"))
 
 import LightGraphs: DiGraph, rem_edge!, add_edge!, add_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, is_cyclic, nv, ne
 import TikzGraphs: plot, simple_graph
+import Iterators: subsets
 
 export
 	BayesNet,
@@ -43,7 +44,12 @@ export
     UniformPrior,
     BDeuPrior,
 
+    ScoringFunction,
+    NegativeBayesianInformationCriterion,
+    score_component,
+
     GraphSearchStrategy,
+    K2GraphSearch,
     GreedyHillClimbing
 
 

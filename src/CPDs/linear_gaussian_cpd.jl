@@ -17,6 +17,7 @@ LinearGaussianCPD(target::NodeName, μ::Float64, σ::Float64) = LinearGaussianCP
 
 name(cpd::LinearGaussianCPD) = cpd.target
 parents(cpd::LinearGaussianCPD) = cpd.parents
+nparams(cpd::LinearGaussianCPD) = length(cpd.a) + 2
 
 function Base.call(cpd::LinearGaussianCPD, a::Assignment)
     # compute A⋅v + b

@@ -35,7 +35,7 @@ function table(bn::DiscreteBayesNet, name::NodeName)
     p = ones(size(d,1)) # the probability column
     for i in 1:size(d,1)
         assignment = Assignment([names[j]=>d[i,j] for j in 1:length(names)])
-        p[i] = pdf!(cpd, assignment)
+        p[i] = pdf(cpd, assignment)
     end
     d[:p] = p
     d
@@ -284,8 +284,6 @@ function bayesian_score(bn::DiscreteBayesNet, data::DataFrame, prior::DirichletP
     bayesian_score(parents, bincounts, datamat, prior)
 end
 
-
-
 import Base.Collections: PriorityQueue, peek
 typealias ScoreComponentCache Vector{PriorityQueue{Vector{Int}, Float64}}
 
@@ -330,7 +328,8 @@ function bayesian_score_components(
     score_components
 end
 
-abstract GraphSearchStrategy
+#########################
+
 type GreedyHillClimbing <: GraphSearchStrategy
     cache::ScoreComponentCache
     max_n_parents::Int

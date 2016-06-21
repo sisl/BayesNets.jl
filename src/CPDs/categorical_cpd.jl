@@ -13,7 +13,7 @@ CategoricalCPD(target::NodeName, d::Distribution) = CategoricalCPD(target, NodeN
 
 name(cpd::CategoricalCPD) = cpd.target
 parents(cpd::CategoricalCPD) = cpd.parents
-
+nparams(cpd::CategoricalCPD) = sum(d->paramcount(params(d)), cpd.distributions)
 
 function Base.call(cpd::CategoricalCPD, a::Assignment)
 

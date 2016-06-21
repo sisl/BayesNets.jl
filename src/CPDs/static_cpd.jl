@@ -26,3 +26,5 @@ function Distributions.fit{D<:Distribution}(::Type{StaticCPD{D}},
     d = fit(D, data[target])
     StaticCPD(target, parents, d)
 end
+
+nparams(cpd::StaticCPD) = paramcount(params(cpd.d))

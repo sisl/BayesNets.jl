@@ -79,3 +79,16 @@ function consistent(a::Assignment, b::Assignment)
 
     true
 end
+
+paramcount(::Bool) = 1
+paramcount(::Real) = 1
+paramcount(::Symbol) = 1
+paramcount{R<:Real}(arr::Vector{R}) = length(arr)
+
+function paramcount(tup::Tuple)
+    retval = 0
+    for v in tup
+        retval += paramcount(v)
+    end
+    retval
+end
