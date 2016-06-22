@@ -71,7 +71,7 @@ Use the parental values in `a` to return the conditional distribution
 """
 @required_func Base.call(cpd::CPD, a::Assignment)
 Base.call(cpd::CPD) = call(cpd, Assignment()) # cpd()
-Base.call(cpd::CPD, pair::Pair...) = call(cpd, Assignment(pair)) # cpd(:A=>1)
+Base.call(cpd::CPD, pair::Pair{NodeName}...) = call(cpd, Assignment(pair)) # cpd(:A=>1)
 
 """
     fit(::Type{CPD}, data::DataFrame, target::NodeName, parents::Vector{NodeName})
@@ -103,21 +103,21 @@ disttype{D}(cpd::CPD{D}) = D
 Condition and then draw from the distribution
 """
 Base.rand(cpd::CPD, a::Assignment) = rand(cpd(a))
-Base.rand(cpd::CPD, pair::Pair...) = rand(cpd, Assignment(pair))
+Base.rand(cpd::CPD, pair::Pair{NodeName}...) = rand(cpd, Assignment(pair))
 
 """
     pdf(cpd::CPD)
 Condition and then return the pdf
 """
 Distributions.pdf(cpd::CPD, a::Assignment) = pdf(cpd(a), a[name(cpd)])
-Distributions.pdf(cpd::CPD, pair::Pair...) = pdf(cpd, Assignment(pair))
+Distributions.pdf(cpd::CPD, pair::Pair{NodeName}...) = pdf(cpd, Assignment(pair))
 
 """
     logpdf(cpd::CPD)
 Condition and then return the logpdf
 """
 Distributions.logpdf(cpd::CPD, a::Assignment) = logpdf(cpd(a), a[name(cpd)])
-Distributions.logpdf(cpd::CPD, pair::Pair...) = logpdf(cpd, Assignment(pair))
+Distributions.logpdf(cpd::CPD, pair::Pair{NodeName}...) = logpdf(cpd, Assignment(pair))
 
 """
     logpdf(cpd::CPD, data::DataFrame)

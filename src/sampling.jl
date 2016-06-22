@@ -72,7 +72,7 @@ function Base.rand(bn::BayesNet, nsamples::Integer, consistent_with::Assignment;
 
     df
 end
-function Base.rand(bn::BayesNet, nsamples::Integer, pair::Pair...; max_nsamples::Integer=nsamples*100)
+function Base.rand(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName}...; max_nsamples::Integer=nsamples*100)
     a = Assignment(pair)
     rand(bn, nsamples, a, max_nsamples=max_nsamples)
 end

@@ -164,7 +164,7 @@ function CPDs.pdf(bn::BayesNet, assignment::Assignment)
 	end
  	retval
 end
-CPDs.pdf(bn::BayesNet, pair::Pair...) = pdf(bn, Assignment(pair))
+CPDs.pdf(bn::BayesNet, pair::Pair{NodeName}...) = pdf(bn, Assignment(pair))
 
 """
 The logpdf of a given assignment after conditioning on the values
@@ -176,7 +176,7 @@ function CPDs.logpdf(bn::BayesNet, assignment::Assignment)
 	end
  	retval
 end
-CPDs.logpdf(bn::BayesNet, pair::Pair...) = logpdf(bn, Assignment(pair))
+CPDs.logpdf(bn::BayesNet, pair::Pair{NodeName}...) = logpdf(bn, Assignment(pair))
 
 """
 The logpdf of a set of assignment after conditioning on the values

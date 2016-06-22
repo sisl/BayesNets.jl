@@ -79,7 +79,7 @@ function table(bn::DiscreteBayesNet, name::NodeName)
 end
 
 table(bn::DiscreteBayesNet, name::NodeName, a::Assignment) = select(table(bn, name), a)
-table(bn::DiscreteBayesNet, name::NodeName, pair::Pair...) = table(bn, name, Assignment(pair))
+table(bn::DiscreteBayesNet, name::NodeName, pair::Pair{NodeName}...) = table(bn, name, Assignment(pair))
 
 """
     Base.count(bn::BayesNet, name::NodeName, data::DataFrame)
