@@ -4,7 +4,7 @@
 
 This library supports representation, inference, and learning in Bayesian networks.
 
-Please read the [documentation](http://nbviewer.ipython.org/github/sisl/BayesNets.jl/doc/BayesNets.ipynb).
+Please read the [documentation](http://nbviewer.ipython.org/github/sisl/BayesNets.jl/blob/master/doc/BayesNets.ipynb).
 
 ## v1.0.0 Release
 
@@ -14,4 +14,4 @@ We now have support for structure learning, easy parameter learning, etc.
 
 Unfortunately the new API required breaking backwards compatability.
 The new API should be easier to understand and use.
-Please consult the [documentation](http://nbviewer.ipython.org/github/sisl/BayesNets.jl/doc/BayesNets.ipynb) for examples.
+Please consult the [documentation](http://nbviewer.ipython.org/github/sisl/BayesNets.jl/blob/master/doc/BayesNets.ipynb) for examples.
