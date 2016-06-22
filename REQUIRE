@@ -1,4 +1,6 @@
 julia 0.4
+Distributions
+Discretizers
 Iterators
 LightGraphs
 DataFrames

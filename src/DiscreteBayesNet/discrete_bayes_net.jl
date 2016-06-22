@@ -24,7 +24,13 @@ function _get_parental_ncategories(bn::DiscreteBayesNet, parents::Vector{NodeNam
     parental_ncategories
 end
 
-function rand_cpd!(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, parents::Vector{NodeName}=NodeName[])
+"""
+    rand_cpd(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, parents::Vector{NodeName}=NodeName[])
+Return a CategoricalCPD with the given number of categories with random categorical distributions
+"""
+function rand_cpd(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, parents::Vector{NodeName}=NodeName[];
+    uniform_dirichlet_prior::Float64 = 1.0
+    )
 
     !haskey(bn.name_to_index, target) || error("A CPD with name $target already exists!")
 
@@ -32,7 +38,7 @@ function rand_cpd!(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, par
 
     Q = prod(parental_ncategories)
     distributions = Array(Categorical, Q)
-    dir = Dirichlet(ncategories, 1.0) # draw random categoricals from a uniform Dirichlet
+    dir = Dirichlet(ncategories, uniform_dirichlet_prior) # draw random categoricals from a Dirichlet distribution
     for q in 1:Q
         distributions[q] = Categorical(rand(dir))
     end
@@ -73,7 +79,7 @@ function table(bn::DiscreteBayesNet, name::NodeName)
 end
 
 table(bn::DiscreteBayesNet, name::NodeName, a::Assignment) = select(table(bn, name), a)
-table{N<:Any}(bn::DiscreteBayesNet, name::NodeName, pair::Pair{NodeName,N}) = table(bn, name, Assignment(pair))
+table(bn::DiscreteBayesNet, name::NodeName, pair::Pair...) = table(bn, name, Assignment(pair))
 
 """
     Base.count(bn::BayesNet, name::NodeName, data::DataFrame)
@@ -212,7 +218,6 @@ function statistics(
     end
     N
 end
-
 function statistics(dag::DAG, data::DataFrame)
 
     n = nv(dag)
@@ -314,20 +319,6 @@ function bayesian_score(bn::DiscreteBayesNet, data::DataFrame, prior::DirichletP
     end
 
     bayesian_score(parent_list, bincounts, datamat, prior)
-end
-
-import Base.Collections: PriorityQueue, peek
-typealias ScoreComponentCache Vector{PriorityQueue{Vector{Int}, Float64}}
-
-"""
-Construct an empty ScoreComponentCache the size of ncol(data)
-"""
-function ScoreComponentCache(data::DataFrame)
-    cache = Array(PriorityQueue{Vector{Int}, Float64}, ncol(data))
-    for i in 1 : ncol(data)
-        cache[i] = PriorityQueue{Vector{Int}, Float64, Base.Order.ForwardOrdering}()
-    end
-    cache
 end
 
 function bayesian_score_component(

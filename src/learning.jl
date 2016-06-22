@@ -66,14 +66,96 @@ end
 
 ############################
 
+"""
+    ScoreComponentCache
+Used to store scores in a priority queue such that graph search algorithms know
+when a particular construction has already been made.
+    cache[ⱼ](parentsⱼ, score) for the ith variable with parents parents
+"""
+typealias ScoreComponentCache Vector{PriorityQueue{Vector{Int}, Float64}} # parent indeces -> score
+
+"""
+    ScoreComponentCache(data::DataFrame)
+Construct an empty ScoreComponentCache the size of ncol(data)
+"""
+function ScoreComponentCache(data::DataFrame)
+    cache = Array(PriorityQueue{Vector{Int}, Float64}, ncol(data))
+    for i in 1 : ncol(data)
+        cache[i] = PriorityQueue{Vector{Int}, Float64, Base.Order.ForwardOrdering}()
+    end
+    cache
+end
+
+############################
+
+"""
+    ScoringFunction
+An abstract type for which subtypes allow extracting CPD score components,
+which are to be maximized:
+score_component(::ScoringFunction, cpd::CPD, data::DataFrame)
+"""
 abstract ScoringFunction
 
-type NegativeBayesianInformationCriterion <: ScoringFunction
+"""
+    score_component(a::ScoringFunction, cpd::CPD, data::DataFrame)
+Extract a Float64 score for a cpd given the data.
+One seeks to maximize the score.
+"""
+score_component(a::ScoringFunction, cpd::CPD, data::DataFrame) = error("score_component not defined for ScoringFunction $a")
+
+"""
+    score_component(a::ScoringFunction, cpd::CPD, data::DataFrame, cache::ScoreComponentCache)
+As score_component(ScoringFunction, cpd, data), but returns pre-computed values from the cache
+if they exist, and populates the cache if they don't
+"""
+function _get_parent_indeces(parents::Vector{NodeName}, data::DataFrame)
+    varnames = names(data)
+    retval = Array(Int, length(parents))
+    for (i,p) in enumerate(parents)
+        retval[i] = findfirst(varnames, p)
+    end
+    retval
+end
+function score_component(
+    a::ScoringFunction,
+    cpd::CPD,
+    data::DataFrame,
+    cache::ScoreComponentCache,
+    )
+
+    pinds = _get_parent_indeces(parents(cpd))
+
+    if !haskey(cache[i], pinds)
+        cache[i][pinds] = score_component(a, cpd, data)
+    end
+
+    cache[i][pinds]
 end
 
 """
-    score_component(::ScoringFunction, cpd::CPD, data::DataFrame)
-Return the negative Bayesian information criterion score component
+    score_components(a::ScoringFunction, cpd::CPD, data::DataFrame)
+    score_components(a::ScoringFunction, cpds::Vector{CPD}, data::DataFrame, cache::ScoreComponentCache)
+Get a list of score components for all cpds
+"""
+function score_components{C<:CPD}(a::ScoringFunction, cpds::Vector{C}, data::DataFrame)
+    retval = Array(Float64, length(cpds))
+    for (i,cpd) in enumerate(cpds)
+        retval[i] = score_component(a, cpd, data)
+    end
+    retval
+end
+function score_components{C<:CPD}(a::ScoringFunction, cpds::Vector{C}, data::DataFrame, cache::ScoreComponentCache)
+    retval = Array(Float64, length(cpds))
+    for (i,cpd) in enumerate(cpds)
+        retval[i] = score_component(a, cpd, data, cache)
+    end
+    retval
+end
+
+
+"""
+    NegativeBayesianInformationCriterion
+A ScoringFunction for the negative Bayesian information criterion.
 
     BIC = -2⋅L + k⋅ln(n)
 
@@ -81,6 +163,8 @@ Return the negative Bayesian information criterion score component
        k - the number of free parameters to be estimated
        n - the sample size
 """
+type NegativeBayesianInformationCriterion <: ScoringFunction
+end
 function score_component(::NegativeBayesianInformationCriterion, cpd::CPD, data::DataFrame)
     L = logpdf(cpd, data)
     k = nparams(cpd)
@@ -93,12 +177,29 @@ end
 
 ##########################
 
+"""
+    GraphSearchStrategy
+An abstract type which defines a graph search strategy for learning Bayesian network structures
+These allow: fit(::Type{BayesNet}, data, GraphSearchStrategy)
+"""
 abstract GraphSearchStrategy
 
+"""
+    Distributions.fit{C<:CPD}(::Type{BayesNet{C}}, ::DataFrame, ::GraphSearchStrategy)
+Run the graph search algorithm defined by GraphSearchStrategy
+"""
+Distributions.fit{C<:CPD}(::Type{BayesNet{C}}, data::DataFrame, params::GraphSearchStrategy) = error("fit not defined for GraphSearchStrategy $params")
+
+"""
+    K2GraphSearch
+A GraphSearchStrategy following the K2 algorithm.
+Takes polynomial time to find the optimal structure assuming
+a topological variable ordering.
+"""
 type K2GraphSearch <: GraphSearchStrategy
     order::Vector{NodeName}     # topological ordering of variables
     cpd_types::Vector{DataType} # cpd types, in same order as `order`
-    max_n_parents::Int
+    max_n_parents::Int          # maximum number of parents per CPD
     metric::ScoringFunction     # metric we are trying to maximize
 
     function K2GraphSearch(
@@ -122,10 +223,6 @@ type K2GraphSearch <: GraphSearchStrategy
     end
 end
 
-"""
-    Distributions.fit(::Type{BayesNet}, data::DataFrame, params::K2GraphSearch)
-Runs the K2 structure search algorithm on the data with the given cpd types and fixed ordering
-"""
 function Distributions.fit{C<:CPD}(::Type{BayesNet{C}}, data::DataFrame, params::K2GraphSearch)
 
     N = length(params.order)

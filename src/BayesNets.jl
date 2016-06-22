@@ -11,6 +11,7 @@ include(joinpath("CPDs", "cpds.jl"))
 import LightGraphs: DiGraph, rem_edge!, add_edge!, add_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, is_cyclic, nv, ne
 import TikzGraphs: plot, simple_graph
 import Iterators: subsets
+import Base.Collections: PriorityQueue, peek
 
 export
 	BayesNet,
@@ -24,7 +25,7 @@ export
 	add_edge!,
     has_edge,
 
-    rand_cpd!,
+    rand_cpd,
     rand_table_weighted,
 
     table,
@@ -33,26 +34,26 @@ export
     estimate_convergence,
     readxdsl,
 
-    statistics,
-    index_data,
-    adding_edge_preserves_acyclicity,
-    bayesian_score_component,
-    bayesian_score_components,
-    bayesian_score,
-
-    ScoreComponentCache,
-
     DirichletPrior,
     UniformPrior,
     BDeuPrior,
 
     ScoringFunction,
+    ScoreComponentCache,
     NegativeBayesianInformationCriterion,
     score_component,
+    score_components,
 
     GraphSearchStrategy,
     K2GraphSearch,
-    GreedyHillClimbing
+    GreedyHillClimbing,
+
+    statistics,
+    index_data,
+    adding_edge_preserves_acyclicity,
+    bayesian_score_component,
+    bayesian_score_components,
+    bayesian_score
 
 
 include("bayes_nets.jl")

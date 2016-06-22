@@ -41,7 +41,7 @@ nsamples: the number of rows the resulting DataFrame will contain
 consistent_with: the assignment that all samples must be consistent with (ie, Assignment(:A=>1) means all samples must have :A=1)
 max_nsamples: an upper limit on the number of samples that will be tried, needed to ensure zero-prob samples are never used
 """
-function Base.rand(bn::BayesNet, nsamples::Integer, consistent_with::Assignment, max_nsamples::Integer=nsamples*100)
+function Base.rand(bn::BayesNet, nsamples::Integer, consistent_with::Assignment; max_nsamples::Integer=nsamples*100)
 
     a = rand(bn)
     df = DataFrame()
@@ -72,7 +72,7 @@ function Base.rand(bn::BayesNet, nsamples::Integer, consistent_with::Assignment,
 
     df
 end
-function Base.rand{N<:Any}(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName,N}, max_nsamples::Integer=nsamples*100)
+function Base.rand(bn::BayesNet, nsamples::Integer, pair::Pair...; max_nsamples::Integer=nsamples*100)
     a = Assignment(pair)
     rand(bn, nsamples, a, max_nsamples=max_nsamples)
 end
