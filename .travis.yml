@@ -6,7 +6,7 @@ julia:
 notifications:
   email: false
 before_install:
-  - sudo apt-get -qq update
+  # - sudo apt-get -qq update
   - sudo apt-get install git
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
