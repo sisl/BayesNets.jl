@@ -62,3 +62,24 @@ let
 	@test isapprox(score_components[1], -6.445719819385579)
 	@test isapprox(score_components[2], -6.396929655216146)
 end
+
+let
+	data = DataFrame(a=[1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,   2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2],
+		             b=[1,1,1,1,1,1,1,1, 2,2,2,2,2,2,2,2,   1,1,1,1,2,2,2,2, 2,2,2,2,2,2,2,2],
+		             c=[1,1,1,1,1,1,2,2, 2,2,2,2,2,2,1,1,   1,1,2,2,1,1,2,2, 1,1,1,1,1,1,1,1])
+
+	cache = ScoreComponentCache(data)
+	params = GreedyHillClimbing(cache, max_n_parents=3, prior=UniformPrior(0.1))
+	@test params.max_n_parents == 3
+	@test params.prior == UniformPrior(0.1)
+
+	params = GreedyHillClimbing(cache)
+	bn = fit(DiscreteBayesNet, data, params)
+	@test length(bn) == ncol(data)
+	@test pdf(get(bn, :c), :c=>1) == 0.625
+	@test pdf(get(bn, :b), :b=>1) == 0.375
+	@test pdf(get(bn, :a), :a=>1, :b=>1, :c=>1) == 0.75
+	@test pdf(get(bn, :a), :a=>1, :b=>2, :c=>1) == 1/6
+	@test pdf(get(bn, :a), :a=>1, :b=>1, :c=>2) == 0.5
+	@test pdf(get(bn, :a), :a=>1, :b=>2, :c=>2) == 0.75
+end
