@@ -49,7 +49,6 @@ end
 
 """
     table(bn::DiscreteBayesNet, name::NodeName)
-TODO: rename table() to factor()?
 Constructs the CPD factor associated with the given node in the BayesNet
 """
 function table(bn::DiscreteBayesNet, name::NodeName)

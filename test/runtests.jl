@@ -26,10 +26,12 @@ function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F}, y::Abstract
 	true
 end
 
-include("test_ndgrid.jl")
-include("test_cpds.jl")
-include("test_factors.jl")
-include("test_bayesnets.jl")
-include("test_sampling.jl")
-include("test_learning.jl")
-include("test_io.jl")
+# include("test_ndgrid.jl")
+# include("test_cpds.jl")
+# include("test_factors.jl")
+# include("test_bayesnets.jl")
+# include("test_sampling.jl")
+# include("test_learning.jl")
+# include("test_io.jl")
+
+include("test_discrete_bayes_nets.jl")
