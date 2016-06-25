@@ -52,5 +52,3 @@ let
 	# TODO: properly test this
 	estimate_convergence(df, Assignment(:A=>true))
 end
-
-# TODO: test estimateConvergence() once we know what it is for
