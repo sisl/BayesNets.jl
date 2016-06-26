@@ -123,7 +123,9 @@ function score_component(
     cache::ScoreComponentCache,
     )
 
-    pinds = _get_parent_indeces(parents(cpd))
+    pinds = _get_parent_indeces(parents(cpd), data)
+    varnames = names(data)
+    i = findfirst(varnames, name(cpd))
 
     if !haskey(cache[i], pinds)
         cache[i][pinds] = score_component(a, cpd, data)

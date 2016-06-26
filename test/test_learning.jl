@@ -55,6 +55,12 @@ let
 
 	@test_throws ErrorException score_component(FakeScoringFunction(), StaticCPD(:a, Bernoulli(0.5)), data)
 
+	cache = ScoreComponentCache(data)
+	score = score_component(NegativeBayesianInformationCriterion(), StaticCPD(:A, Categorical(3)), data)
+	@test isapprox(score, -33.82141487739863)
+	score = score_component(NegativeBayesianInformationCriterion(), StaticCPD(:A, Categorical(3)), data, cache)
+	@test isapprox(score, -33.82141487739863)
+
 
 	# TODO: make this test more rigorous
 	@test length(count(bn, data)) == 3
