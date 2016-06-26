@@ -14,4 +14,9 @@ let
 
 	t2 = rand(bn, 5, Assignment(:c=>1))
 	@test size(t1) == (5,3)
+
+	t3 = rand(bn, 5, :c=>1, :b=>2)
+	@test size(t1) == (5,3)
+
+	t4 = rand_table_weighted(bn; nsamples=5, consistent_with=Assignment(:c=>1))
 end
