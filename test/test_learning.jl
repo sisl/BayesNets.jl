@@ -1,4 +1,5 @@
 type FakeScoringFunction <: ScoringFunction end
+type FakeGraphSearchStrategy <: GraphSearchStrategy end
 
 let
 	function test_disc_bn(bn::DiscreteBayesNet)
@@ -61,6 +62,13 @@ let
 	score = score_component(NegativeBayesianInformationCriterion(), StaticCPD(:A, Categorical(3)), data, cache)
 	@test isapprox(score, -33.82141487739863)
 
+	@test_throws ErrorException fit(DiscreteBayesNet, data, FakeGraphSearchStrategy())
+
+	K2 = K2GraphSearch([:A,:B,:C], [DiscreteCPD, DiscreteCPD, DiscreteCPD])
+	K22 = K2GraphSearch([:A,:B,:C], [DiscreteCPD])
+
+	bn3 = fit(DiscreteBayesNet, data, K2)
+	bn4 = fit(BayesNet, data, K2)
 
 	# TODO: make this test more rigorous
 	@test length(count(bn, data)) == 3
