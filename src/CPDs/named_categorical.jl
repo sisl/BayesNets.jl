@@ -22,6 +22,7 @@ Distributions.params(d::NamedCategorical) = Distributions.params(d.cat)
 
 Distributions.pdf{N<:MapableTypes}(d::NamedCategorical{N}, x::N) = Distributions.pdf(d.cat, encode(d.map, x))
 Distributions.logpdf{N<:MapableTypes}(d::NamedCategorical{N}, x::N) = Distributions.logpdf(d.cat, encode(d.map, x))
+Base.rand(d::NamedCategorical) = rand(sampler(d))
 
 immutable MappedAliasTable <: Sampleable{Univariate,Discrete}
    alias::Distributions.AliasTable
