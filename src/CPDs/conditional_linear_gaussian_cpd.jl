@@ -9,7 +9,7 @@ A conditional linear Gaussian CPD, always returns a Normal{Float64}
 	P(x|parents(x)) = { Normal(μ=a₂×continuous_parents(x) + b₂, σ₂) for discrete instantiation 2
                       { ...
 """
-type ConditionalLinearGaussianCPD <: CPD{Normal{Float64}}
+type ConditionalLinearGaussianCPD <: CPD{Normal}
     target::NodeName
     parents::Vector{NodeName} # list of all parents
 
@@ -94,13 +94,13 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
 
         linear_gaussians = Array(LinearGaussianCPD, prod(parental_ncategories))
         for (q, parent_instantiation) in enumerate(product(dims...))
-            arr = Array(eltype(data[target]), 0)
+            indeces = Int[]
             for i in 1 : nrow(data)
                 if all(j->data[i,parents_disc[j]]==parent_instantiation[j], 1:nparents_disc) # parental instantiation matches
-                    push!(arr, data[i, target])
+                    push!(indeces, i)
                 end
             end
-            linear_gaussians[q] = fit(LinearGaussianCPD, data, target, parents_cont, min_stdev=min_stdev)
+            linear_gaussians[q] = fit(LinearGaussianCPD, data[indeces, :], target, parents_cont, min_stdev=min_stdev)
         end
         ConditionalLinearGaussianCPD(target, parents, parents_disc, parental_ncategories, linear_gaussians)
 

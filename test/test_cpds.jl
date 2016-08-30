@@ -141,12 +141,12 @@ let
         @test nparams(cpd) == 6
 
         d = cpd(Assignment(:a=>1, :b=>0.5))
-        @test isapprox(d.μ, 0.538, atol=0.001)
-        @test isapprox(d.σ, 1.130, atol=0.001)
+        @test isapprox(d.μ, 0.5475, atol=0.001)
+        @test isapprox(d.σ, 0.4003, atol=0.001)
 
         d = cpd(Assignment(:a=>2, :b=>3.0))
-        @test isapprox(d.μ, 3.029, atol=0.001)
-        @test isapprox(d.σ, 1.130, atol=0.001)
+        @test isapprox(d.μ, 3.027, atol=0.001)
+        @test isapprox(d.σ, 0.421, atol=0.001)
     end
 end
 
