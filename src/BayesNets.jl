@@ -3,6 +3,8 @@ VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 module BayesNets
 
 using Compat
+@compat import Base.show
+
 using Reexport
 
 include(joinpath("CPDs", "cpds.jl"))
@@ -30,7 +32,6 @@ export
 
     table,
     sumout,
-    normalize,
     estimate_convergence,
     readxdsl,
 

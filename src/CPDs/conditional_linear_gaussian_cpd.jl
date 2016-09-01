@@ -21,9 +21,9 @@ end
 name(cpd::ConditionalLinearGaussianCPD) = cpd.target
 parents(cpd::ConditionalLinearGaussianCPD) = cpd.parents
 nparams(cpd::ConditionalLinearGaussianCPD) = sum(d->nparams(d), cpd.linear_gaussians)
-
-function Base.call(cpd::ConditionalLinearGaussianCPD, a::Assignment)
-
+@define_call ConditionalLinearGaussianCPD
+@compat function (cpd::ConditionalLinearGaussianCPD)(a::Assignment)
+    
     idx = 1
     if !isempty(cpd.parents_disc)
 

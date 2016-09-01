@@ -7,6 +7,7 @@ and contains the CPD relating that var to its parents, P(x | parents(x))
 
 module CPDs
 
+using Compat
 using Reexport
 using Discretizers
 @reexport using Distributions
@@ -61,17 +62,24 @@ Return the NodeName for the variable this CPD is defined for.
 
 """
     parents(cpd::CPD)
-Return the parents for this CPD as a vector of NodeNames.
+Return the parents for this CPD as a vector of NodeName.
 """
 @required_func parents(cpd::CPD)
 
-"""
-    cpd(a::Assignment)
-Use the parental values in `a` to return the conditional distribution
-"""
-@required_func Base.call(cpd::CPD, a::Assignment)
-Base.call(cpd::CPD) = call(cpd, Assignment()) # cpd()
-Base.call(cpd::CPD, pair::Pair{NodeName}...) = call(cpd, Assignment(pair)) # cpd(:A=>1)
+if VERSION < v"0.5.0-dev+0"
+    """
+        cpd(a::Assignment)
+    Use the parental values in `a` to return the conditional distribution
+    """
+    @required_func Base.call(cpd::CPD, a::Assignment)
+end
+
+macro define_call(cpd_type)
+    return quote
+        @compat (cpd::$cpd_type)() = (cpd)(Assignment()) # cpd()
+        @compat (cpd::$cpd_type)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
+    end
+end
 
 """
     fit(::Type{CPD}, data::DataFrame, target::NodeName, parents::Vector{NodeName})

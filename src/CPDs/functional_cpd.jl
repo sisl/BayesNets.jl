@@ -9,4 +9,5 @@ end
 
 name(cpd::FunctionalCPD) = cpd.target
 parents(cpd::FunctionalCPD) = cpd.parents
-Base.call(cpd::FunctionalCPD, a::Assignment) = cpd.accessor(a)
+@define_call FunctionalCPD
+@compat (cpd::FunctionalCPD)(a::Assignment) = cpd.accessor(a)

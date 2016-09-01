@@ -13,18 +13,20 @@ typealias Factor DataFrame
 """
 Factor multiplication
 """
-function Base.(:(*))(f1::Factor, f2::Factor)
+@compat function Base.:*(f1::Factor, f2::Factor)
     onnames = setdiff(intersect(names(f1), names(f2)), [:p])
     finalnames = vcat(setdiff(union(names(f1), names(f2)), [:p]), :p)
+
     if isempty(onnames)
         j = join(f1, f2, kind=:cross)
-        j[:,:p] .*= j[:,:p_1]
-        return j[:,finalnames]
     else
         j = join(f1, f2, on=onnames, kind=:outer)
-        j[:,:p] .*= j[:,:p_1]
-        return j[:,finalnames]
     end
+
+    for k in 1 : length(j[:p])
+        j[k,:p] *= j[k,:p_1]
+    end
+    return j[:,finalnames]
 end
 
 # TODO: implement factoring out final value in factor table,
@@ -54,7 +56,10 @@ Factor normalization
 Ensures that the :p column sums to one
 """
 function normalize(f::Factor)
-    f[:,:p] /= sum(f[:,:p])
+    tot = sum(f[:,:p])
+    for k in 1 : length(f[:p])
+        f[k,:p] /= tot
+    end
     f
 end
 

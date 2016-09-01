@@ -34,7 +34,7 @@ end
 
 let
 	# factor normalization
-	f3 = normalize(DataFrame(
+	f3 = BayesNets.normalize(DataFrame(
 		A = [false, true],
 		p = [1.0, 3.0]
 	))

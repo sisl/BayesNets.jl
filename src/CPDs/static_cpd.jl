@@ -15,8 +15,9 @@ StaticCPD(target::NodeName, d::Distribution) = StaticCPD(target, NodeName[], d)
 
 name(cpd::StaticCPD) = cpd.target
 parents(cpd::StaticCPD) = cpd.parents
+@define_call StaticCPD
+@compat (cpd::StaticCPD)(a::Assignment) = cpd.d # no update
 
-Base.call(cpd::StaticCPD, a::Assignment) = cpd.d # no update
 function Distributions.fit{D<:Distribution}(::Type{StaticCPD{D}},
     data::DataFrame,
     target::NodeName,

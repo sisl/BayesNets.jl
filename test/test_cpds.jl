@@ -165,11 +165,11 @@ let
 
     # named cat
     ncat = get(bn2, 1).d
-    show(ncat)
+    show(IOBuffer(), ncat)
     @test ncategories(ncat) == 3
     @test probs(ncat) == [0.40, 0.55, 0.05]
     @test params(ncat) == ([0.40, 0.55, 0.05],)
     @test pdf(ncat, :bird) == 0.4
     @test isapprox(logpdf(ncat, :bird), log(0.4))
-    show(sampler(ncat))
+    show(IOBuffer(), sampler(ncat))
 end

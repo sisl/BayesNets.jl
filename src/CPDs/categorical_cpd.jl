@@ -22,7 +22,8 @@ name(cpd::CategoricalCPD) = cpd.target
 parents(cpd::CategoricalCPD) = cpd.parents
 nparams(cpd::CategoricalCPD) = sum(d->paramcount(params(d)), cpd.distributions)
 
-function Base.call(cpd::CategoricalCPD, a::Assignment)
+@define_call CategoricalCPD
+@compat function (cpd::CategoricalCPD)(a::Assignment)
 
     idx = 1
     if !isempty(cpd.parents)
@@ -39,6 +40,10 @@ function Base.call(cpd::CategoricalCPD, a::Assignment)
 
     cpd.distributions[idx]
 end
+
+# function (cpd::CategoricalCPD)(a::Assignment)
+
+
 
 function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     data::DataFrame,

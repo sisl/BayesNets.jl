@@ -9,11 +9,11 @@ function plot(bn::BayesNet)
 	end
 end
 
-function Base.writemime(f::IO, a::MIME"image/svg+xml", bn::BayesNet)
- 	Base.writemime(f, a, plot(bn))
+@compat function show(f::IO, a::MIME"image/svg+xml", bn::BayesNet)
+ 	show(f, a, plot(bn))
 end
 
-function Base.writemime(io::IO, a::MIME"text/html", dfs::Vector{DataFrame})
+@compat function show(io::IO, a::MIME"text/html", dfs::Vector{DataFrame})
 	for df in dfs
 		writemime(io, a, df)
 	end
