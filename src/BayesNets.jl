@@ -32,6 +32,7 @@ export
 
     table,
     sumout,
+    normalize,
     estimate_convergence,
     readxdsl,
 
