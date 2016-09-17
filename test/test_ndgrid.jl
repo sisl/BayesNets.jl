@@ -1,4 +1,5 @@
 let
+	@test BayesNets.ndgrid([2,1]) == [2,1]
 	@test elementwise_isapprox(BayesNets.ndgrid([1.0, 2.0, 3.0]), [1.0, 2.0, 3.0])
 	@test BayesNets.ndgrid([1,2], [3,4]) == (
 											[1 1
@@ -8,6 +9,9 @@ let
 
 	# TODO: make this test more rigorous
 	@test isa(BayesNets.ndgrid([1], [2], [3]), Tuple{Array{Int64,3},Array{Int64,3},Array{Int64,3}})
+
+	# TODO: make this test more rigorous
+	@test BayesNets.ndgrid_fill!(Array(Int, 2), [1,2], 1, 2) == [1,2]
 
 	@test BayesNets.meshgrid([1,2]) == (
 										[1 2
