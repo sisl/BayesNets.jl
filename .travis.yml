@@ -4,6 +4,7 @@ os:
 julia:
   - release
   - 0.5
+  - 0.4
 notifications:
   email: false
 before_install:
