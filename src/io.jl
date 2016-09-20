@@ -40,7 +40,7 @@ function readxdsl( filename::AbstractString )
 	varnames = Array(Symbol, length(cpts))
 	for (i,e) in enumerate(cpts)
 		id = LightXML.attribute(e, "id")
-		varnames[i] = symbol(id)
+		varnames[i] = Symbol(id)
 	end
 
 	bn = DiscreteBayesNet()
@@ -50,19 +50,19 @@ function readxdsl( filename::AbstractString )
 		node_sym = varnames[i]
 
 		for s in LightXML.get_elements_by_tagname(e, "state")
-			attr = convert(ASCIIString, LightXML.attribute(s, "id"))
+			attr = convert(String, LightXML.attribute(s, "id"))
 			@assert(!isa(match(r"\d", attr), Void), "All state ids must be integers")
 		end
 
 		# set the node's domain
-		states   = [parse(Int, match(r"\d", convert(ASCIIString, LightXML.attribute(s, "id"))).match) for s in LightXML.get_elements_by_tagname(e, "state")]
+		states   = [parse(Int, match(r"\d", convert(String, LightXML.attribute(s, "id"))).match) for s in LightXML.get_elements_by_tagname(e, "state")]
 
 		probs = Float64[parse(Float64, s) for s in split(LightXML.content(LightXML.find_element(e, "probabilities")))]
 
 		# set any parents & populate probability table
 		parents_elem = LightXML.get_elements_by_tagname(e, "parents")
 		if !isempty(parents_elem)
-			parents = NodeName[symbol(s) for s in split(LightXML.content(parents_elem[1]))]
+			parents = NodeName[Symbol(s) for s in split(LightXML.content(parents_elem[1]))]
 
 			# populate probability table
 			reverse!(parents) # because SMILE varies first parent least quickly

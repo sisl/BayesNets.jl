@@ -15,6 +15,10 @@ import TikzGraphs: plot, simple_graph
 import Iterators: subsets
 import Base.Collections: PriorityQueue, peek
 
+if VERSION ≥ v"0.5.0-dev+0"
+    import Base: normalize
+end
+
 export
 	BayesNet,
 	DAG,
