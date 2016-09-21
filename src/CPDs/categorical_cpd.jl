@@ -70,16 +70,8 @@ function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     # calc parent_instantiation_counts
 
     nparents = length(parents)
-    parental_ncategories = Array(Int, nparents)
-    dims = Array(UnitRange{Int64}, nparents)
-    for (i,p) in enumerate(parents)
-        parental_ncategories[i] = infer_number_of_instantiations(data[p])
-        dims[i] = 1:parental_ncategories[i]
-    end
-
-    # ---------------------
-    # fit distributions
-
+    parental_ncategories = map!(p->infer_number_of_instantiations(data[p]), Array(Int, length(parents)), parents)
+    dims = [1:parental_ncategories[i] for i in 1:nparents]
     distributions = Array(D, prod(parental_ncategories))
     for (q, parent_instantiation) in enumerate(product(dims...))
         arr = Array(eltype(data[target]), 0)
