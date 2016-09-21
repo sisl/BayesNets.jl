@@ -58,7 +58,11 @@ function table(bn::DiscreteBayesNet, name::NodeName)
     varnames = push!(deepcopy(parents(bn, name)), name)
 
     nparents = length(varnames)-1
-    assignment = Compat.@Dict{Symbol,Any}(name => 1 for name in names(bn))
+    assignment = Assignment()
+    for _name in names(bn)
+        assignment[_name] = 1
+    end
+
     if nparents > 0
         A = ndgrid([1:ncategories(get(bn, name)(assignment)) for name in varnames]...)
         for (i,name2) in enumerate(varnames)
@@ -70,7 +74,10 @@ function table(bn::DiscreteBayesNet, name::NodeName)
 
     p = ones(size(d,1)) # the probability column
     for i in 1:size(d,1)
-        assignment = Compat.@Dict{Symbol,Any}(varnames[j]=>d[i,j] for j in 1:length(varnames))
+        assignment = Assignment()
+        for j in 1:length(varnames)
+            assignment[varnames[j]] = d[i,j]
+        end
         p[i] = pdf(cpd, assignment)
     end
     d[:p] = p
