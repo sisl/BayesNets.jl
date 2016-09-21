@@ -66,14 +66,6 @@ Return the parents for this CPD as a vector of NodeName.
 """
 @required_func parents(cpd::CPD)
 
-if VERSION < v"0.5.0-dev+0"
-    """
-        cpd(a::Assignment)
-    Use the parental values in `a` to return the conditional distribution
-    """
-    @required_func Base.call(cpd::CPD, a::Assignment)
-end
-
 macro define_call(cpd_type)
     return quote
         @compat (cpd::$cpd_type)() = (cpd)(Assignment()) # cpd()

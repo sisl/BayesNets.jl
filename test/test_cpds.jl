@@ -37,6 +37,12 @@ let
         @test isa(cpd(), disttype(cpd))
         @test pdf(cpd, :a=>0.5) > 0.2
         @test pdf(cpd, :a=>0.0) > pdf(cpd, :a=>0.55)
+
+        cpd = fit(DiscreteCPD, DataFrame(a=[1,2,1,2,2]), :a, ncategories=3)
+        @test pdf(cpd, :a=>1) == 0.4
+        @test pdf(cpd, :a=>2) == 0.6
+        @test pdf(cpd, :a=>3) == 0.0
+        @test nparams(cpd) == 3
     end
 
     # with parents
@@ -53,6 +59,10 @@ let
         @test cpd(:a=>1).p == [0.5,0.5]
         @test cpd(:a=>2).p == [1.0,0.0]
         @test cpd(:a=>3).p == [0.0,1.0]
+
+        cpd = fit(DiscreteCPD, df, :b, [:a], parental_ncategories=[3], target_ncategories=5)
+        @test nparams(cpd) == 15
+
 
         # Example with Bernoulli and more than one parent
         df = DataFrame(a=[   1,    1,    1,    1,    2,    2,    2,    2],

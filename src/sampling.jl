@@ -84,7 +84,7 @@ Always return a DataFrame with `nsamples` rows.
 """
 function rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with::Assignment=Assignment())
 
-    t = Dict([name => Any[] for name in names(bn)])
+    t = Dict(name => Any[] for name in names(bn))
     w = ones(Float64, nsamples)
     a = Assignment()
 

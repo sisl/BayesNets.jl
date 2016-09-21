@@ -41,10 +41,6 @@ nparams(cpd::CategoricalCPD) = sum(d->paramcount(params(d)), cpd.distributions)
     cpd.distributions[idx]
 end
 
-# function (cpd::CategoricalCPD)(a::Assignment)
-
-
-
 function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     data::DataFrame,
     target::NodeName,
@@ -104,46 +100,41 @@ typealias DiscreteCPD CategoricalCPD{Categorical}
 
 DiscreteCPD(target::NodeName, prob::Vector{Float64}) = CategoricalCPD(target, Categorical(prob./sum(prob)))
 
-# For DiscreteCPD we want to ensure that all distributions fit with the corrent number of categories
+function Distributions.fit(::Type{DiscreteCPD},
+    data::DataFrame,
+    target::NodeName;
+    ncategories::Int = infer_number_of_instantiations(data[target]),
+    )
+
+    d = fit_mle(Categorical, ncategories, data[target])
+    CategoricalCPD(target, NodeName[], Int[], Categorical[d])
+end
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
     target::NodeName,
-    parents::Vector{NodeName},
+    parents::Vector{NodeName};
+    parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[p]), Array(Int, length(parents)), parents),
+    target_ncategories::Int = infer_number_of_instantiations(data[target]),
     )
 
     # with parents
 
     if isempty(parents)
-        return fit(DiscreteCPD, data, target)
+        return fit(DiscreteCPD, data, target, ncategories=target_ncategories)
     end
-
-    # ---------------------
-    # pull discrete dataset
-    # 1st row is all of the data for the 1st parent
-    # 2nd row is all of the data for the 2nd parent, etc.
-    # calc parent_instantiation_counts
 
     nparents = length(parents)
-    parental_ncategories = Array(Int, nparents)
-    dims = Array(UnitRange{Int64}, nparents)
-    for (i,p) in enumerate(parents)
-        parental_ncategories[i] = infer_number_of_instantiations(data[p])
-        dims[i] = 1:parental_ncategories[i]
-    end
-
-    # ---------------------
-    # fit distributions
-
-    k = infer_number_of_instantiations(data[target])
+    dims = [1:parental_ncategories[i] for i in 1:nparents]
     distributions = Array(Categorical, prod(parental_ncategories))
+    arr = Array(eltype(data[target]), 0)
     for (q, parent_instantiation) in enumerate(product(dims...))
-        arr = Array(eltype(data[target]), 0)
+        empty!(arr)
         for i in 1 : nrow(data)
             if all(j->data[i,parents[j]]==parent_instantiation[j], 1:nparents) # parental instantiation matches
                 push!(arr, data[i, target])
             end
         end
-        distributions[q] = fit_mle(Categorical, k, arr)
+        distributions[q] = fit_mle(Categorical, target_ncategories, arr)
     end
 
     CategoricalCPD(target, parents, parental_ncategories, distributions)
