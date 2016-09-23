@@ -111,15 +111,15 @@ Base.count(bn::DiscreteBayesNet, data::DataFrame) = map(nodename->count(bn, node
     statistics(
         targetind::Int,
         parents::AbstractVector{Int},
-        bincounts::AbstractVector{Int},
+        ncategories::AbstractVector{Int},
         data::AbstractMatrix{Int}
         )
 outputs a sufficient statistics table for the target variable
 that is r × q where
-r = bincounts[i] is the number of variable instantiations and
+r = ncategories[i] is the number of variable instantiations and
 q is the number of parental instantiations of variable i
 
-The r-values are ordered from 1 → bincounts[i]
+The r-values are ordered from 1 → ncategories[i]
 The q-values are ordered in the same ordering as ind2sub() in Julia Base
     Thus the instantiation of the first parent (by order given in parents[i])
     is varied the fastest.
@@ -140,29 +140,29 @@ ex:
 function statistics(
     targetind::Int,
     parents::AbstractVector{Int},
-    bincounts::AbstractVector{Int},
+    ncategories::AbstractVector{Int},
     data::AbstractMatrix{Int}
     )
 
     q = 1
     if !isempty(parents)
         Np = length(parents)
-        q  = prod(bincounts[parents])
+        q  = prod(ncategories[parents])
         stridevec = fill(1, Np)
         for k in 2:Np
-            stridevec[k] = stridevec[k-1] * bincounts[parents[k-1]]
+            stridevec[k] = stridevec[k-1] * ncategories[parents[k-1]]
         end
         js = (data[parents,:] - 1)' * stridevec + 1
     else
         js = fill(1, size(data,2))
     end
-    full(sparse(vec(data[targetind,:]), vec(js), 1, bincounts[targetind], q))
+    full(sparse(vec(data[targetind,:]), vec(js), 1, ncategories[targetind], q))
 end
 
 """
     statistics(
         parent_list::Vector{Vector{Int}},
-        bincounts::AbstractVector{Int},
+        ncategories::AbstractVector{Int},
         data::AbstractMatrix{Int},
         )
 Computes sufficient statistics from a discrete dataset
@@ -171,12 +171,12 @@ for a Discrete Bayesian Net structure
 INPUT:
     parents:
         list of lists of parent indices
-        A variable with index i has bincounts[i]
+        A variable with index i has ncategories[i]
         and row in data[i,:]
         No acyclicity checking is done
-    bincounts:
+    ncategories:
         list of variable bin counts, or number of
-        discrete values the variable can take on, v ∈ {1 : bincounts[i]}
+        discrete values the variable can take on, v ∈ {1 : ncategories[i]}
     data:
         table of discrete values [n×m]
         where n is the number of nodes
@@ -187,10 +187,10 @@ OUTPUT:
         a sufficient statistics table for each variable
         Variable with index i has statistics table N[i],
         which is r × q where
-        r = bincounts[i] is the number of variable instantiations and
+        r = ncategories[i] is the number of variable instantiations and
         q is the number of parental instantiations of variable i
 
-        The r-values are ordered from 1 → bincounts[i]
+        The r-values are ordered from 1 → ncategories[i]
         The q-values are ordered in the same ordering as ind2sub() in Julia Base
             Thus the instantiation of the first parent (by order given in parents[i])
             is varied the fastest.
@@ -213,14 +213,14 @@ mercilessly stolen from Ed Schmerling.
 """
 function statistics(
     parent_list::Vector{Vector{Int}},
-    bincounts::AbstractVector{Int},
+    ncategories::AbstractVector{Int},
     data::AbstractMatrix{Int},
     )
 
     n, m = size(data)
     N = Array(Matrix{Int}, n)
     for i in 1 : n
-        N[i] = statistics(i, parent_list[i], bincounts, data)
+        N[i] = statistics(i, parent_list[i], ncategories, data)
     end
     N
 end
@@ -231,10 +231,10 @@ function statistics(dag::DAG, data::DataFrame)
     n == ncol(data) || throw(DimensionMismatch("statistics' dag and data must be of the same dimension, $n ≠ $(ncol(data))"))
 
     parents = [in_neighbors(dag, i) for i in 1:n]
-    bincounts = [Int(infer_number_of_instantiations(data[i])) for i in 1 : n]
+    ncategories = [Int(infer_number_of_instantiations(data[i])) for i in 1 : n]
     datamat = convert(Matrix{Int}, data)'
 
-    statistics(parents, bincounts, datamat)
+    statistics(parents, ncategories, datamat)
 end
 statistics(bn::DiscreteBayesNet, data::DataFrame) = statistics(bn.dag, data)
 function statistics(bn::DiscreteBayesNet, target::NodeName, data::DataFrame)
@@ -242,10 +242,10 @@ function statistics(bn::DiscreteBayesNet, target::NodeName, data::DataFrame)
     n = nv(bn.dag)
     targetind = bn.name_to_index[target]
     parents = in_neighbors(bn.dag, targetind)
-    bincounts = [Int(infer_number_of_instantiations(data[i])) for i in 1 : n]
+    ncategories = [Int(infer_number_of_instantiations(data[i])) for i in 1 : n]
     datamat = convert(Matrix{Int}, data)'
 
-    statistics(targetind, parents, bincounts, datamat)
+    statistics(targetind, parents, ncategories, datamat)
 end
 
 """
@@ -267,9 +267,9 @@ OUTPUT:
 function bayesian_score_component{I<:Integer}(
     i::Int,
     parents::AbstractVector{I},
-    bincounts::AbstractVector{Int},
+    ncategories::AbstractVector{Int},
     data::AbstractMatrix{Int},
-    alpha::AbstractMatrix{Float64}, # bincounts[i]×prod(bincounts[parents])
+    alpha::AbstractMatrix{Float64}, # ncategories[i]×prod(ncategories[parents])
     )
 
     (n, m) = size(data)
@@ -277,7 +277,7 @@ function bayesian_score_component{I<:Integer}(
         Np = length(parents)
         stridevec = fill(1, Np)
         for k in 2:Np
-            stridevec[k] = stridevec[k-1] * bincounts[parents[k-1]]
+            stridevec[k] = stridevec[k-1] * ncategories[parents[k-1]]
         end
         js = (data[parents,:] - 1)' * stridevec + 1
     else
@@ -290,25 +290,25 @@ end
 function bayesian_score_component{I<:Integer}(
     i::Int,
     parents::AbstractVector{I},
-    bincounts::AbstractVector{Int},
+    ncategories::AbstractVector{Int},
     data::AbstractMatrix{Int},
     prior::DirichletPrior,
     )
 
-    alpha = get(prior, i, bincounts, parents)
-    bayesian_score_component(i, parents, bincounts, data, alpha)
+    alpha = get(prior, i, ncategories, parents)
+    bayesian_score_component(i, parents, ncategories, data, alpha)
 end
 
 function bayesian_score(
     parent_list::Vector{Vector{Int}},
-    bincounts::AbstractVector{Int},
+    ncategories::AbstractVector{Int},
     data::Matrix{Int},
     prior::DirichletPrior,
     )
 
     tot = 0.0
     for (i, p) in enumerate(parent_list)
-        tot += bayesian_score_component(i, p, bincounts, data, prior)
+        tot += bayesian_score_component(i, p, ncategories, data, prior)
     end
     tot
 end
@@ -316,48 +316,48 @@ function bayesian_score(bn::DiscreteBayesNet, data::DataFrame, prior::DirichletP
 
     n = length(bn)
     parent_list = Array(Vector{Int}, n)
-    bincounts = Array(Int, n)
+    ncategories = Array(Int, n)
     datamat = convert(Matrix{Int}, data)'
 
     for (i,cpd) in enumerate(bn.cpds)
         parent_list[i] = in_neighbors(bn.dag, i)
-        bincounts[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
+        ncategories[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
     end
 
-    bayesian_score(parent_list, bincounts, datamat, prior)
+    bayesian_score(parent_list, ncategories, datamat, prior)
 end
 
 function bayesian_score_component(
     i::Int,
     parents::AbstractVector{Int},
-    bincounts::AbstractVector{Int},
+    ncategories::AbstractVector{Int},
     data::AbstractMatrix{Int},
     prior::DirichletPrior,
     cache::ScoreComponentCache,
     )
 
     if !haskey(cache[i], parents)
-        (cache[i][parents] = bayesian_score_component(i, parents, bincounts, data, prior))
+        (cache[i][parents] = bayesian_score_component(i, parents, ncategories, data, prior))
     end
 
     cache[i][parents]
 end
 function bayesian_score_components(
     parent_list::Vector{Vector{Int}},
-    bincounts::AbstractVector{Int},
+    ncategories::AbstractVector{Int},
     data::Matrix{Int},
     prior::DirichletPrior,
     )
 
     score_components = Array(Float64, length(parent_list))
     for (i,p) in enumerate(parent_list)
-        score_components[i] = bayesian_score_component(i, p, bincounts, data, prior)
+        score_components[i] = bayesian_score_component(i, p, ncategories, data, prior)
     end
     score_components
 end
 function bayesian_score_components(
     parent_list::Vector{Vector{Int}},
-    bincounts::AbstractVector{Int},
+    ncategories::AbstractVector{Int},
     data::Matrix{Int},
     prior::DirichletPrior,
     cache::ScoreComponentCache,
@@ -365,7 +365,7 @@ function bayesian_score_components(
 
     score_components = Array(Float64, length(parent_list))
     for (i,p) in enumerate(parent_list)
-        score_components[i] = bayesian_score_component(i, p, bincounts, data, prior, cache)
+        score_components[i] = bayesian_score_component(i, p, ncategories, data, prior, cache)
     end
     score_components
 end
@@ -373,15 +373,15 @@ function bayesian_score_components(bn::DiscreteBayesNet, data::DataFrame, prior:
 
     n = length(bn)
     parent_list = Array(Vector{Int}, n)
-    bincounts = Array(Int, n)
+    ncategories = Array(Int, n)
     datamat = convert(Matrix{Int}, data)'
 
     for (i,cpd) in enumerate(bn.cpds)
         parent_list[i] = in_neighbors(bn.dag, i)
-        bincounts[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
+        ncategories[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
     end
 
-    bayesian_score_components(parent_list, bincounts, datamat, prior)
+    bayesian_score_components(parent_list, ncategories, datamat, prior)
 end
 
 #########################
@@ -400,20 +400,60 @@ type GreedyHillClimbing <: GraphSearchStrategy
         new(cache, max_n_parents, prior)
     end
 end
+function Distributions.fit(::Type{DiscreteCPD},
+    data::DataFrame,
+    target::NodeName,
+    prior::DirichletPrior;
+    ncategories::Int = infer_number_of_instantiations(data[target]),
+    )
 
-function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::GreedyHillClimbing)
-
-    n = ncol(data)
-    parent_list = Array(Vector{Int}, n)
-    bincounts = Array(Int, n)
-    datamat = convert(Matrix{Int}, data)'
-
-    for i in 1:n
-        parent_list[i] = Int[]
-        bincounts[i] = infer_number_of_instantiations(data[i])
+    prior_counts = get(prior, ncategories)
+    for v in data[target]
+        prior_counts[v] += 1.0
     end
 
-    score_components = bayesian_score_components(parent_list, bincounts, datamat, params.prior, params.cache)
+    d = Categorical(prior_counts ./ sum(prior_counts))
+    CategoricalCPD(target, NodeName[], Int[], Categorical[d])
+end
+function Distributions.fit(::Type{DiscreteCPD},
+    data::DataFrame,
+    target::NodeName,
+    parents::Vector{NodeName},
+    prior::DirichletPrior;
+    parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[p]), Array(Int, length(parents)), parents),
+    target_ncategories::Int = infer_number_of_instantiations(data[target]),
+    )
+
+    # with parents
+
+    if isempty(parents)
+        return fit(DiscreteCPD, data, target, ncategories=target_ncategories)
+    end
+
+    nparents = length(parents)
+    dims = [1:parental_ncategories[i] for i in 1:nparents]
+    distributions = Array(Categorical, prod(parental_ncategories))
+    for (q, parent_instantiation) in enumerate(product(dims...))
+
+        prior_counts = get(prior, target_ncategories)
+        for i in 1 : nrow(data)
+            if all(j->data[i,parents[j]]==parent_instantiation[j], 1:nparents) # parental instantiation matches
+                prior_counts[data[i, target]] += 1.0
+            end
+        end
+        distributions[q] = Categorical(prior_counts ./ sum(prior_counts))
+    end
+
+    CategoricalCPD(target, parents, parental_ncategories, distributions)
+end
+function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::GreedyHillClimbing;
+    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[i]), Array(Int, n), 1:n),
+    )
+
+    n = ncol(data)
+    parent_list = map!(i->Int[], Array(Vector{Int}, n), 1:n)
+    datamat = convert(Matrix{Int}, data)'
+    score_components = bayesian_score_components(parent_list, ncategories, datamat, params.prior, params.cache)
 
     while true
         best_diff = 0.0
@@ -425,7 +465,7 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
                 for j in deleteat!(collect(1:n), parent_list[i])
                     if adding_edge_preserves_acyclicity(parent_list, j, i)
                         new_parents = sort!(push!(copy(parent_list[i]), j))
-                        new_component_score = bayesian_score_component(i, new_parents, bincounts, datamat, params.prior, params.cache)
+                        new_component_score = bayesian_score_component(i, new_parents, ncategories, datamat, params.prior, params.cache)
                         if new_component_score - score_components[i] > best_diff
                             best_diff = new_component_score - score_components[i]
                             best_parent_list = deepcopy(parent_list)
@@ -439,7 +479,7 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
             for (idx, j) in enumerate(parent_list[i])
 
                 new_parents = deleteat!(copy(parent_list[i]), idx)
-                new_component_score = bayesian_score_component(i, new_parents, bincounts, datamat, params.prior, params.cache)
+                new_component_score = bayesian_score_component(i, new_parents, ncategories, datamat, params.prior, params.cache)
                 if new_component_score - score_components[i] > best_diff
                     best_diff = new_component_score - score_components[i]
                     best_parent_list = deepcopy(parent_list)
@@ -452,8 +492,8 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
 
                 if adding_edge_preserves_acyclicity(new_parent_list, i, j)
                     sort!(push!(new_parent_list[j], i))
-                    new_diff = bayesian_score_component(i, new_parent_list[i], bincounts, datamat, params.prior, params.cache) - score_components[i]
-                    new_diff += bayesian_score_component(j, new_parent_list[j], bincounts, datamat, params.prior, params.cache) - score_components[j]
+                    new_diff = bayesian_score_component(i, new_parent_list[i], ncategories, datamat, params.prior, params.cache) - score_components[i]
+                    new_diff += bayesian_score_component(j, new_parent_list[j], ncategories, datamat, params.prior, params.cache) - score_components[j]
                     if new_diff > best_diff
                         best_diff = new_diff
                         best_parent_list = new_parent_list
@@ -464,7 +504,7 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
 
         if best_diff > 0.0
             parent_list = best_parent_list
-            score_components = bayesian_score_components(parent_list, bincounts, datamat, params.prior, params.cache)
+            score_components = bayesian_score_components(parent_list, ncategories, datamat, params.prior, params.cache)
         else
             break
         end
@@ -476,10 +516,7 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
     for i in 1:n
         name = varnames[i]
         parents = varnames[parent_list[i]]
-        cpds[i] = fit(DiscreteCPD, data, name, parents)
+        cpds[i] = fit(DiscreteCPD, data, name, parents, params.prior, parental_ncategories=ncategories[parent_list[i]], target_ncategories=ncategories[i])
     end
     BayesNet(cpds)
 end
-# function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, parents::Dict{NodeName, Vector{NodeName}})
-
-# end
