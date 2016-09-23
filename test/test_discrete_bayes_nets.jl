@@ -69,17 +69,18 @@ let
 		             c=[1,1,1,1,1,1,2,2, 2,2,2,2,2,2,1,1,   1,1,2,2,1,1,2,2, 1,1,1,1,1,1,1,1])
 
 	cache = ScoreComponentCache(data)
-	params = GreedyHillClimbing(cache, max_n_parents=3, prior=UniformPrior(0.1))
+	params = GreedyHillClimbing(cache, max_n_parents=3, prior=UniformPrior(2.0))
 	@test params.max_n_parents == 3
-	@test params.prior == UniformPrior(0.1)
+	@test params.prior == UniformPrior(2.0)
 
 	params = GreedyHillClimbing(cache)
 	bn = fit(DiscreteBayesNet, data, params)
 	@test length(bn) == ncol(data)
-	@test pdf(get(bn, :c), :c=>1) == 0.625
-	@test pdf(get(bn, :b), :b=>1) == 0.375
-	@test pdf(get(bn, :a), :a=>1, :b=>1, :c=>1) == 0.75
-	@test pdf(get(bn, :a), :a=>1, :b=>2, :c=>1) == 1/6
-	@test pdf(get(bn, :a), :a=>1, :b=>1, :c=>2) == 0.5
-	@test pdf(get(bn, :a), :a=>1, :b=>2, :c=>2) == 0.75
+	@test isapprox(pdf(get(bn, :c), :c=>1), 0.61765, atol=1e-4)
+	@test isapprox(pdf(get(bn, :b), :b=>1), 0.38235, atol=1e-4)
+	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>1, :c=>1), 0.7, atol=1e-4)
+	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>2, :c=>1), 0.21428, atol=1e-4)
+	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>1, :c=>2), 0.5, atol=1e-4)
+	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>2, :c=>2), 0.7, atol=1e-4)
+
 end

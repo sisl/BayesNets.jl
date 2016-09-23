@@ -427,7 +427,7 @@ function Distributions.fit(::Type{DiscreteCPD},
     # with parents
 
     if isempty(parents)
-        return fit(DiscreteCPD, data, target, ncategories=target_ncategories)
+        return fit(DiscreteCPD, data, target, prior, ncategories=target_ncategories)
     end
 
     nparents = length(parents)
