@@ -5,6 +5,9 @@ module BayesNets
 using Compat
 import Compat.String
 @compat import Base.show
+if isdefined(Base, :normalize)
+    import Base: normalize
+end
 
 using Reexport
 
@@ -15,10 +18,6 @@ import LightGraphs: DiGraph, rem_edge!, add_edge!, add_vertex!, has_edge, topolo
 import TikzGraphs: plot, simple_graph
 import Iterators: subsets
 import Base.Collections: PriorityQueue, peek
-
-if isdefined(Base, :normalize)
-    import Base: normalize
-end
 
 export
 	BayesNet,
