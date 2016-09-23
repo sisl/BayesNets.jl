@@ -447,7 +447,7 @@ function Distributions.fit(::Type{DiscreteCPD},
     CategoricalCPD(target, parents, parental_ncategories, distributions)
 end
 function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::GreedyHillClimbing;
-    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[i]), Array(Int, n), 1:n),
+    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[i]), Array(Int, ncol(data)), 1:ncol(data)),
     )
 
     n = ncol(data)
