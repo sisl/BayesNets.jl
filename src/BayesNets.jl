@@ -3,6 +3,7 @@ VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 module BayesNets
 
 using Compat
+import Compat.String
 @compat import Base.show
 
 using Reexport
