@@ -71,5 +71,6 @@ include("DiscreteBayesNet/ndgrid.jl")
 include("DiscreteBayesNet/factors.jl")
 include("DiscreteBayesNet/dirichlet_priors.jl")
 include("DiscreteBayesNet/discrete_bayes_net.jl")
+include("DiscreteBayesNet/structure_scoring.jl")
 
 end # module
