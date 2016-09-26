@@ -25,6 +25,7 @@ function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F}, y::Abstract
 	true
 end
 
+include(Pkg.dir("BayesNets", "test", "test_utils.jl"))
 include(Pkg.dir("BayesNets", "test", "test_cpds.jl"))
 include(Pkg.dir("BayesNets", "test", "test_factors.jl"))
 include(Pkg.dir("BayesNets", "test", "test_bayesnets.jl"))
