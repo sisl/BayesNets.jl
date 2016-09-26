@@ -3,7 +3,6 @@ using DataFrames
 using Base.Test
 using LightGraphs
 
-
 """
 A simple variant of isapprox that is true if the isapprox comparison works
 elementwise in the vector
@@ -26,12 +25,14 @@ function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F}, y::Abstract
 	true
 end
 
-include("test_cpds.jl")
-include("test_factors.jl")
-include("test_bayesnets.jl")
-include("test_sampling.jl")
-include("test_learning.jl")
-include("test_io.jl")
-include("test_ndgrid.jl")
+include(Pkg.dir("BayesNets", "test", "test_cpds.jl"))
+include(Pkg.dir("BayesNets", "test", "test_factors.jl"))
+include(Pkg.dir("BayesNets", "test", "test_bayesnets.jl"))
+include(Pkg.dir("BayesNets", "test", "test_sampling.jl"))
+include(Pkg.dir("BayesNets", "test", "test_learning.jl"))
+include(Pkg.dir("BayesNets", "test", "test_io.jl"))
+include(Pkg.dir("BayesNets", "test", "test_ndgrid.jl"))
 
-include("test_discrete_bayes_nets.jl")
+include(Pkg.dir("BayesNets", "test", "test_discrete_bayes_nets.jl"))
+
+include(Pkg.dir("BayesNets", "test", "test_docs.jl"))

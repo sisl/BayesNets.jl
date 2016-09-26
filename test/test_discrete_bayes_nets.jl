@@ -82,5 +82,4 @@ let
 	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>2, :c=>1), 0.21428, atol=1e-4)
 	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>1, :c=>2), 0.5, atol=1e-4)
 	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>2, :c=>2), 0.7, atol=1e-4)
-
 end
