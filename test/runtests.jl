@@ -3,6 +3,8 @@ using DataFrames
 using Base.Test
 using LightGraphs
 
+srand(0)
+
 """
 A simple variant of isapprox that is true if the isapprox comparison works
 elementwise in the vector
