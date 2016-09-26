@@ -14,7 +14,7 @@ using Reexport
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
-import LightGraphs: DiGraph, rem_edge!, add_edge!, add_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, is_cyclic, nv, ne
+import LightGraphs: DiGraph, add_edge!, rem_edge!, add_vertex!, rem_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, is_cyclic, nv, ne, outdegree
 import TikzGraphs: plot
 import Iterators: subsets, product
 import Base.Collections: PriorityQueue, peek

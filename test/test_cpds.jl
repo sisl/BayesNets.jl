@@ -182,4 +182,9 @@ let
     @test pdf(ncat, :bird) == 0.4
     @test isapprox(logpdf(ncat, :bird), log(0.4))
     show(IOBuffer(), sampler(ncat))
+
+    fcpd = FunctionalCPD{Normal}(:sad, a->Normal(0.0, 1.0))
+    @test name(fcpd) == :sad
+    @test isempty(parents(fcpd))
+    @test fcpd(Assignment()) == Normal(0.0, 1.0)
 end
