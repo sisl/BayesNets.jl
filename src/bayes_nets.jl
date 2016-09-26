@@ -99,9 +99,9 @@ function children(bn::BayesNet, target::NodeName)
 end
 
 function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)
-    u = bn.name_to_index[parent]
-    v = bn.name_to_index[child]
-	has_edge(bn.dag, u, v)
+	u = get(bn.name_to_index, parent, 0)
+	v = get(bn.name_to_index, child, 0)
+	u != 0 && v != 0 && has_edge(bn.dag, u, v)
 end
 
 function enforce_topological_order!(bn::BayesNet)
@@ -151,6 +151,27 @@ function Base.append!{C<:CPD}(bn::BayesNet, cpds::AbstractVector{C})
 	for cpd in cpds
 		push!(bn, cpd)
 	end
+	bn
+end
+
+"""
+	delete!(bn::BayesNets, target::NodeName)
+Removing cpds will alter the vertex indeces. In particular, removing
+the ith cpd will swap i and n and then remove n.
+"""
+function Base.delete!(bn::BayesNet, target::NodeName)
+
+	if outdegree(bn.dag, bn.name_to_index[target]) > 0
+		warn("Deleting a CPD with children!")
+	end
+
+	i = bn.name_to_index[target]
+	replacement = name(bn.cpds[end])
+	bn.cpds[i] = bn.cpds[end]
+	pop!(bn.cpds)	
+	bn.name_to_index[replacement] = i	
+	delete!(bn.name_to_index, target)
+	rem_vertex!(bn.dag, i)
 	bn
 end
 
