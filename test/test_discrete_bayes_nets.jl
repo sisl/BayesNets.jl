@@ -62,7 +62,9 @@ let
 	@test isapprox(score_components[1], -6.445719819385579)
 	@test isapprox(score_components[2], -6.396929655216146)
 
-    bs_from_structure = bayesian_score(bn.dag, Symbol[name(cpd) for cpd in bn.cpds], data, UniformPrior())
+    bs_from_structure = bayesian_score(bn.dag, Symbol[name(cpd) for cpd in bn.cpds], data)
+    @test isapprox(bs_from_structure, -6.445719819385579 + -6.396929655216146)
+    bs_from_structure = bayesian_score(bn.dag, Symbol[name(cpd) for cpd in bn.cpds], data, 2*ones(Int,nv(bn.dag)), UniformPrior())
     @test isapprox(bs_from_structure, -6.445719819385579 + -6.396929655216146)
 end
 
