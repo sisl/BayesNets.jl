@@ -15,7 +15,7 @@ pkgdir = joinpath(dirname(@__FILE__), "..")
 include(joinpath(pkgdir, "src", "CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
-import LightGraphs: DiGraph, add_edge!, rem_edge!, add_vertex!, rem_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, is_cyclic, nv, ne, outdegree
+import LightGraphs: DiGraph, add_edge!, rem_edge!, add_vertex!, rem_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, is_cyclic, nv, ne, outdegree, badj
 import TikzGraphs: plot
 import Iterators: subsets, product
 import Base.Collections: PriorityQueue, peek
@@ -62,8 +62,6 @@ export
     bayesian_score_components,
     bayesian_score
 
-
-
 include(joinpath(pkgdir, "src", "bayes_nets.jl"))
 include(joinpath(pkgdir, "src", "io.jl"))
 include(joinpath(pkgdir, "src", "sampling.jl"))
@@ -73,5 +71,6 @@ include(joinpath(pkgdir, "src", "DiscreteBayesNet/ndgrid.jl"))
 include(joinpath(pkgdir, "src", "DiscreteBayesNet/factors.jl"))
 include(joinpath(pkgdir, "src", "DiscreteBayesNet/dirichlet_priors.jl"))
 include(joinpath(pkgdir, "src", "DiscreteBayesNet/discrete_bayes_net.jl"))
+include(joinpath(pkgdir, "src", "DiscreteBayesNet/structure_scoring.jl"))
 
 end # module
