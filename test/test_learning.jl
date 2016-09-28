@@ -56,16 +56,26 @@ let
 
 	@test_throws ErrorException score_component(FakeScoringFunction(), StaticCPD(:a, Bernoulli(0.5)), data)
 
+	cpdA = StaticCPD(:A, Categorical(3))
+	cpdB = LinearGaussianCPD(:B, [:A], [0.0], 1.5, 1.0)
 	cache = ScoreComponentCache(data)
-	score = score_component(NegativeBayesianInformationCriterion(), StaticCPD(:A, Categorical(3)), data)
+	score = score_component(NegativeBayesianInformationCriterion(), cpdA, data)
 	@test isapprox(score, -33.82141487739863)
-	score = score_component(NegativeBayesianInformationCriterion(), StaticCPD(:A, Categorical(3)), data, cache)
+	score = score_component(NegativeBayesianInformationCriterion(), cpdA, data, cache)
 	@test isapprox(score, -33.82141487739863)
+	score = score_component(NegativeBayesianInformationCriterion(), cpdB, data, cache)
+	@test isapprox(score, -32.50924474627614)
+	scores = score_components(NegativeBayesianInformationCriterion(), [cpdA, cpdB], data)
+	@test isapprox(scores[1], -33.82141487739863)
+	@test isapprox(scores[2], -32.50924474627614)
+	scores = score_components(NegativeBayesianInformationCriterion(), [cpdA, cpdB], data, cache)
+	@test isapprox(scores[1], -33.82141487739863)
+	@test isapprox(scores[2], -32.50924474627614)
 
 	@test_throws ErrorException fit(DiscreteBayesNet, data, FakeGraphSearchStrategy())
 
 	K2 = K2GraphSearch([:A,:B,:C], [DiscreteCPD, DiscreteCPD, DiscreteCPD])
-	K22 = K2GraphSearch([:A,:B,:C], [DiscreteCPD])
+	K22 = K2GraphSearch([:A,:B,:C], DiscreteCPD)
 
 	bn3 = fit(DiscreteBayesNet, data, K2)
 	bn4 = fit(BayesNet, data, K2)
