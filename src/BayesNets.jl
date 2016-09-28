@@ -72,5 +72,6 @@ include(joinpath(pkgdir, "src", "DiscreteBayesNet/factors.jl"))
 include(joinpath(pkgdir, "src", "DiscreteBayesNet/dirichlet_priors.jl"))
 include(joinpath(pkgdir, "src", "DiscreteBayesNet/discrete_bayes_net.jl"))
 include(joinpath(pkgdir, "src", "DiscreteBayesNet/structure_scoring.jl"))
+include(joinpath(pkgdir, "src", "DiscreteBayesNet/greedy_hill_climbing.jl"))
 
 end # module
