@@ -1,5 +1,5 @@
 julia 0.4
-Compat 0.8.0
+Compat 0.9.2
 Distributions 0.10.0
 Discretizers 0.3.0
 Iterators 0.1.9

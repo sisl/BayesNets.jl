@@ -11,7 +11,7 @@ end
 
 using Reexport
 
-pkgdir = joinpath(dirname(@__FILE__), "..")
+pkgdir = dirname(@__DIR__)
 include(joinpath(pkgdir, "src", "CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 

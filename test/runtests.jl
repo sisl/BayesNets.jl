@@ -2,6 +2,7 @@ using BayesNets
 using DataFrames
 using Base.Test
 using LightGraphs
+using Compat
 
 srand(0)
 
@@ -27,15 +28,16 @@ function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F}, y::Abstract
 	true
 end
 
-include(Pkg.dir("BayesNets", "test", "test_utils.jl"))
-include(Pkg.dir("BayesNets", "test", "test_cpds.jl"))
-include(Pkg.dir("BayesNets", "test", "test_factors.jl"))
-include(Pkg.dir("BayesNets", "test", "test_bayesnets.jl"))
-include(Pkg.dir("BayesNets", "test", "test_sampling.jl"))
-include(Pkg.dir("BayesNets", "test", "test_learning.jl"))
-include(Pkg.dir("BayesNets", "test", "test_io.jl"))
-include(Pkg.dir("BayesNets", "test", "test_ndgrid.jl"))
+testdir = joinpath(dirname(@__DIR__), "test")
+include(joinpath(testdir, "test_utils.jl"))
+include(joinpath(testdir, "test_cpds.jl"))
+include(joinpath(testdir, "test_factors.jl"))
+include(joinpath(testdir, "test_bayesnets.jl"))
+include(joinpath(testdir, "test_sampling.jl"))
+include(joinpath(testdir, "test_learning.jl"))
+include(joinpath(testdir, "test_io.jl"))
+include(joinpath(testdir, "test_ndgrid.jl"))
 
-include(Pkg.dir("BayesNets", "test", "test_discrete_bayes_nets.jl"))
+include(joinpath(testdir, "test_discrete_bayes_nets.jl"))
 
-include(Pkg.dir("BayesNets", "test", "test_docs.jl"))
+include(joinpath(testdir, "test_docs.jl"))
