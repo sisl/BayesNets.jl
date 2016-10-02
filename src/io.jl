@@ -73,7 +73,7 @@ function readxdsl( filename::AbstractString )
             for q in 1:Q
                 hi = k*q
                 lo = hi - k + 1
-                distributions[q] = Categorical(probs[lo:hi])
+                distributions[q] = Categorical{Float64}(probs[lo:hi])
             end
 
             push!(bn, DiscreteCPD(node_sym, parents, parental_ncategories, distributions))

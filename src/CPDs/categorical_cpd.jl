@@ -48,7 +48,7 @@ function Distributions.fit{D}(::Type{CategoricalCPD{D}},
 
     # no parents
 
-    d = fit(D, data[target])
+    d = convert(D, fit(D, data[target]))
     CategoricalCPD(target, NodeName[], Int[], D[d])
 end
 function Distributions.fit{D}(::Type{CategoricalCPD{D}},
@@ -88,9 +88,9 @@ end
 
 #####
 
-typealias DiscreteCPD CategoricalCPD{Categorical}
+typealias DiscreteCPD CategoricalCPD{Categorical{Float64}}
 
-DiscreteCPD(target::NodeName, prob::Vector{Float64}) = CategoricalCPD(target, Categorical(prob./sum(prob)))
+DiscreteCPD{T<:Real}(target::NodeName, prob::AbstractVector{T}) = CategoricalCPD(target, Categorical(prob ./ sum(prob)))
 
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
@@ -98,8 +98,8 @@ function Distributions.fit(::Type{DiscreteCPD},
     ncategories::Int = infer_number_of_instantiations(data[target]),
     )
 
-    d = fit_mle(Categorical, ncategories, data[target])
-    CategoricalCPD(target, NodeName[], Int[], Categorical[d])
+    d = convert(Categorical{Float64}, fit_mle(Categorical, ncategories, data[target]))
+    CategoricalCPD(target, NodeName[], Int[], Categorical{Float64}[d])
 end
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
@@ -117,7 +117,7 @@ function Distributions.fit(::Type{DiscreteCPD},
 
     nparents = length(parents)
     dims = [1:parental_ncategories[i] for i in 1:nparents]
-    distributions = Array(Categorical, prod(parental_ncategories))
+    distributions = Array(Categorical{Float64}, prod(parental_ncategories))
     arr = Array(eltype(data[target]), 0)
     for (q, parent_instantiation) in enumerate(product(dims...))
         empty!(arr)
@@ -126,7 +126,11 @@ function Distributions.fit(::Type{DiscreteCPD},
                 push!(arr, data[i, target])
             end
         end
-        distributions[q] = fit_mle(Categorical, target_ncategories, arr)
+        if !isempty(arr)
+            distributions[q] = fit_mle(Categorical, target_ncategories, arr)
+        else
+            distributions[q] = Categorical{Float64}(target_ncategories)
+        end
     end
 
     CategoricalCPD(target, parents, parental_ncategories, distributions)
