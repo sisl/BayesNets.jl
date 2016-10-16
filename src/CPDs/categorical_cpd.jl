@@ -1,7 +1,7 @@
 """
 A categorical distribution, P(x|parents(x)) where all parents are discrete integers 1:Nᵢ
 
-The ordering of `distributions` arrayfollows the convention in Decision Making Under Uncertainty.
+The ordering of `distributions` array follows the convention in Decision Making Under Uncertainty.
 Suppose a variable has three discrete parents. The first parental instantiation
 assigns all parents to their first bin. The second will assign the first
 parent (as defined in `parents`) to its second bin and the other parents
