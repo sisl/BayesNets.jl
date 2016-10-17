@@ -5,7 +5,7 @@ function plot(bn::BayesNet)
 	if !isempty(names(bn))
 		plot(bn.dag, AbstractString[string(s) for s in names(bn)]) # NOTE: sometimes the same var shows up twice
 	else
-		plot(Graph(1), ["Empty Graph"])
+		plot(DiGraph(1), ["Empty Graph"])
 	end
 end
 

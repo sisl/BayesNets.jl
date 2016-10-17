@@ -16,4 +16,10 @@ let
 	@test isapprox(pdf(bn, Assignment(:Success=>2, :Forecast=>1)), 0.8*0.1)
 	@test isapprox(pdf(bn, Assignment(:Success=>2, :Forecast=>2)), 0.8*0.3)
 	@test isapprox(pdf(bn, Assignment(:Success=>2, :Forecast=>3)), 0.8*0.6)
+
+    # plot an empty BayesNet
+    # disabled because of latex dependency
+    # b = BayesNet()
+    # dummy = IOBuffer()
+    # show(dummy, MIME("image/svg+xml"), b)
 end
