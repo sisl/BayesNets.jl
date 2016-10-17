@@ -223,6 +223,24 @@ type K2GraphSearch <: GraphSearchStrategy
         cpd_types = fill(C, length(order))
         new(order, cpd_types, max_n_parents, metric)
     end
+    function K2GraphSearch(
+        order::Vector{NodeName},
+        cpdtype::Type{CategoricalCPD};
+        max_n_parents::Int=3,
+        metric::ScoringFunction=NegativeBayesianInformationCriterion(),
+        )
+
+        error("Cannot construct K2GraphSearch with only CategoricalCPD. You must specify the child distribution, CategoricalCPD{D}. For example, CategoricalCPD{Categorical}, aka DiscreteCPD.")
+    end
+    function K2GraphSearch(
+        order::Vector{NodeName},
+        cpdtype::Type{StaticCPD};
+        max_n_parents::Int=3,
+        metric::ScoringFunction=NegativeBayesianInformationCriterion(),
+        )
+
+        error("Cannot construct K2GraphSearch with only StaticCPD. You must specify the child distribution, StaticCPD{D}. For example, StaticCPD{Normal}.")
+    end
 end
 
 function Distributions.fit{C<:CPD}(::Type{BayesNet{C}}, data::DataFrame, params::K2GraphSearch)
