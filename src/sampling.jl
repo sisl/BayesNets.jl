@@ -120,6 +120,7 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer; sample_
 consistent_with::Assignment=Assignment(), variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}, 
 time_limit::Nullable{Integer}=Nullable{Integer}())
 """
-TODO
+TODO algorithm
+TODO unit test
 """
 end
