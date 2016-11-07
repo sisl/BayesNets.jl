@@ -121,6 +121,7 @@ consistent_with::Assignment=Assignment(), variable_order::Nullable{Vector{Symbol
 time_limit::Nullable{Integer}=Nullable{Integer}())
 """
 TODO algorithm
-TODO unit test
+TODO unit test under test/
+TODO come up with an automatic method for setting the burn_in period, look at literatures.  Once this is implemented, move burn_in to the default parameters
 """
 end
