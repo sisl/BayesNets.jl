@@ -107,3 +107,19 @@ function rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with
     t[:p] = w / sum(w)
     convert(DataFrame, t)
 end
+
+"""
+TODO description
+
+The algorithm will return the samples it has collected when either nsamples samples have been collected or time_limit milliseconds have passed.  If time_limit is not specified then the algorithm will run until nsamples have been collected.
+
+sample_skip: every (sample_skip + 1)th sample will be used, the other sample_skip samples will be thrown out.  The higher the sample_skip, the less correlated samples will be but the longer the computation time per sample.
+variable_order: variable_order determines the order of variables changed when generating a new sample, if variable_order is None, then a random variable order will be used for each sample.
+"""
+function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer; sample_skip::Integer=99,
+consistent_with::Assignment=Assignment(), variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}, 
+time_limit::Nullable{Integer}=Nullable{Integer}())
+"""
+TODO
+"""
+end
