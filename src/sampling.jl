@@ -155,7 +155,7 @@ time_limit::Nullable{Integer})
         t[name] = Any[]
     end
 
-    w = ones(Float64, nsamples) # TODO is this needed
+    # w = ones(Float64, nsamples) # TODO is this needed - no
     a = start_sample
     if isnull(variable_order)
          v_order = names(bn)
@@ -171,10 +171,10 @@ time_limit::Nullable{Integer})
         for varname in v_order
 
             if haskey(consistent_with, varname)
-                # TODO what to do here?
-                cpd = get(bn, varname)
-                a[varname] = consistent_with[varname]
-                w[i] *= pdf(cpd, a)
+                # TODO what to do here? - do nothing
+                #cpd = get(bn, varname)
+                #a[varname] = consistent_with[varname]
+                #w[i] *= pdf(cpd, a)
             else
                 a[varname] = sample_posterior(bn, varname, a)
             end
@@ -184,7 +184,7 @@ time_limit::Nullable{Integer})
 
     end
 
-    t[:p] = w / sum(w)
+    # t[:p] = w / sum(w)
     convert(DataFrame, t)
 end
 
@@ -226,5 +226,6 @@ inital_sample::Nullable{Assignment}=Nullable{Assignment}())
         combined_time < get(time_limit) || error("Time expired during Gibbs sampling")
     end
 
+    # TODO remove rows you conditioned on for interpretability?
     return samples
 end
