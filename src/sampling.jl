@@ -108,15 +108,13 @@ function rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with
     convert(DataFrame, t)
 end
 
-function sample_posterior_discrete(bn::BayesNet, varname::Symbol, a::Assignment)
-   num_categories = # TODO
-
+function sample_posterior_finite(bn::BayesNet, varname::Symbol, a::Assignment, support::AbstractArray)
    markov_blanket_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
    push!(markov_blanket_cdps, get(bn, varname))
 
    posterior_distribution = zeros(num_categories)
-   for index in 1:num_categories
-       a[varname] = index
+   for index, domain_element in enumerate(support)
+       a[varname] = domain_element
        # Sum logs for numerical stability
        posterior_distribution[index] = exp(sum([logpdf(cdp, a) for cdp in markov_blanket_cdps]))
    end
@@ -131,8 +129,12 @@ function sample_posterior_discrete(bn::BayesNet, varname::Symbol, a::Assignment)
    while c < u && i < n
        c += p[i += 1]
    end
-   return i
+   return support[i]
 
+end
+
+function sample_posterior_continuous(bn::BayesNet, varname::Symbol, a::Assignment)
+    # TODO
 end
 
 """
@@ -141,7 +143,15 @@ TODO check if arguments are copied or passed by reference
 """
 function sample_posterior(bn::BayesNet, varname::Symbol, a::Assignment)
     original_value = a[varname]
-    new_value = # TODO
+
+    cpd = get(bn, varname)
+    distribution = cpd(a)
+    if hasfinitesupport(distribution)
+        new_value = sample_posterior_finite(bn, varname, a, support(distribution))
+    else
+        new_value = sample_posterior_continuous(bn, varname, a)
+    end
+
     a[varname] = original_value
     return new_value
 end
@@ -149,6 +159,8 @@ end
 function gibbs_sample_main_loop(bn::BayesNet, nsamples::Integer, sample_skip::Integer, 
 start_sample::Assignment, consistent_with::Assignment, variable_order::Nullable{Vector{Symbol}},
 time_limit::Nullable{Integer})
+
+    # TODO implement time_limit
 
     t = Dict{Symbol, Vector{Any}}()
     for name in names(bn)
