@@ -135,6 +135,7 @@ end
 
 function sample_posterior_continuous(bn::BayesNet, varname::Symbol, a::Assignment)
     # TODO
+    # TODO if likelihood weighted sampling is used, then you must keep sampling until a sample with non-zero probability occurs
 end
 
 """
