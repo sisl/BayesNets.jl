@@ -108,6 +108,22 @@ function rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with
     convert(DataFrame, t)
 end
 
+function randomly_select_assignment_from_rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with::Assignment=Assignment())
+    rand_samples = rand_table_weighted(bn, nsamples, consistent_with)
+    # TODO what if all samples have zero probability (this will cause a crash in rand_table_weighted at w / sum(w) )?
+
+    p = rand_samples[:, :p]
+    n = length(p)
+    i = 1
+    c = p[1]
+    u = rand()
+    while c < u && i < n
+        c += p[i += 1]
+    end
+
+    return Assignment(Dict(varname => rand_samples[i, varname] for varname in names(bn)))
+end
+
 function sample_posterior_finite(bn::BayesNet, varname::Symbol, a::Assignment, support::AbstractArray)
    markov_blanket_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
    push!(markov_blanket_cdps, get(bn, varname))
@@ -162,6 +178,7 @@ start_sample::Assignment, consistent_with::Assignment, variable_order::Nullable{
 time_limit::Nullable{Integer})
 
     # TODO implement time_limit
+    # TODO implement sample_skip
 
     t = Dict{Symbol, Vector{Any}}()
     for name in names(bn)
@@ -223,15 +240,17 @@ inital_sample::Nullable{Assignment}=Nullable{Assignment}())
     # check that initial_sample is either null or a full assignment that is consistent with the variable consistent_with
    
     # Burn in 
-    burn_in_initial_sample = # TODO use rand_table_weighted, should be consistent with the varibale consistent_with
+    # for burn_in_initial_sample TODO use rand_table_weighted, should be consistent with the varibale consistent_with
+    burn_in_initial_samples = randomly_select_assignment_from_rand_table_weighted(bn; nsamples=10, consistent_with=consistent_with)
     burn_in_samples, burn_in_time = gibbs_sample_main_loop(bn, burn_in, 1, burn_in_initial_sample, 
                                          consistent_with, variable_order, time_limit)
+    remaining_time = time_limit - burn_in_time
     if error_if_time_out && ~isnull(time_limit)
-        time_limit - burn_in_time > 0 || error("Time expired during Gibbs sampling")
+        remaining_time  > 0 || error("Time expired during Gibbs sampling")
     end
    
     # Real samples
-    main_samples_initial_sample = # TODO 
+    main_samples_initial_sample = Assignment(Dict(varname => burn_in_samples[end, varname] for varname in names(bn))) 
     samples, samples_time = gibbs_sample_main_loop(bn, nsamples, sample_skip, 
                                main_samples_initial_sample, consistent_with, variable_order, remaining_time)
     combined_time = burn_in_time + samples_time
@@ -239,6 +258,6 @@ inital_sample::Nullable{Assignment}=Nullable{Assignment}())
         combined_time < get(time_limit) || error("Time expired during Gibbs sampling")
     end
 
-    # TODO remove rows you conditioned on for interpretability?
+    # TODO remove rows you conditioned on for interpretability? - no because others don't? is this different?
     return samples
 end
