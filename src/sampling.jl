@@ -108,10 +108,7 @@ function rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with
     convert(DataFrame, t)
 end
 
-function randomly_select_assignment_from_rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with::Assignment=Assignment())
-    rand_samples = rand_table_weighted(bn, nsamples, consistent_with)
-    # TODO what if all samples have zero probability (this will cause a crash in rand_table_weighted at w / sum(w) )?
-
+function randomly_select_assignment_from_rand_table_weighted(bn::BayesNet, rand_samples::DataFrame)
     p = rand_samples[:, :p]
     n = length(p)
     i = 1
@@ -149,9 +146,31 @@ function sample_posterior_finite(bn::BayesNet, varname::Symbol, a::Assignment, s
 
 end
 
-function sample_posterior_continuous(bn::BayesNet, varname::Symbol, a::Assignment)
-    # TODO
+function sample_posterior_continuous(bn::BayesNet, varname::Symbol, a::Assignment; nsamples::Integer=20)
+    # TODO likelihood weighted sampling may not be the correct way to do this
     # TODO if likelihood weighted sampling is used, then you must keep sampling until a sample with non-zero probability occurs
+
+    children_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
+    var_cpd = get(bn, varname)
+
+    # TODO if this doesn't get replaced with another method (it likely will) then preallocate everything properly
+    t = Dict{Symbol, Vector{Any}}()
+    t[varname] = Any[]
+
+    w = ones(Float64, nsamples)
+
+    for i in 1:nsamples
+        a[varname] = rand(cpd, a)
+        for cpd in children_cdps
+            w[i] *= pdf(cpd, a)
+        end
+        push!(t[varname], a[varname])
+    end
+    t[:p] = w / sum(w)
+    convert(DataFrame, t)
+
+    assignment = randomly_select_assignment_from_rand_table_weighted(bn, t)
+    return assignment[varname]
 end
 
 """
@@ -177,8 +196,7 @@ function gibbs_sample_main_loop(bn::BayesNet, nsamples::Integer, sample_skip::In
 start_sample::Assignment, consistent_with::Assignment, variable_order::Nullable{Vector{Symbol}},
 time_limit::Nullable{Integer})
 
-    # TODO implement time_limit
-    # TODO implement sample_skip
+    start_time = now()
 
     t = Dict{Symbol, Vector{Any}}()
     for name in names(bn)
@@ -194,20 +212,38 @@ time_limit::Nullable{Integer})
     end
 
     for sample_iter in 1:nsamples
+        if ~ isnull(time_limit) && (now() - start_time) > get(time_limit)
+            break
+        end
+
         if isnull(variable_order)
-             v_order = shuffle!(v_order)
+            v_order = shuffle!(v_order)
+        end
+
+        # skip over sample_skip samples
+        for skip_iter in 1:sample_skip
+            for varname in v_order
+                if ~ haskey(consistent_with, varname)
+                     a[varname] = sample_posterior(bn, varname, a)
+                end
+            end
+
+            if isnull(variable_order)
+                v_order = shuffle!(v_order)
+            end
         end
 
         for varname in v_order
 
-            if haskey(consistent_with, varname)
+            if ~ haskey(consistent_with, varname)
+                a[varname] = sample_posterior(bn, varname, a)
+            end
+            # else
                 # TODO what to do here? - do nothing
                 #cpd = get(bn, varname)
                 #a[varname] = consistent_with[varname]
                 #w[i] *= pdf(cpd, a)
-            else
-                a[varname] = sample_posterior(bn, varname, a)
-            end
+            # end
             push!(t[varname], a[varname])
 
         end
@@ -215,11 +251,14 @@ time_limit::Nullable{Integer})
     end
 
     # t[:p] = w / sum(w)
-    convert(DataFrame, t)
+    return convert(DataFrame, t), Integer(now() - start_time)
 end
 
 """
 TODO description
+
+First burn_in samples will be sampled and then discrded.  Next additional samples will be draw, 
+and every (sample_skip + 1)th sample will be returned while the rest are discarded.
 
 The algorithm will return the samples it has collected when either nsamples samples have been collected or time_limit milliseconds have passed.  If time_limit is not specified then the algorithm will run until nsamples have been collected.
 
@@ -241,12 +280,14 @@ inital_sample::Nullable{Assignment}=Nullable{Assignment}())
    
     # Burn in 
     # for burn_in_initial_sample TODO use rand_table_weighted, should be consistent with the varibale consistent_with
-    burn_in_initial_samples = randomly_select_assignment_from_rand_table_weighted(bn; nsamples=10, consistent_with=consistent_with)
-    burn_in_samples, burn_in_time = gibbs_sample_main_loop(bn, burn_in, 1, burn_in_initial_sample, 
+    rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
+    burn_in_initial_samples = randomly_select_assignment_from_rand_table_weighted(bn, rand_samples)
+    burn_in_samples, burn_in_time = gibbs_sample_main_loop(bn, burn_in, 0, burn_in_initial_sample, 
                                          consistent_with, variable_order, time_limit)
-    remaining_time = time_limit - burn_in_time
+    remaining_time = Nullable{Integer}()
     if error_if_time_out && ~isnull(time_limit)
-        remaining_time  > 0 || error("Time expired during Gibbs sampling")
+        remaining_time = get(time_limit) - burn_in_time
+        remaining_time > 0 || error("Time expired during Gibbs sampling")
     end
    
     # Real samples
