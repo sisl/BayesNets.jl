@@ -7,6 +7,8 @@ function variable_elimination(bn::DiscreteBayesNet, elimination_order::Vector{Sy
     """
     TODO algorithm
     TODO unit tests under test/
+
+    TODO what does table do / does table already implement this?
     
     Algorithm Steps:
     Make sure parameters are valid

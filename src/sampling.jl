@@ -271,7 +271,7 @@ time_limit::Nullable{Integer}=Nullable{Integer}(), error_if_time_out::Bool=true,
 inital_sample::Nullable{Assignment}=Nullable{Assignment}())
     """
     TODO algorithm
-    TODO unit test under test/
+    TODO unit test under test/, write unit tests for bad input
     TODO come up with an automatic method for setting the burn_in period, look at literatures.  
               Once this is implemented, move burn_in to the default parameters
     """
@@ -280,8 +280,12 @@ inital_sample::Nullable{Assignment}=Nullable{Assignment}())
    
     # Burn in 
     # for burn_in_initial_sample TODO use rand_table_weighted, should be consistent with the varibale consistent_with
-    rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
-    burn_in_initial_samples = randomly_select_assignment_from_rand_table_weighted(bn, rand_samples)
+    if isnull(inital_sample)
+        burn_in_initial_sample = get(inital_sample)
+    else
+        rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
+        burn_in_initial_sample = randomly_select_assignment_from_rand_table_weighted(bn, rand_samples)
+    end
     burn_in_samples, burn_in_time = gibbs_sample_main_loop(bn, burn_in, 0, burn_in_initial_sample, 
                                          consistent_with, variable_order, time_limit)
     remaining_time = Nullable{Integer}()
