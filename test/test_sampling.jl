@@ -26,23 +26,23 @@ let
         @test size(t5) == (5, 3)
         @test t5[:a] == [1,1,1,1,1]
         @test t5[:b] == [2,2,2,2,2]
-        @test t5[:c] == [2,2,2,2,2]
+        @test t5[:c] == [1,1,1,1,1]
 
         bn2 = BayesNet()
         push!(bn2, StaticCPD(:a, Categorical([0.5,0.5])))
         push!(bn2, StaticCPD(:b, Categorical([0.5,0.5])))
-        push!(bn2, CategoricalCPD{Bernoulli}(:c, [:a, :b], [2,2], [
+        push!(bn2, CategoricalCPD{Categorical}(:c, [:a, :b], [2,2], [
                Categorical([1.0, 0, 0, 0]), Categorical([0, 1.0, 0, 0]),
                Categorical([0, 0, 1.0, 0]), Categorical([0, 0, 0, 1.0])]))
 
-        t6 = gibbs_sample(bn, 5, 100; sample_skip=5, consistent_with=Assignment(:c=>1),
+        t6 = gibbs_sample(bn2, 5, 100; sample_skip=5, consistent_with=Assignment(:c=>1),
              variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
              error_if_time_out=true, inital_sample=Nullable{Assignment}())
         @test t6[:a] == [1,1,1,1,1]
         @test t6[:b] == [1,1,1,1,1]
         @test t6[:c] == [1,1,1,1,1]
 
-        t7 = gibbs_sample(bn, 5, 100; sample_skip=5, consistent_with=Assignment(:c=>2),
+        t7 = gibbs_sample(bn2, 5, 100; sample_skip=5, consistent_with=Assignment(:c=>2),
              variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
              error_if_time_out=true, inital_sample=Nullable{Assignment}())
         @test t7[:a] == [2,2,2,2,2]

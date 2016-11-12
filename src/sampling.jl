@@ -123,10 +123,11 @@ end
 
 function sample_posterior_finite(bn::BayesNet, varname::Symbol, a::Assignment, support::AbstractArray)
    markov_blanket_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
+   markov_blanket_cdps = convert(Array{CPD}, markov_blanket_cdps) # Make type explicit or next line will fail
    push!(markov_blanket_cdps, get(bn, varname))
 
-   posterior_distribution = zeros(num_categories)
-   for index, domain_element in enumerate(support)
+   posterior_distribution = zeros(length(support))
+   for (index, domain_element) in enumerate(support)
        a[varname] = domain_element
        # Sum logs for numerical stability
        posterior_distribution[index] = exp(sum([logpdf(cdp, a) for cdp in markov_blanket_cdps]))
@@ -281,10 +282,10 @@ inital_sample::Nullable{Assignment}=Nullable{Assignment}())
     # Burn in 
     # for burn_in_initial_sample TODO use rand_table_weighted, should be consistent with the varibale consistent_with
     if isnull(inital_sample)
-        burn_in_initial_sample = get(inital_sample)
-    else
         rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
         burn_in_initial_sample = randomly_select_assignment_from_rand_table_weighted(bn, rand_samples)
+    else
+        burn_in_initial_sample = get(inital_sample)
     end
     burn_in_samples, burn_in_time = gibbs_sample_main_loop(bn, burn_in, 0, burn_in_initial_sample, 
                                          consistent_with, variable_order, time_limit)
