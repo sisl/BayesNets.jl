@@ -108,7 +108,7 @@ function rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with
     convert(DataFrame, t)
 end
 
-function randomly_select_assignment_from_rand_table_weighted(bn::BayesNet, rand_samples::DataFrame)
+function sample_weighted_dataframe(rand_samples::DataFrame)
     p = rand_samples[:, :p]
     n = length(p)
     i = 1
@@ -118,7 +118,7 @@ function randomly_select_assignment_from_rand_table_weighted(bn::BayesNet, rand_
         c += p[i += 1]
     end
 
-    return Assignment(Dict(varname => rand_samples[i, varname] for varname in names(bn)))
+    return Assignment(Dict(varname => rand_samples[i, varname] for varname in names(rand_samples) if varname != :p))
 end
 
 function sample_posterior_finite(bn::BayesNet, varname::Symbol, a::Assignment, support::AbstractArray)
@@ -161,16 +161,16 @@ function sample_posterior_continuous(bn::BayesNet, varname::Symbol, a::Assignmen
     w = ones(Float64, nsamples)
 
     for i in 1:nsamples
-        a[varname] = rand(cpd, a)
+        a[varname] = rand(var_cpd, a)
         for cpd in children_cdps
             w[i] *= pdf(cpd, a)
         end
         push!(t[varname], a[varname])
     end
     t[:p] = w / sum(w)
-    convert(DataFrame, t)
+    t = convert(DataFrame, t)
 
-    assignment = randomly_select_assignment_from_rand_table_weighted(bn, t)
+    assignment = sample_weighted_dataframe(t)
     return assignment[varname]
 end
 
@@ -283,7 +283,7 @@ inital_sample::Nullable{Assignment}=Nullable{Assignment}())
     # for burn_in_initial_sample TODO use rand_table_weighted, should be consistent with the varibale consistent_with
     if isnull(inital_sample)
         rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
-        burn_in_initial_sample = randomly_select_assignment_from_rand_table_weighted(bn, rand_samples)
+        burn_in_initial_sample = sample_weighted_dataframe(rand_samples)
     else
         burn_in_initial_sample = get(inital_sample)
     end

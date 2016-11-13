@@ -49,7 +49,22 @@ let
         @test t7[:b] == [1,1,1,1,1]
         @test t7[:c] == [2,2,2,2,2]
 
+        bn3 = BayesNet()
+        push!(bn3, StaticCPD(:a, Normal(2.5, 1.5)))
+        push!(bn3, StaticCPD(:b, Categorical([0.3,0.3,0.4])))
+        push!(bn3, LinearGaussianCPD(:c, [:a, :b], [0.5, 0.5], 1.0, 0.5))
 
-        # TODO test Gibbs sampling on continuous distributions
+        t8 = gibbs_sample(bn3, 5, 100; sample_skip=5, consistent_with=Assignment(),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+             error_if_time_out=true, inital_sample=Nullable{Assignment}())
+        @test size(t8) == (5, 3)
+
+        # unlikely c
+        t9 = gibbs_sample(bn3, 5, 100; sample_skip=5, consistent_with=Assignment(:c=>1.0),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+             error_if_time_out=true, inital_sample=Nullable{Assignment}())
+        @test size(t9) == (5, 3)
+
+        # TODO test bad parameters given to gibbs_sample
 
 end
