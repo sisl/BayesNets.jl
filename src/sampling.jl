@@ -277,6 +277,28 @@ inital_sample::Nullable{Assignment}=Nullable{Assignment}())
     """
     # TODO check parameters for correctness, variable_order should be null or provide an order for all variables
     # check that initial_sample is either null or a full assignment that is consistent with the variable consistent_with
+    nsamples > 0 || error("nsamples parameter less than 1")
+    burn_in >= 0 || error("Negative burn_in parameter")
+    sample_skip >= 0 || error("Negative sample_skip parameter")
+    if ~ isnull(variable_order)
+        v_order = get(variable_order)
+        bn_names = names(bn)
+        for name in bn_names
+            name in variable_order || error("Gibbs sample variable_order must contain all variables in the Bayes Net")
+        end
+        for name in v_order
+            name in bn_names || error("Gibbs sample variable_order contains a variable not in the Bayes Net")
+        end
+    end
+    if ~ isnull(time_limit)
+        get(time_limit) > 0 || error("Invalid time_limit specified")
+    end
+    if ~ isnull(initial_sample)
+        init_sample = get(initial_sample)
+        for name in names(bn)
+            haskey(init_sample, name) || error("Gibbs sample initial_sample must be an assignment with all variables in the Bayes Net")
+        end
+    end
    
     # Burn in 
     # for burn_in_initial_sample TODO use rand_table_weighted, should be consistent with the varibale consistent_with
