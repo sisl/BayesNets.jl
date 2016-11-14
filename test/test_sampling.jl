@@ -22,7 +22,7 @@ let
 
         t5 = gibbs_sample(bn, 5, 100; sample_skip=5, consistent_with=Assignment(), 
              variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(), 
-             error_if_time_out=true, inital_sample=Nullable{Assignment}())
+             error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test size(t5) == (5, 3)
         @test t5[:a] == [1,1,1,1,1]
         @test t5[:b] == [2,2,2,2,2]
@@ -37,14 +37,14 @@ let
 
         t6 = gibbs_sample(bn2, 5, 100; sample_skip=5, consistent_with=Assignment(:c=>1),
              variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
-             error_if_time_out=true, inital_sample=Nullable{Assignment}())
+             error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test t6[:a] == [1,1,1,1,1]
         @test t6[:b] == [1,1,1,1,1]
         @test t6[:c] == [1,1,1,1,1]
 
         t7 = gibbs_sample(bn2, 5, 100; sample_skip=5, consistent_with=Assignment(:c=>2),
              variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
-             error_if_time_out=true, inital_sample=Nullable{Assignment}())
+             error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test t7[:a] == [2,2,2,2,2]
         @test t7[:b] == [1,1,1,1,1]
         @test t7[:c] == [2,2,2,2,2]
@@ -56,15 +56,110 @@ let
 
         t8 = gibbs_sample(bn3, 5, 100; sample_skip=5, consistent_with=Assignment(),
              variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
-             error_if_time_out=true, inital_sample=Nullable{Assignment}())
+             error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test size(t8) == (5, 3)
 
         # unlikely c
         t9 = gibbs_sample(bn3, 5, 100; sample_skip=5, consistent_with=Assignment(:c=>1.0),
              variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
-             error_if_time_out=true, inital_sample=Nullable{Assignment}())
+             error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test size(t9) == (5, 3)
 
-        # TODO test bad parameters given to gibbs_sample
+        # use optional parameters and border cases for other parameters
+        t10 = gibbs_sample(bn3, 5, 0; sample_skip=0, consistent_with=Assignment(:c=>2.0, :b=>1),
+             variable_order=Nullable{Vector{Symbol}}(Vector{Symbol}([:c, :a, :b])), time_limit=Nullable{Integer}(1000000),
+             error_if_time_out=false, initial_sample=Nullable{Assignment}(Assignment(:a=>1, :b=>1, :c=>2.0)))
+        @test size(t10)[2] == 3 && size(t10)[1] <= 5
+
+        # test early return from time limit
+        t11 = gibbs_sample(bn3, 100000, 100; sample_skip=2, consistent_with=Assignment(),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(2000),
+             error_if_time_out=false, initial_sample=Nullable{Assignment}())
+        @test size(t10)[2] == 3 && size(t10)[1] <= 100000
+
+
+        # test bad parameters given to gibbs_sample
+        pass = false
+        try
+            error_test = gibbs_sample(bn, 0, 100; sample_skip=5, consistent_with=Assignment(),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+                 error_if_time_out=true, initial_sample=Nullable{Assignment}())
+        catch e
+            pass = true
+        end
+        @test pass
+
+        pass = false
+        try
+            error_test = gibbs_sample(bn, 5, -1; sample_skip=5, consistent_with=Assignment(),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+                 error_if_time_out=true, initial_sample=Nullable{Assignment}())
+        catch e
+            pass = true
+        end
+        @test pass
+
+        pass = false
+        try
+            error_test = gibbs_sample(bn, 5, 100; sample_skip=-1, consistent_with=Assignment(),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+                 error_if_time_out=true, initial_sample=Nullable{Assignment}())
+        catch e
+            pass = true
+        end
+        @test pass
+
+        pass = false
+        try
+            v_order = Vector{Symbol}([:a, :c])
+            error_test = gibbs_sample(bn, 5, 100; sample_skip=5, consistent_with=Assignment(),
+                 variable_order=Nullable{Vector{Symbol}}(v_order), time_limit=Nullable{Integer}(),
+                 error_if_time_out=true, initial_sample=Nullable{Assignment}())
+        catch e
+            pass = true
+        end
+        @test pass
+
+        pass = false
+        try
+            v_order = Vector{Symbol}([:a, :c, :b, :d])
+            error_test = gibbs_sample(bn, 5, 100; sample_skip=5, consistent_with=Assignment(),
+                 variable_order=Nullable{Vector{Symbol}}(v_order), time_limit=Nullable{Integer}(),
+                 error_if_time_out=true, initial_sample=Nullable{Assignment}())
+        catch e
+            pass = true
+        end
+        @test pass
+
+        pass = false
+        try
+            error_test = gibbs_sample(bn, 5, 100; sample_skip=5, consistent_with=Assignment(),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(0),
+                 error_if_time_out=true, initial_sample=Nullable{Assignment}())
+        catch e
+            pass = true
+        end
+        @test pass
+
+        pass = false
+        try
+            error_test = gibbs_sample(bn, 5, 100; sample_skip=5, consistent_with=Assignment(),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+                 error_if_time_out=true, initial_sample=Nullable{Assignment}(Assignment(:a => 1, :b => 1)))
+        catch e
+            pass = true
+        end
+        @test pass
+
+        pass = false
+        try
+            error_test = gibbs_sample(bn, 5, 100; sample_skip=5, consistent_with=Assignment(:c => 2),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+                 error_if_time_out=true, initial_sample=Nullable{Assignment}(Assignment(:a => 1, :b => 1, :c => 1)))
+        catch e
+            pass = true
+        end
+        @test pass
+
 
 end

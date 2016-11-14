@@ -150,6 +150,7 @@ end
 function sample_posterior_continuous(bn::BayesNet, varname::Symbol, a::Assignment; nsamples::Integer=20)
     # TODO likelihood weighted sampling may not be the correct way to do this
     # TODO if likelihood weighted sampling is used, then you must keep sampling until a sample with non-zero probability occurs
+    # TODO if likelihood weighted sampling is used, then make the nsamples parameter here a parameter in gibbs_sample
 
     children_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
     var_cpd = get(bn, varname)
@@ -199,12 +200,6 @@ time_limit::Nullable{Integer})
 
     start_time = now()
 
-    t = Dict{Symbol, Vector{Any}}()
-    for name in names(bn)
-        t[name] = Any[]
-    end
-
-    # w = ones(Float64, nsamples) # TODO is this needed - no
     a = start_sample
     if isnull(variable_order)
          v_order = names(bn)
@@ -212,8 +207,15 @@ time_limit::Nullable{Integer})
          v_order = get(variable_order)
     end
 
+    v_order = [varname for varname in v_order if ~haskey(consistent_with, varname)]
+
+    t = Dict{Symbol, Vector{Any}}()
+    for name in v_order
+        t[name] = Any[]
+    end
+
     for sample_iter in 1:nsamples
-        if ~ isnull(time_limit) && (now() - start_time) > get(time_limit)
+        if ~ isnull(time_limit) && Integer(now() - start_time) > get(time_limit)
             break
         end
 
@@ -224,9 +226,7 @@ time_limit::Nullable{Integer})
         # skip over sample_skip samples
         for skip_iter in 1:sample_skip
             for varname in v_order
-                if ~ haskey(consistent_with, varname)
-                     a[varname] = sample_posterior(bn, varname, a)
-                end
+                 a[varname] = sample_posterior(bn, varname, a)
             end
 
             if isnull(variable_order)
@@ -235,23 +235,12 @@ time_limit::Nullable{Integer})
         end
 
         for varname in v_order
-
-            if ~ haskey(consistent_with, varname)
-                a[varname] = sample_posterior(bn, varname, a)
-            end
-            # else
-                # TODO what to do here? - do nothing
-                #cpd = get(bn, varname)
-                #a[varname] = consistent_with[varname]
-                #w[i] *= pdf(cpd, a)
-            # end
+            a[varname] = sample_posterior(bn, varname, a)
             push!(t[varname], a[varname])
-
         end
 
     end
 
-    # t[:p] = w / sum(w)
     return convert(DataFrame, t), Integer(now() - start_time)
 end
 
@@ -269,45 +258,47 @@ variable_order: variable_order determines the order of variables changed when ge
 function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer; sample_skip::Integer=99,
 consistent_with::Assignment=Assignment(), variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(), 
 time_limit::Nullable{Integer}=Nullable{Integer}(), error_if_time_out::Bool=true, 
-inital_sample::Nullable{Assignment}=Nullable{Assignment}())
+initial_sample::Nullable{Assignment}=Nullable{Assignment}())
     """
     TODO algorithm
     TODO unit test under test/, write unit tests for bad input
     TODO come up with an automatic method for setting the burn_in period, look at literatures.  
               Once this is implemented, move burn_in to the default parameters
     """
-    # TODO check parameters for correctness, variable_order should be null or provide an order for all variables
-    # check that initial_sample is either null or a full assignment that is consistent with the variable consistent_with
-    nsamples > 0 || error("nsamples parameter less than 1")
-    burn_in >= 0 || error("Negative burn_in parameter")
-    sample_skip >= 0 || error("Negative sample_skip parameter")
+    # check parameters for correctness
+    nsamples > 0 || throw(ArgumentError("nsamples parameter less than 1"))
+    burn_in >= 0 || throw(ArgumentError("Negative burn_in parameter"))
+    sample_skip >= 0 || throw(ArgumentError("Negative sample_skip parameter"))
     if ~ isnull(variable_order)
         v_order = get(variable_order)
         bn_names = names(bn)
         for name in bn_names
-            name in variable_order || error("Gibbs sample variable_order must contain all variables in the Bayes Net")
+            name in v_order || throw(ArgumentError("Gibbs sample variable_order must contain all variables in the Bayes Net"))
         end
         for name in v_order
-            name in bn_names || error("Gibbs sample variable_order contains a variable not in the Bayes Net")
+            name in bn_names || throw(ArgumentError("Gibbs sample variable_order contains a variable not in the Bayes Net"))
         end
     end
     if ~ isnull(time_limit)
-        get(time_limit) > 0 || error("Invalid time_limit specified")
+        get(time_limit) > 0 || throw(ArgumentError("Invalid time_limit specified"))
     end
     if ~ isnull(initial_sample)
         init_sample = get(initial_sample)
         for name in names(bn)
-            haskey(init_sample, name) || error("Gibbs sample initial_sample must be an assignment with all variables in the Bayes Net")
+            haskey(init_sample, name) || throw(ArgumentError("Gibbs sample initial_sample must be an assignment with all variables in the Bayes Net"))
+        end
+        for name in keys(consistent_with)
+            init_sample[name] == consistent_with[name] || throw(ArgumentError("Gibbs sample initial_sample was inconsistent with consistent_with"))
         end
     end
    
     # Burn in 
     # for burn_in_initial_sample TODO use rand_table_weighted, should be consistent with the varibale consistent_with
-    if isnull(inital_sample)
+    if isnull(initial_sample)
         rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
         burn_in_initial_sample = sample_weighted_dataframe(rand_samples)
     else
-        burn_in_initial_sample = get(inital_sample)
+        burn_in_initial_sample = get(initial_sample)
     end
     burn_in_samples, burn_in_time = gibbs_sample_main_loop(bn, burn_in, 0, burn_in_initial_sample, 
                                          consistent_with, variable_order, time_limit)
@@ -318,7 +309,12 @@ inital_sample::Nullable{Assignment}=Nullable{Assignment}())
     end
    
     # Real samples
-    main_samples_initial_sample = Assignment(Dict(varname => burn_in_samples[end, varname] for varname in names(bn))) 
+    main_samples_initial_sample = burn_in_initial_sample
+    if burn_in != 0
+        main_samples_initial_sample = Assignment(Dict(varname => 
+                      (haskey(consistent_with, varname) ? consistent_with[varname] : burn_in_samples[end, varname])
+                      for varname in names(bn))) 
+    end
     samples, samples_time = gibbs_sample_main_loop(bn, nsamples, sample_skip, 
                                main_samples_initial_sample, consistent_with, variable_order, remaining_time)
     combined_time = burn_in_time + samples_time
@@ -327,5 +323,9 @@ inital_sample::Nullable{Assignment}=Nullable{Assignment}())
     end
 
     # TODO remove rows you conditioned on for interpretability? - no because others don't? is this different?
+    evidence_symbols = [s for s in keys(consistent_with)]
+    samples[:, evidence_symbols] = DataFrame(Dict(
+              varname => ones(size(samples)[1]) * consistent_with[varname] for varname in evidence_symbols
+              ))
     return samples
 end
