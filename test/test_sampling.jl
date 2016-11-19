@@ -72,11 +72,33 @@ let
         @test size(t10)[2] == 3 && size(t10)[1] <= 5
 
         # test early return from time limit
-        t11 = gibbs_sample(bn3, 100000, 100; sample_skip=2, consistent_with=Assignment(),
-             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(2000),
+        t11 = gibbs_sample(bn3, 25000, 100; sample_skip=4, consistent_with=Assignment(),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(1000),
              error_if_time_out=false, initial_sample=Nullable{Assignment}())
-        @test size(t10)[2] == 3 && size(t10)[1] <= 100000
+        @test size(t10)[2] == 3 && size(t10)[1] <= 25000
 
+        d_bn = DiscreteBayesNet()
+        push!(d_bn, DiscreteCPD(:a, [1.0,0.0]))
+        push!(d_bn, DiscreteCPD(:b, [0.0,1.0]))
+        push!(d_bn, CategoricalCPD{Categorical{Float64}}(:c, [:a, :b], [2,2], 
+                        [Categorical([0.1, 0.9]), Categorical([0.2, 0.8]), Categorical([1.0, 0.0]), Categorical([0.4, 0.6])]))
+
+	t12 = gibbs_sample(d_bn, 5, 100; sample_skip=5, consistent_with=Assignment(),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+             error_if_time_out=true, initial_sample=Nullable{Assignment}())
+        @test size(t12) == (5, 3)
+        @test t12[:a] == [1,1,1,1,1]
+        @test t12[:b] == [2,2,2,2,2]
+        @test t12[:c] == [1,1,1,1,1]
+
+
+        t13 = gibbs_sample(d_bn, 5, 100; sample_skip=5, consistent_with=Assignment(:c=>1),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+             error_if_time_out=true, initial_sample=Nullable{Assignment}())
+        @test size(t13) == (5, 3)
+        @test t13[:a] == [1,1,1,1,1]
+        @test t13[:b] == [2,2,2,2,2]
+        @test t13[:c] == [1,1,1,1,1]
 
         # test bad parameters given to gibbs_sample
         pass = false
@@ -160,6 +182,5 @@ let
             pass = true
         end
         @test pass
-
 
 end

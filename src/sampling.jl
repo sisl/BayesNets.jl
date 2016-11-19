@@ -151,6 +151,9 @@ function sample_posterior_continuous(bn::BayesNet, varname::Symbol, a::Assignmen
     # TODO likelihood weighted sampling may not be the correct way to do this
     # TODO if likelihood weighted sampling is used, then you must keep sampling until a sample with non-zero probability occurs
     # TODO if likelihood weighted sampling is used, then make the nsamples parameter here a parameter in gibbs_sample
+    # TODO consider using slice sampling or having an option for slice sampling
+
+    # Implement http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7080917
 
     children_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
     var_cpd = get(bn, varname)
@@ -264,6 +267,7 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}())
     TODO unit test under test/, write unit tests for bad input
     TODO come up with an automatic method for setting the burn_in period, look at literatures.  
               Once this is implemented, move burn_in to the default parameters
+    TODO rename sample_skip to thinning
     """
     # check parameters for correctness
     nsamples > 0 || throw(ArgumentError("nsamples parameter less than 1"))
