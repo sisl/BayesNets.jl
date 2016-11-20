@@ -185,7 +185,7 @@ push!(d_bn, CategoricalCPD{Categorical{Float64}}(:c, [:a, :b], [2,2],
                 [Categorical([1.0, 0.0]), Categorical([0.2, 0.8]), Categorical([0.1, 0.9]), Categorical([0.3, 0.7])]))
 push!(d_bn, CategoricalCPD{Categorical{Float64}}(:d, [:c], [2,],
                 [Categorical([0.99, 0.01]), Categorical([0.2, 0.8])]))
-#compare_discrete(d_bn, "Multivariate Discrete Conditioned", Assignment(:d => 1), 200, 0)
+#compare_discrete(d_bn, "Multivariate Discrete Conditioned", Assignment(:d => 1), 600, 0)
 
 # Discrete complex with Conditioned
 
@@ -199,7 +199,7 @@ push!(bn, rand_cpd(bn, 3, :F, [:E, :C]))
 push!(bn, rand_cpd(bn, 4, :G, [:A, :B, :C, :D, :E, :F]))
 push!(bn, rand_cpd(bn, 4, :H, [:A, :B, :F, :G]))
 push!(bn, rand_cpd(bn, 6, :I, [:A, :B, :C, :F, :G]))
-compare_discrete(bn, "Complex Discrete Conditioned", Assignment(:E => 3, :G => 2, :H => 1, :I => 4), 250, 0)
+compare_discrete(bn, "Complex Discrete Conditioned", Assignment(:E => 3, :G => 2, :H => 1, :I => 4), 5000, 0)
 
 # One continuous distribution
 
