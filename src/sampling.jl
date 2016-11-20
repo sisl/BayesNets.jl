@@ -218,7 +218,7 @@ time_limit::Nullable{Integer})
     end
 
     for sample_iter in 1:nsamples
-        if ~ isnull(time_limit) && Integer(now() - start_time) > get(time_limit)
+        if (~ isnull(time_limit)) && (Integer(now() - start_time) > get(time_limit))
             break
         end
 
@@ -284,7 +284,7 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}())
         end
     end
     if ~ isnull(time_limit)
-        get(time_limit) > 0 || throw(ArgumentError("Invalid time_limit specified"))
+        get(time_limit) > 0 || throw(ArgumentError(join(["Invalid time_limit specified (", get(time_limit), ")"])))
     end
     if ~ isnull(initial_sample)
         init_sample = get(initial_sample)
@@ -300,6 +300,9 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}())
     # for burn_in_initial_sample TODO use rand_table_weighted, should be consistent with the varibale consistent_with
     if isnull(initial_sample)
         rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
+	if any(isnan(convert(Array{AbstractFloat}, rand_samples[:p])))
+		error("Gibbs Sampler was unable to find an inital sample with non-zero probability")
+	end
         burn_in_initial_sample = sample_weighted_dataframe(rand_samples)
     else
         burn_in_initial_sample = get(initial_sample)
@@ -307,14 +310,16 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}())
     burn_in_samples, burn_in_time = gibbs_sample_main_loop(bn, burn_in, 0, burn_in_initial_sample, 
                                          consistent_with, variable_order, time_limit)
     remaining_time = Nullable{Integer}()
-    if error_if_time_out && ~isnull(time_limit)
-        remaining_time = get(time_limit) - burn_in_time
-        remaining_time > 0 || error("Time expired during Gibbs sampling")
+    if ~isnull(time_limit)
+        remaining_time = Nullable{Integer}(get(time_limit) - burn_in_time)
+        if error_if_time_out
+            get(remaining_time) > 0 || error("Time expired during Gibbs sampling")
+        end
     end
    
     # Real samples
     main_samples_initial_sample = burn_in_initial_sample
-    if burn_in != 0
+    if burn_in != 0 && size(burn_in_samples)[1] > 0
         main_samples_initial_sample = Assignment(Dict(varname => 
                       (haskey(consistent_with, varname) ? consistent_with[varname] : burn_in_samples[end, varname])
                       for varname in names(bn))) 
@@ -327,9 +332,7 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}())
     end
 
     # TODO remove rows you conditioned on for interpretability? - no because others don't? is this different?
-    evidence_symbols = [s for s in keys(consistent_with)]
-    samples[:, evidence_symbols] = DataFrame(Dict(
-              varname => ones(size(samples)[1]) * consistent_with[varname] for varname in evidence_symbols
-              ))
-    return samples
+    evidence = DataFrame(Dict(varname => ones(size(samples)[1]) * consistent_with[varname] 
+                 for varname in keys(consistent_with)))
+    return hcat(samples, evidence)
 end
