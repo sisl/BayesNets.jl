@@ -82,7 +82,7 @@ end
 # TODO also compare against rejection sampling
 function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::Assignment, 
                               burn_in::Integer, thinning::Integer, use_time::Bool = true)
-	# sample_size_comparisons = [4000, 7000, 10000, 20000, 35000, 50000, 75000, 100000, 200000, 500000, 1000000, 2000000, 5000000, 10000000]
+	# sample_size_comparisons = [4000, 7000, 10000, 20000, 35000, 50000, 75000, 100000, 200000, 500000, 1000000] # , 2000000, 5000000, 10000000]
         sample_size_comparisons = [50 * i for i in 1:100]
 	rand_table_weighted(bn, nsamples=sample_size_comparisons[1], consistent_with=consistent_with) # The first time takes really long, not sure why
 	println("Running...")
@@ -106,11 +106,17 @@ function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::A
                 gibbs_sample_size = sample_size
                 if (use_time)
                     time_limit = Nullable{Integer}(rtw_duration)
-                    gibbs_sample_size = Inf
-                end	
+                    gibbs_sample_size = sample_size * 10
+                end
+                gibbs_start_time = now()	
 		gibbs_samples = gibbs_sample(bn, gibbs_sample_size, burn_in; sample_skip=thinning,
                          consistent_with=consistent_with, time_limit=time_limit, 
                          error_if_time_out=false)
+                gibbs_duration = convert(Integer, now() - gibbs_start_time)
+                print("Gibbs samples: ")
+                println(size(gibbs_samples)[1])
+                print("Gibbs time (ms): ")
+                println(gibbs_duration)
 		gibbs_errors = (-1, -1)
 		if size(gibbs_samples)[1] > 0
 			gibbs_errors = compute_errors(gibbs_samples, bn, false, true_distribution, consistent_with)
@@ -145,18 +151,17 @@ function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::A
             println("Saving Plot...")
             savefig(name)
     	    clf()
-        else
-            scatter(results[:, 2], results[:, 4], label="Likelihood L1")
-	    scatter(results[valid_Gibbs_indicies, 3], results[valid_Gibbs_indicies, 5], c="g", marker="x", label="Gibbs L1")
-            plot([0, sample_size_comparisons[end]], [0, 0], "black")
-
-            xlabel("# samples")
-            title(name)
-            legend()
-            println("Saving Plot...")
-            savefig(join([name, " samples"]))
-            clf()
         end
+        scatter(results[:, 2], results[:, 4], label="Likelihood L1")
+        scatter(results[valid_Gibbs_indicies, 3], results[valid_Gibbs_indicies, 5], c="g", marker="x", label="Gibbs L1")
+        plot([0, sample_size_comparisons[end]], [0, 0], "black")
+
+        xlabel("# samples")
+        title(name)
+        legend()
+        println("Saving Plot...")
+        savefig(join([name, " samples"]))
+        clf()
 
         if ~ (any(results[:, 6].== Inf) || any(results[:, 7].== Inf))
                 valid_Gibbs_indicies = [i for i in 1:size(results)[1] if results[i, 7] != -1]
@@ -171,18 +176,17 @@ function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::A
 	        	println("Saving Plot...")
 			savefig(join([name, " KL"]))
 			clf()
-		else
-		        scatter(results[:, 2], results[:, 6], label="Likelihood L1")
-	        	scatter(results[valid_Gibbs_indicies, 3], results[valid_Gibbs_indicies, 7], c="g", marker="x", label="Gibbs L1")
-	                # plot([0, sample_size_comparisons[end]], [0, 0], "black")
-	
-		        xlabel("# samples")
-	        	title(name)
-			legend()
-	        	println("Saving Plot...")
-			savefig(join([name, " samples", " KL"]))
-	        	clf()
 		end
+		scatter(results[:, 2], results[:, 6], label="Likelihood L1")
+	        scatter(results[valid_Gibbs_indicies, 3], results[valid_Gibbs_indicies, 7], c="g", marker="x", label="Gibbs L1")
+	        plot([0, sample_size_comparisons[end]], [0, 0], "black")
+	
+		xlabel("# samples")
+	        title(name)
+		legend()
+	        println("Saving Plot...")
+		savefig(join([name, " samples", " KL"]))
+	        clf()
         end
 
 end

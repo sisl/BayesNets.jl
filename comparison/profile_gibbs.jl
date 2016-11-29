@@ -18,9 +18,17 @@ gibbs_sample(bn, 100, 100; sample_skip=2, consistent_with=Assignment(:E => 3, :G
 
 @profile gibbs_sample(bn, 10000, 100; sample_skip=2, consistent_with=Assignment(:E => 3, :G => 2, :H => 1, :I => 4), time_limit=Nullable{Integer}(9999999999))
 
-Profile.print()
+# Profile.print()
 
 ProfileView.svgwrite("gibbs_profile_results.svg")
 
 ProfileView.view()
+
+@profile gibbs_sample(bn, 10000, 100; sample_skip=2, consistent_with=Assignment(:E => 3, :G => 2, :H => 1, :I => 4), time_limit=Nullable{Integer}(9999999999), max_cache_size=Nullable{Integer}(0))
+
+# Profile.print()
+
+ProfileView.svgwrite("gibbs_profile_results_no_caching.svg")
+
+# ProfileView.view()
 

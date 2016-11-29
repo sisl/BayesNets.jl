@@ -108,24 +108,30 @@ function rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with
     convert(DataFrame, t)
 end
 
-"""
 type GibbsSamplerState
 
+    bn::BayesNet
+    name_order::Array{Symbol,1}
+    max_cache_size::Nullable{Integer}
     markov_blanket_cache::Dict{Symbol, Array{CPD}}
-    finite_distribution_cache:: TODO
+    finite_distribution_cache::Dict{String, Array{Float64, 1}}
 
     function GibbsSamplerState(
-        max_cache_size::Int=Inf
+        bn::BayesNet,
+        max_cache_size::Nullable{Integer}=Nullable{Integer}()
         )
 
+        new(bn, names(bn), max_cache_size, Dict{Symbol, Array{CPD}}(), Dict{String, Array{Float64, 1}}())
     end
 
 end
 
-function get_markov_blanket_cpds(bn::BayesNet, gss::GibbsSamplerState, varname::Symbol)
-    if haskey(varname, gss.markov_blanket_cache)
+function get_markov_blanket_cpds(gss::GibbsSamplerState, varname::Symbol)
+    if haskey(gss.markov_blanket_cache, varname)
         return gss.markov_blanket_cache[varname]
     end
+
+    bn = gss.bn
     markov_blanket_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
     markov_blanket_cdps = convert(Array{CPD}, markov_blanket_cdps) # Make type explicit or next line will fail
     push!(markov_blanket_cdps, get(bn, varname))
@@ -133,25 +139,28 @@ function get_markov_blanket_cpds(bn::BayesNet, gss::GibbsSamplerState, varname::
     return markov_blanket_cdps
 end
 
-function get_finite_distribution(bn::BayesNet, gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
-   key = TODO
+# Modifies a
+function get_finite_distribution(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
+    a[varname] = varname
+    key = join([string(a[name]) for name in gss.name_order], ",")
 
-   if haskey(key, gss.finite_distribution_cache)
-       return gss.finite_distribution_cache[key]
-   end
+    if haskey(gss.finite_distribution_cache, key)
+        return gss.finite_distribution_cache[key]
+    end
 
-   markov_blanket_cdps = get_markov_blanket_cpds(varname)
-   posterior_distribution = zeros(length(support))
-   for (index, domain_element) in enumerate(support)
-       a[varname] = domain_element
-       # Sum logs for numerical stability
-       posterior_distribution[index] = exp(sum([logpdf(cdp, a) for cdp in markov_blanket_cdps]))
-   end
-   posterior_distribution = posterior_distribution / sum(posterior_distribution)
-   gss.finite_distribution_cache[key] = posterior_distribution
-   return posterior_distribution
+    markov_blanket_cdps = get_markov_blanket_cpds(gss, varname)
+    posterior_distribution = zeros(length(support))
+    for (index, domain_element) in enumerate(support)
+        a[varname] = domain_element
+        # Sum logs for numerical stability
+        posterior_distribution[index] = exp(sum([logpdf(cdp, a) for cdp in markov_blanket_cdps]))
+    end
+    posterior_distribution = posterior_distribution / sum(posterior_distribution)
+    if isnull(gss.max_cache_size) || length(gss.finite_distribution_cache) < get(gss.max_cache_size)
+        gss.finite_distribution_cache[key] = posterior_distribution
+    end
+    return posterior_distribution
 end
-"""
 
 function sample_weighted_dataframe(rand_samples::DataFrame)
     p = rand_samples[:, :p]
@@ -166,19 +175,9 @@ function sample_weighted_dataframe(rand_samples::DataFrame)
     return Assignment(Dict(varname => rand_samples[i, varname] for varname in names(rand_samples) if varname != :p))
 end
 
-function sample_posterior_finite(bn::BayesNet, varname::Symbol, a::Assignment, support::AbstractArray)
-   # TODO caching
-   markov_blanket_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
-   markov_blanket_cdps = convert(Array{CPD}, markov_blanket_cdps) # Make type explicit or next line will fail
-   push!(markov_blanket_cdps, get(bn, varname))
+function sample_posterior_finite(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
 
-   posterior_distribution = zeros(length(support))
-   for (index, domain_element) in enumerate(support)
-       a[varname] = domain_element
-       # Sum logs for numerical stability
-       posterior_distribution[index] = exp(sum([logpdf(cdp, a) for cdp in markov_blanket_cdps]))
-   end
-   posterior_distribution = posterior_distribution / sum(posterior_distribution)
+   posterior_distribution = get_finite_distribution(gss, varname, a, support)
 
    # Adapted from Distributions.jl, credit to its authors
    p = posterior_distribution
@@ -193,7 +192,7 @@ function sample_posterior_finite(bn::BayesNet, varname::Symbol, a::Assignment, s
 
 end
 
-function sample_posterior_continuous(bn::BayesNet, varname::Symbol, a::Assignment; nsamples::Integer=20)
+function sample_posterior_continuous(gss::GibbsSamplerState, varname::Symbol, a::Assignment; nsamples::Integer=20)
     # TODO likelihood weighted sampling may not be the correct way to do this
     # TODO if likelihood weighted sampling is used, then you must keep sampling until a sample with non-zero probability occurs
     # TODO if likelihood weighted sampling is used, then make the nsamples parameter here a parameter in gibbs_sample
@@ -201,6 +200,7 @@ function sample_posterior_continuous(bn::BayesNet, varname::Symbol, a::Assignmen
 
     # Implement http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7080917
     # TODO implement MH with the proposal being a normal distribution centered on the previous example with large std dev
+    bn = gss.bn
 
     children_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
     var_cpd = get(bn, varname)
@@ -228,29 +228,31 @@ end
 """
 Temporarily modifies a, but restores it after computations
 """
-function sample_posterior(bn::BayesNet, varname::Symbol, a::Assignment)
+function sample_posterior(gss::GibbsSamplerState, varname::Symbol, a::Assignment)
     original_value = a[varname]
 
+    bn = gss.bn
     cpd = get(bn, varname)
     distribution = cpd(a)
     if hasfinitesupport(distribution)
-        new_value = sample_posterior_finite(bn, varname, a, support(distribution))
+        new_value = sample_posterior_finite(gss, varname, a, support(distribution))
     elseif typeof(distribution) <: DiscreteUnivariateDistribution
         error("Infinite Discrete distributions are currently not supported in the Gibbs sampler")
     else
-        new_value = sample_posterior_continuous(bn, varname, a)
+        new_value = sample_posterior_continuous(gss, varname, a)
     end
 
     a[varname] = original_value
     return new_value
 end
 
-function gibbs_sample_main_loop(bn::BayesNet, nsamples::Integer, sample_skip::Integer, 
+function gibbs_sample_main_loop(gss::GibbsSamplerState, nsamples::Integer, sample_skip::Integer, 
 start_sample::Assignment, consistent_with::Assignment, variable_order::Nullable{Vector{Symbol}},
 time_limit::Nullable{Integer})
 
     start_time = now()
 
+    bn = gss.bn
     a = start_sample
     if isnull(variable_order)
          v_order = names(bn)
@@ -277,7 +279,7 @@ time_limit::Nullable{Integer})
         # skip over sample_skip samples
         for skip_iter in 1:sample_skip
             for varname in v_order
-                 a[varname] = sample_posterior(bn, varname, a)
+                 a[varname] = sample_posterior(gss, varname, a)
             end
 
             if isnull(variable_order)
@@ -286,7 +288,7 @@ time_limit::Nullable{Integer})
         end
 
         for varname in v_order
-            a[varname] = sample_posterior(bn, varname, a)
+            a[varname] = sample_posterior(gss, varname, a)
             push!(t[varname], a[varname])
         end
 
@@ -305,11 +307,13 @@ The algorithm will return the samples it has collected when either nsamples samp
 
 sample_skip: every (sample_skip + 1)th sample will be used, the other sample_skip samples will be thrown out.  The higher the sample_skip, the less correlated samples will be but the longer the computation time per sample.
 variable_order: variable_order determines the order of variables changed when generating a new sample, if variable_order is None, then a random variable order will be used for each sample.
+
+max_cache_size:  If null, cache as much as possible, otherwise cache at most "max_cache_size"  distributions
 """
 function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer; sample_skip::Integer=99,
 consistent_with::Assignment=Assignment(), variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(), 
 time_limit::Nullable{Integer}=Nullable{Integer}(), error_if_time_out::Bool=true, 
-initial_sample::Nullable{Assignment}=Nullable{Assignment}())
+initial_sample::Nullable{Assignment}=Nullable{Assignment}(), max_cache_size::Nullable{Integer}=Nullable{Integer}())
     """
     TODO come up with an automatic method for setting the burn_in period, look at literature.  
               Once this is implemented, move burn_in to the default parameters
@@ -341,6 +345,8 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}())
             init_sample[name] == consistent_with[name] || throw(ArgumentError("Gibbs sample initial_sample was inconsistent with consistent_with"))
         end
     end
+
+    gss = GibbsSamplerState(bn, max_cache_size)
    
     # Burn in 
     # for burn_in_initial_sample use rand_table_weighted, should be consistent with the varibale consistent_with
@@ -353,7 +359,7 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}())
     else
         burn_in_initial_sample = get(initial_sample)
     end
-    burn_in_samples, burn_in_time = gibbs_sample_main_loop(bn, burn_in, 0, burn_in_initial_sample, 
+    burn_in_samples, burn_in_time = gibbs_sample_main_loop(gss, burn_in, 0, burn_in_initial_sample, 
                                          consistent_with, variable_order, time_limit)
     remaining_time = Nullable{Integer}()
     if ~isnull(time_limit)
@@ -370,14 +376,14 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}())
                       (haskey(consistent_with, varname) ? consistent_with[varname] : burn_in_samples[end, varname])
                       for varname in names(bn))) 
     end
-    samples, samples_time = gibbs_sample_main_loop(bn, nsamples, sample_skip, 
+    samples, samples_time = gibbs_sample_main_loop(gss, nsamples, sample_skip, 
                                main_samples_initial_sample, consistent_with, variable_order, remaining_time)
     combined_time = burn_in_time + samples_time
     if error_if_time_out && ~isnull(time_limit)
         combined_time < get(time_limit) || error("Time expired during Gibbs sampling")
     end
 
-    # TODO remove rows you conditioned on for interpretability? - no because others don't? is this different?
+    # Add in columns for variables that were conditioned on
     evidence = DataFrame(Dict(varname => ones(size(samples)[1]) * consistent_with[varname] 
                  for varname in keys(consistent_with)))
     return hcat(samples, evidence)
