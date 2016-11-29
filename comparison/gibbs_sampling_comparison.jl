@@ -38,7 +38,6 @@ function compute_true_distribution(bn::DiscreteBayesNet)
 end
 
 function remove_conditioned_variables(distribution::Array, bn::DiscreteBayesNet, consistent_with::Assignment)
-	# TODO this is bugged ?
 	if length(consistent_with) == 0
 		return distribution
 	end
@@ -81,8 +80,10 @@ end
 
 # Discrete compare function
 # TODO also compare against rejection sampling
-function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::Assignment, burn_in::Integer, thinning::Integer)
-	sample_size_comparisons = [4000, 7000, 10000, 20000, 35000, 50000, 75000, 100000, 200000, 1000000, 2000000, 5000000]
+function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::Assignment, 
+                              burn_in::Integer, thinning::Integer, use_time::Bool = true)
+	# sample_size_comparisons = [4000, 7000, 10000, 20000, 35000, 50000, 75000, 100000, 200000, 500000, 1000000, 2000000, 5000000, 10000000]
+        sample_size_comparisons = [50 * i for i in 1:100]
 	rand_table_weighted(bn, nsamples=sample_size_comparisons[1], consistent_with=consistent_with) # The first time takes really long, not sure why
 	println("Running...")
 	println(name)
@@ -90,6 +91,7 @@ function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::A
         results_index = 1
 	println("Computing true distribution...")
 	true_distribution = compute_true_distribution(bn)
+        # println(true_distribution)
 	println("Done.")
 	for sample_size in sample_size_comparisons
 		print("Sample size: ")
@@ -99,9 +101,15 @@ function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::A
 		rtw_duration = convert(Integer, now() - rtw_start_time)
                 rtw_errors = compute_errors(rtw_samples, bn, true, true_distribution, consistent_with)
 
-		rtw_duration = max(1, rtw_duration)	
-		gibbs_samples = gibbs_sample(bn, sample_size*10, burn_in; sample_skip=thinning,
-                         consistent_with=consistent_with, time_limit=Nullable{Integer}(rtw_duration), 
+		rtw_duration = max(1, rtw_duration)
+                time_limit = Nullable{Integer}()
+                gibbs_sample_size = sample_size
+                if (use_time)
+                    time_limit = Nullable{Integer}(rtw_duration)
+                    gibbs_sample_size = Inf
+                end	
+		gibbs_samples = gibbs_sample(bn, gibbs_sample_size, burn_in; sample_skip=thinning,
+                         consistent_with=consistent_with, time_limit=time_limit, 
                          error_if_time_out=false)
 		gibbs_errors = (-1, -1)
 		if size(gibbs_samples)[1] > 0
@@ -125,50 +133,56 @@ function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::A
 	# Consider making this a scatter plot
 	# TODO average this over multiple attempts	
 	# TODO record the actual time Gibbs sampling takes, don't use the time limit
-	println("Plotting...")
-	plot(results[:, 1], results[:, 4], label="Likelihood L1")
-	valid_Gibbs_indicies = [i for i in 1:size(results)[1] if results[i, 5] != -1]	
-        plot(results[valid_Gibbs_indicies, 1], results[valid_Gibbs_indicies, 5], label="Gibbs L1")
+        valid_Gibbs_indicies = [i for i in 1:size(results)[1] if results[i, 5] != -1]
+        if use_time
+            println("Plotting...")
+            plot(results[:, 1], results[:, 4], label="Likelihood L1")
+            plot(results[valid_Gibbs_indicies, 1], results[valid_Gibbs_indicies, 5], label="Gibbs L1")
+        
+            xlabel("time (ms)")
+            title(name)
+            legend()
+            println("Saving Plot...")
+            savefig(name)
+    	    clf()
+        else
+            scatter(results[:, 2], results[:, 4], label="Likelihood L1")
+	    scatter(results[valid_Gibbs_indicies, 3], results[valid_Gibbs_indicies, 5], c="g", marker="x", label="Gibbs L1")
+            plot([0, sample_size_comparisons[end]], [0, 0], "black")
 
-	xlabel("time (ms)")
-	title(name)
-	legend()
-	println("Saving Plot...")
-	savefig(name)
-	clf()
-
-        scatter(results[:, 2], results[:, 4], label="Likelihood L1")
-	scatter(results[valid_Gibbs_indicies, 3], results[valid_Gibbs_indicies, 5], c="g", marker="x", label="Gibbs L1")
-
-        xlabel("# samples")
-        title(name)
-        legend()
-        println("Saving Plot...")
-        savefig(join([name, " samples"]))
-        clf()
+            xlabel("# samples")
+            title(name)
+            legend()
+            println("Saving Plot...")
+            savefig(join([name, " samples"]))
+            clf()
+        end
 
         if ~ (any(results[:, 6].== Inf) || any(results[:, 7].== Inf))
-		println("Plotting KL divergence")
-                plot(results[:, 1], results[:, 6], label="Likelihood KL")
-        	valid_Gibbs_indicies = [i for i in 1:size(results)[1] if results[i, 7] != -1]
-                plot(results[valid_Gibbs_indicies, 1], results[valid_Gibbs_indicies, 7], label="Gibbs KL")
-
-	        xlabel("time (ms)")
-        	title(name)
-	        legend()
-        	println("Saving Plot...")
-		savefig(join([name, " KL"]))
-		clf()
-
-	        scatter(results[:, 2], results[:, 6], label="Likelihood L1")
-        	scatter(results[valid_Gibbs_indicies, 3], results[valid_Gibbs_indicies, 7], c="g", marker="x", label="Gibbs L1")
-
-	        xlabel("# samples")
-        	title(name)
-		legend()
-        	println("Saving Plot...")
-		savefig(join([name, " samples", " KL"]))
-        	clf()
+                valid_Gibbs_indicies = [i for i in 1:size(results)[1] if results[i, 7] != -1]
+		if use_time
+			println("Plotting KL divergence")
+	                plot(results[:, 1], results[:, 6], label="Likelihood KL")
+	                plot(results[valid_Gibbs_indicies, 1], results[valid_Gibbs_indicies, 7], label="Gibbs KL")
+	
+		        xlabel("time (ms)")
+	        	title(name)
+		        legend()
+	        	println("Saving Plot...")
+			savefig(join([name, " KL"]))
+			clf()
+		else
+		        scatter(results[:, 2], results[:, 6], label="Likelihood L1")
+	        	scatter(results[valid_Gibbs_indicies, 3], results[valid_Gibbs_indicies, 7], c="g", marker="x", label="Gibbs L1")
+	                # plot([0, sample_size_comparisons[end]], [0, 0], "black")
+	
+		        xlabel("# samples")
+	        	title(name)
+			legend()
+	        	println("Saving Plot...")
+			savefig(join([name, " samples", " KL"]))
+	        	clf()
+		end
         end
 
 end
@@ -218,7 +232,16 @@ push!(bn, rand_cpd(bn, 3, :F, [:E, :C]))
 push!(bn, rand_cpd(bn, 4, :G, [:A, :B, :C, :D, :E, :F]))
 push!(bn, rand_cpd(bn, 4, :H, [:A, :B, :F, :G]))
 push!(bn, rand_cpd(bn, 6, :I, [:A, :B, :C, :F, :G]))
-compare_discrete(bn, "Complex Discrete Conditioned", Assignment(:E => 3, :G => 2, :H => 1, :I => 4), 10000, 0)
+# compare_discrete(bn, "Complex Discrete Conditioned", Assignment(:E => 3, :G => 2, :H => 1, :I => 4), 10000, 0)
+
+# Example from the book, see page 38
+bn = DiscreteBayesNet()
+push!(bn, DiscreteCPD(:C, [0.001,0.999]))
+push!(bn, CategoricalCPD{Categorical{Float64}}(:D, [:C], [2,],
+                [Categorical([0.001, 0.999]), Categorical([0.999, 0.001])]))
+compare_discrete(bn, "Rare Events", Assignment(:D => 2), 200, 0, false)
+
+# TODO see page 9 part C of the paper for the distributions they used to evaluate their gibbs sampler
 
 # One continuous distribution
 

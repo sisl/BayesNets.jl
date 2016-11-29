@@ -108,6 +108,51 @@ function rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with
     convert(DataFrame, t)
 end
 
+"""
+type GibbsSamplerState
+
+    markov_blanket_cache::Dict{Symbol, Array{CPD}}
+    finite_distribution_cache:: TODO
+
+    function GibbsSamplerState(
+        max_cache_size::Int=Inf
+        )
+
+    end
+
+end
+
+function get_markov_blanket_cpds(bn::BayesNet, gss::GibbsSamplerState, varname::Symbol)
+    if haskey(varname, gss.markov_blanket_cache)
+        return gss.markov_blanket_cache[varname]
+    end
+    markov_blanket_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
+    markov_blanket_cdps = convert(Array{CPD}, markov_blanket_cdps) # Make type explicit or next line will fail
+    push!(markov_blanket_cdps, get(bn, varname))
+    gss.markov_blanket_cache[varname] = markov_blanket_cdps
+    return markov_blanket_cdps
+end
+
+function get_finite_distribution(bn::BayesNet, gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
+   key = TODO
+
+   if haskey(key, gss.finite_distribution_cache)
+       return gss.finite_distribution_cache[key]
+   end
+
+   markov_blanket_cdps = get_markov_blanket_cpds(varname)
+   posterior_distribution = zeros(length(support))
+   for (index, domain_element) in enumerate(support)
+       a[varname] = domain_element
+       # Sum logs for numerical stability
+       posterior_distribution[index] = exp(sum([logpdf(cdp, a) for cdp in markov_blanket_cdps]))
+   end
+   posterior_distribution = posterior_distribution / sum(posterior_distribution)
+   gss.finite_distribution_cache[key] = posterior_distribution
+   return posterior_distribution
+end
+"""
+
 function sample_weighted_dataframe(rand_samples::DataFrame)
     p = rand_samples[:, :p]
     n = length(p)
@@ -122,6 +167,7 @@ function sample_weighted_dataframe(rand_samples::DataFrame)
 end
 
 function sample_posterior_finite(bn::BayesNet, varname::Symbol, a::Assignment, support::AbstractArray)
+   # TODO caching
    markov_blanket_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
    markov_blanket_cdps = convert(Array{CPD}, markov_blanket_cdps) # Make type explicit or next line will fail
    push!(markov_blanket_cdps, get(bn, varname))
@@ -154,6 +200,7 @@ function sample_posterior_continuous(bn::BayesNet, varname::Symbol, a::Assignmen
     # TODO consider using slice sampling or having an option for slice sampling
 
     # Implement http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7080917
+    # TODO implement MH with the proposal being a normal distribution centered on the previous example with large std dev
 
     children_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
     var_cpd = get(bn, varname)
@@ -180,7 +227,6 @@ end
 
 """
 Temporarily modifies a, but restores it after computations
-TODO check if arguments are copied or passed by reference
 """
 function sample_posterior(bn::BayesNet, varname::Symbol, a::Assignment)
     original_value = a[varname]
@@ -189,6 +235,8 @@ function sample_posterior(bn::BayesNet, varname::Symbol, a::Assignment)
     distribution = cpd(a)
     if hasfinitesupport(distribution)
         new_value = sample_posterior_finite(bn, varname, a, support(distribution))
+    elseif typeof(distribution) <: DiscreteUnivariateDistribution
+        error("Infinite Discrete distributions are currently not supported in the Gibbs sampler")
     else
         new_value = sample_posterior_continuous(bn, varname, a)
     end
@@ -263,9 +311,7 @@ consistent_with::Assignment=Assignment(), variable_order::Nullable{Vector{Symbol
 time_limit::Nullable{Integer}=Nullable{Integer}(), error_if_time_out::Bool=true, 
 initial_sample::Nullable{Assignment}=Nullable{Assignment}())
     """
-    TODO algorithm
-    TODO unit test under test/, write unit tests for bad input
-    TODO come up with an automatic method for setting the burn_in period, look at literatures.  
+    TODO come up with an automatic method for setting the burn_in period, look at literature.  
               Once this is implemented, move burn_in to the default parameters
     TODO rename sample_skip to thinning
     """
@@ -297,7 +343,7 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}())
     end
    
     # Burn in 
-    # for burn_in_initial_sample TODO use rand_table_weighted, should be consistent with the varibale consistent_with
+    # for burn_in_initial_sample use rand_table_weighted, should be consistent with the varibale consistent_with
     if isnull(initial_sample)
         rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
 	if any(isnan(convert(Array{AbstractFloat}, rand_samples[:p])))
