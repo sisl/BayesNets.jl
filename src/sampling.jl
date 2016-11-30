@@ -132,11 +132,11 @@ function get_markov_blanket_cpds(gss::GibbsSamplerState, varname::Symbol)
     end
 
     bn = gss.bn
-    markov_blanket_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
-    markov_blanket_cdps = convert(Array{CPD}, markov_blanket_cdps) # Make type explicit or next line will fail
-    push!(markov_blanket_cdps, get(bn, varname))
-    gss.markov_blanket_cache[varname] = markov_blanket_cdps
-    return markov_blanket_cdps
+    markov_blanket_cpds = [get(bn, child_name) for child_name in children(bn, varname)]
+    markov_blanket_cpds = convert(Array{CPD}, markov_blanket_cpds) # Make type explicit or next line will fail
+    push!(markov_blanket_cpds, get(bn, varname))
+    gss.markov_blanket_cache[varname] = markov_blanket_cpds
+    return markov_blanket_cpds
 end
 
 # Modifies a
@@ -154,12 +154,12 @@ function get_finite_distribution(gss::GibbsSamplerState, varname::Symbol, a::Ass
         return gss.finite_distribution_cache[key]
     end
 
-    markov_blanket_cdps = get_markov_blanket_cpds(gss, varname)
+    markov_blanket_cpds = get_markov_blanket_cpds(gss, varname)
     posterior_distribution = zeros(length(support))
     for (index, domain_element) in enumerate(support)
         a[varname] = domain_element
         # Sum logs for numerical stability
-        posterior_distribution[index] = exp(sum([logpdf(cdp, a) for cdp in markov_blanket_cdps]))
+        posterior_distribution[index] = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
     end
     posterior_distribution = posterior_distribution / sum(posterior_distribution)
     if isnull(gss.max_cache_size) || length(gss.finite_distribution_cache) < get(gss.max_cache_size)
@@ -198,37 +198,53 @@ function sample_posterior_finite(gss::GibbsSamplerState, varname::Symbol, a::Ass
 
 end
 
-function sample_posterior_continuous(gss::GibbsSamplerState, varname::Symbol, a::Assignment; nsamples::Integer=20)
-    # TODO likelihood weighted sampling may not be the correct way to do this
-    # TODO if likelihood weighted sampling is used, then you must keep sampling until a sample with non-zero probability occurs
-    # TODO if likelihood weighted sampling is used, then make the nsamples parameter here a parameter in gibbs_sample
+"""
+Implements Metropolis-Hastings with a normal distribution proposal with mean equal to the previous value
+of the variable "varname" and stddev equal to 10 times the standard deviation of the distribution of the target
+variable given its parents
+
+MH will go through nsamples iterations.  If no proposal is accepted, the original value will remain
+
+Modifies a
+"""
+function sample_posterior_continuous(gss::GibbsSamplerState, varname::Symbol, a::Assignment, 
+                                     var_distribution::ContinuousUnivariateDistribution; nsamples::Integer=10)
     # TODO consider using slice sampling or having an option for slice sampling
-
     # Implement http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7080917
-    # TODO implement MH with the proposal being a normal distribution centered on the previous example with large std dev
-    bn = gss.bn
 
-    children_cdps = [get(bn, child_name) for child_name in children(bn, varname)]
-    var_cpd = get(bn, varname)
+    # Random Walk Metropolis Hastings
+    markov_blanket_cpds = get_markov_blanket_cpds(gss, varname)
+    stddev = std(var_distribution) * 10.0
+    previous_sample_scaled_true_prob = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
+    proposal_distribution = Normal(a[varname], stddev) # TODO why does call this constructor take so long?
 
-    # TODO if this doesn't get replaced with another method (it likely will) then preallocate everything properly
-    t = Dict{Symbol, Vector{Any}}()
-    t[varname] = Any[]
+    for sample_iter = 1:nsamples
 
-    w = ones(Float64, nsamples)
-
-    for i in 1:nsamples
-        a[varname] = rand(var_cpd, a)
-        for cpd in children_cdps
-            w[i] *= pdf(cpd, a)
+        # compute proposed jump
+        current_value = a[varname]
+        proposed_jump = rand(proposal_distribution)
+        if ~ insupport(var_distribution, proposed_jump)
+            continue # reject immediately, zero probability
         end
-        push!(t[varname], a[varname])
-    end
-    t[:p] = w / sum(w)
-    t = convert(DataFrame, t)
 
-    assignment = sample_weighted_dataframe(t)
-    return assignment[varname]
+        # Compute acceptance probability
+        a[varname] = proposed_jump
+        proposed_jump_scaled_true_prob = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
+        # Our proposal is symmetric, so q(X_new, X_old) / q(X_old, X_new) = 1
+        # accept_prob = min(1, proposed_jump_scaled_true_prob/previous_sample_scaled_true_prob)
+        accept_prob = proposed_jump_scaled_true_prob/previous_sample_scaled_true_prob # min operation is unnecessary
+
+        # Accept or reject and clean up
+        if rand() < accept_prob
+            a[varname] = proposed_jump
+            previous_sample_scaled_true_prob = proposed_jump_scaled_true_prob
+            proposal_distribution = Normal(proposed_jump, stddev)
+        else
+            a[varname] = current_value
+        end
+    end
+
+    return a[varname]
 end
 
 """
@@ -245,7 +261,7 @@ function sample_posterior(gss::GibbsSamplerState, varname::Symbol, a::Assignment
     elseif typeof(distribution) <: DiscreteUnivariateDistribution
         error("Infinite Discrete distributions are currently not supported in the Gibbs sampler")
     else
-        new_value = sample_posterior_continuous(gss, varname, a)
+        new_value = sample_posterior_continuous(gss, varname, a, distribution)
     end
 
     a[varname] = original_value

@@ -333,11 +333,14 @@ function estimate_mean_and_stddev(bn::BayesNet, burn_in::Int, thinning::Int,
 end
 
 bn = BayesNet()
-push!(bn, LinearGaussianCPD(:x1, NodeName[], Float64[], 0.0, 1.08))
-push!(bn, LinearGaussianCPD(:x2, NodeName[:x1], Float64[-0.5], 0.0, 0.2))
-assert(names(bn) == [:x1, :x2])
 mu = [0.0, 0.0]
 sigma = [[1.08 0.54]; [0.54 0.31]]
+push!(bn, LinearGaussianCPD(:x1, NodeName[], Float64[], mu[1], sigma[1,1]))
+push!(bn, LinearGaussianCPD(:x2, NodeName[:x1], 
+       Float64[sigma[1,2] / sigma[1,1]],
+       mu[2] - sigma[1,2] / sigma[1,1] * mu[1],
+       sigma[1,1] - sigma[1,2]*sigma[1,2]*sigma[2,2]))
+assert(names(bn) == [:x1, :x2])
 burn_in = 200
 thinning = 0
 estimate_mean_and_stddev(bn, burn_in, thinning, "Multivariate Gaussian", mu, sigma)
