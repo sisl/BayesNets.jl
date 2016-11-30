@@ -170,7 +170,6 @@ function get_finite_distribution(gss::GibbsSamplerState, varname::Symbol, a::Ass
     return posterior_distribution
 end
 
-"""
 function sample_weighted_dataframe(rand_samples::DataFrame)
     p = rand_samples[:, :p]
     n = length(p)
@@ -183,7 +182,6 @@ function sample_weighted_dataframe(rand_samples::DataFrame)
 
     return Assignment(Dict(varname => rand_samples[i, varname] for varname in names(rand_samples) if varname != :p))
 end
-"""
 
 function sample_posterior_finite(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
 
