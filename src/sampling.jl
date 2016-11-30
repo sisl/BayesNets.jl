@@ -139,7 +139,9 @@ function get_markov_blanket_cpds(gss::GibbsSamplerState, varname::Symbol)
     return markov_blanket_cpds
 end
 
-# Modifies a
+"""
+Modifies a
+"""
 function get_finite_distribution(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
     a[varname] = varname
     # Best way to compute this key?
@@ -168,6 +170,7 @@ function get_finite_distribution(gss::GibbsSamplerState, varname::Symbol, a::Ass
     return posterior_distribution
 end
 
+"""
 function sample_weighted_dataframe(rand_samples::DataFrame)
     p = rand_samples[:, :p]
     n = length(p)
@@ -180,6 +183,7 @@ function sample_weighted_dataframe(rand_samples::DataFrame)
 
     return Assignment(Dict(varname => rand_samples[i, varname] for varname in names(rand_samples) if varname != :p))
 end
+"""
 
 function sample_posterior_finite(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
 
@@ -214,6 +218,7 @@ function sample_posterior_continuous(gss::GibbsSamplerState, varname::Symbol, a:
 
     # Random Walk Metropolis Hastings
     markov_blanket_cpds = get_markov_blanket_cpds(gss, varname)
+    # TODO What should this stddev be?  The product of the stddev of all cpds in the markov blanket?
     stddev = std(var_distribution) * 10.0
     previous_sample_scaled_true_prob = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
     proposal_distribution = Normal(a[varname], stddev) # TODO why does call this constructor take so long?
