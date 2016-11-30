@@ -142,6 +142,12 @@ end
 # Modifies a
 function get_finite_distribution(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
     a[varname] = varname
+    # Best way to compute this key?
+    # A quick test showed that this method was faster than
+    # using Array{String, 1} (no join)
+    # using Array{Any, 1} (no stringification)
+    # using a tuple
+    # not caching at all
     key = join([string(a[name]) for name in gss.name_order], ",")
 
     if haskey(gss.finite_distribution_cache, key)
