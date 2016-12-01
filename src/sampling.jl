@@ -203,7 +203,7 @@ end
 """
 Implements Metropolis-Hastings with a normal distribution proposal with mean equal to the previous value
 of the variable "varname" and stddev equal to 10 times the standard deviation of the distribution of the target
-variable given its parents
+variable given its parents ( var_distribution should be get(bn, varname)(a) )
 
 MH will go through nsamples iterations.  If no proposal is accepted, the original value will remain
 
@@ -219,7 +219,7 @@ function sample_posterior_continuous(gss::GibbsSamplerState, varname::Symbol, a:
     # TODO What should this stddev be?  The product of the stddev of all cpds in the markov blanket?
     stddev = std(var_distribution) * 10.0
     previous_sample_scaled_true_prob = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
-    proposal_distribution = Normal(a[varname], stddev) # TODO why does call this constructor take so long?
+    proposal_distribution = Normal(a[varname], stddev) # TODO why does calling this constructor take so long?
 
     for sample_iter = 1:nsamples
 
@@ -239,7 +239,7 @@ function sample_posterior_continuous(gss::GibbsSamplerState, varname::Symbol, a:
 
         # Accept or reject and clean up
         if rand() < accept_prob
-            a[varname] = proposed_jump
+            # a[varname] = proposed_jump
             previous_sample_scaled_true_prob = proposed_jump_scaled_true_prob
             proposal_distribution = Normal(proposed_jump, stddev)
         else
