@@ -67,6 +67,7 @@ include("bayes_nets.jl")
 include("io.jl")
 include("sampling.jl")
 include("learning.jl")
+include("gibbs.jl")
 
 include("DiscreteBayesNet/ndgrid.jl")
 include("DiscreteBayesNet/factors.jl")
