@@ -126,6 +126,9 @@ type GibbsSamplerState
 
 end
 
+"""
+Technically modifies gss because gss stores the cache for this function
+"""
 function get_markov_blanket_cpds(gss::GibbsSamplerState, varname::Symbol)
     if haskey(gss.markov_blanket_cache, varname)
         return gss.markov_blanket_cache[varname]
@@ -140,9 +143,9 @@ function get_markov_blanket_cpds(gss::GibbsSamplerState, varname::Symbol)
 end
 
 """
-Modifies a
+Modifies a and gss
 """
-function get_finite_distribution(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
+function get_finite_distribution!(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
     a[varname] = varname
     # Best way to compute this key?
     # A quick test showed that this method was faster than
@@ -183,9 +186,14 @@ function sample_weighted_dataframe(rand_samples::DataFrame)
     return Assignment(Dict(varname => rand_samples[i, varname] for varname in names(rand_samples) if varname != :p))
 end
 
-function sample_posterior_finite(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
+"""
+set a[varname] ~ P(varname | not varname)
 
-   posterior_distribution = get_finite_distribution(gss, varname, a, support)
+Modifies both a and gss
+"""
+function sample_posterior_finite!(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
+
+   posterior_distribution = get_finite_distribution!(gss, varname, a, support)
 
    # Adapted from Distributions.jl, credit to its authors
    p = posterior_distribution
@@ -196,7 +204,8 @@ function sample_posterior_finite(gss::GibbsSamplerState, varname::Symbol, a::Ass
    while c < u && i < n
        c += p[i += 1]
    end
-   return support[i]
+
+   a[varname] = support[i]
 
 end
 
@@ -207,10 +216,12 @@ variable given its parents ( var_distribution should be get(bn, varname)(a) )
 
 MH will go through nsamples iterations.  If no proposal is accepted, the original value will remain
 
-Modifies a
+set a[varname] ~ P(varname | not varname)
+
+Modifies a and caches in gss
 """
-function sample_posterior_continuous(gss::GibbsSamplerState, varname::Symbol, a::Assignment, 
-                                     var_distribution::ContinuousUnivariateDistribution; nsamples::Integer=10)
+function sample_posterior_continuous!(gss::GibbsSamplerState, varname::Symbol, a::Assignment, 
+                                     var_distribution::ContinuousUnivariateDistribution; MH_iterations::Integer=10)
     # TODO consider using slice sampling or having an option for slice sampling
     # Implement http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7080917
 
@@ -221,7 +232,7 @@ function sample_posterior_continuous(gss::GibbsSamplerState, varname::Symbol, a:
     previous_sample_scaled_true_prob = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
     proposal_distribution = Normal(a[varname], stddev) # TODO why does calling this constructor take so long?
 
-    for sample_iter = 1:nsamples
+    for sample_iter = 1:MH_iterations
 
         # compute proposed jump
         current_value = a[varname]
@@ -247,28 +258,27 @@ function sample_posterior_continuous(gss::GibbsSamplerState, varname::Symbol, a:
         end
     end
 
-    return a[varname]
+    # a[varname] is set in the above for loop
+
 end
 
 """
-Temporarily modifies a, but restores it after computations
+set a[varname] ~ P(varname | not varname)
+
+Modifies a and caches in gss
 """
-function sample_posterior(gss::GibbsSamplerState, varname::Symbol, a::Assignment)
-    original_value = a[varname]
+function sample_posterior!(gss::GibbsSamplerState, varname::Symbol, a::Assignment)
 
     bn = gss.bn
     cpd = get(bn, varname)
     distribution = cpd(a)
     if hasfinitesupport(distribution)
-        new_value = sample_posterior_finite(gss, varname, a, support(distribution))
+        sample_posterior_finite!(gss, varname, a, support(distribution))
     elseif typeof(distribution) <: DiscreteUnivariateDistribution
         error("Infinite Discrete distributions are currently not supported in the Gibbs sampler")
     else
-        new_value = sample_posterior_continuous(gss, varname, a, distribution)
+        sample_posterior_continuous!(gss, varname, a, distribution)
     end
-
-    a[varname] = original_value
-    return new_value
 end
 
 function gibbs_sample_main_loop(gss::GibbsSamplerState, nsamples::Integer, sample_skip::Integer, 
@@ -304,7 +314,7 @@ time_limit::Nullable{Integer})
         # skip over sample_skip samples
         for skip_iter in 1:sample_skip
             for varname in v_order
-                 a[varname] = sample_posterior(gss, varname, a)
+                 sample_posterior!(gss, varname, a)
             end
 
             if isnull(variable_order)
@@ -313,7 +323,7 @@ time_limit::Nullable{Integer})
         end
 
         for varname in v_order
-            a[varname] = sample_posterior(gss, varname, a)
+            sample_posterior!(gss, varname, a)
             push!(t[varname], a[varname])
         end
 
