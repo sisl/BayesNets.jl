@@ -339,7 +339,7 @@ push!(bn, LinearGaussianCPD(:x1, NodeName[], Float64[], mu[1], sigma[1,1]))
 push!(bn, LinearGaussianCPD(:x2, NodeName[:x1], 
        Float64[sigma[1,2] / sigma[1,1]],
        mu[2] - sigma[1,2] / sigma[1,1] * mu[1],
-       sigma[1,1] - sigma[1,2]*sigma[1,2]*sigma[2,2]))
+       sigma[1,1] - sigma[1,2]*sigma[1,2]/sigma[2,2]))
 assert(names(bn) == [:x1, :x2])
 burn_in = 200
 thinning = 0
