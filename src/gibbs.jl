@@ -24,12 +24,9 @@ function get_markov_blanket_cpds(gss::GibbsSamplerState, varname::Symbol)
         return gss.markov_blanket_cache[varname]
     end
 
-    bn = gss.bn
-    markov_blanket_cpds = [get(bn, child_name) for child_name in children(bn, varname)]
-    markov_blanket_cpds = convert(Array{CPD}, markov_blanket_cpds) # Make type explicit or next line will fail
-    push!(markov_blanket_cpds, get(bn, varname))
-    gss.markov_blanket_cache[varname] = markov_blanket_cpds
-    return markov_blanket_cpds
+    _markov_blanket_cpds = markov_blanket_cpds(gss.bn, varname)
+    gss.markov_blanket_cache[varname] = _markov_blanket_cpds
+    return _markov_blanket_cpds
 end
 
 """
@@ -106,6 +103,8 @@ variable given its parents ( var_distribution should be get(bn, varname)(a) )
 
 MH will go through nsamples iterations.  If no proposal is accepted, the original value will remain
 
+This function expects that a[varname] is within the support of the distribution, it will not check to make sure this is true
+
 set a[varname] ~ P(varname | not varname)
 
 Modifies a and caches in gss
@@ -118,6 +117,7 @@ function sample_posterior_continuous!(gss::GibbsSamplerState, varname::Symbol, a
     # Random Walk Metropolis Hastings
     markov_blanket_cpds = get_markov_blanket_cpds(gss, varname)
     # TODO What should this stddev be?  The product of the stddev of all cpds in the markov blanket?
+    # TODO consider using a TruncatedNormal(mu::Real, sigma::Real, a::Real, b::Real) when the support is bounded on either or both sides
     stddev = std(var_distribution) * 10.0
     previous_sample_scaled_true_prob = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
     proposal_distribution = Normal(a[varname], stddev) # TODO why does calling this constructor take so long?
@@ -224,6 +224,8 @@ end
 
 """
 TODO description
+
+The Gibbs Sampler only supports CPDs that return Univariate Distributions CDP{D<:UnivariateDistribution}
 
 First burn_in samples will be sampled and then discrded.  Next additional samples will be draw, 
 and every (sample_skip + 1)th sample will be returned while the rest are discarded.

@@ -26,6 +26,7 @@ export
 
     parents,
     children,
+    markov_blanket_cpds,
     has_edge,
     enforce_topological_order!,
 
@@ -61,7 +62,10 @@ export
     adding_edge_preserves_acyclicity,
     bayesian_score_component,
     bayesian_score_components,
-    bayesian_score
+    bayesian_score,
+
+    GibbsSamplerState,
+    sample_posterior_continuous!
 
 include("bayes_nets.jl")
 include("io.jl")
