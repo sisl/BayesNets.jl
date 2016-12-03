@@ -341,9 +341,12 @@ push!(bn, LinearGaussianCPD(:x2, NodeName[:x1],
        mu[2] - sigma[1,2] / sigma[1,1] * mu[1],
        sigma[1,1] - sigma[1,2]*sigma[1,2]/sigma[2,2]))
 assert(names(bn) == [:x1, :x2])
-burn_in = 200
+burn_in = 400
 thinning = 0
 estimate_mean_and_stddev(bn, burn_in, thinning, "Multivariate Gaussian", mu, sigma)
+
+# TODO, do the same but condition on :x2 = 1.5, the likelihood weighted sampling should do worse
+
 
 # Hybrid - Two Gaussians
 
