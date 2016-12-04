@@ -341,7 +341,7 @@ push!(bn, LinearGaussianCPD(:x2, NodeName[:x1],
        mu[2] - sigma[1,2] / sigma[1,1] * mu[1],
        sigma[1,1] - sigma[1,2]*sigma[1,2]/sigma[2,2]))
 assert(names(bn) == [:x1, :x2])
-burn_in = 400
+burn_in = 600
 thinning = 0
 estimate_mean_and_stddev(bn, burn_in, thinning, "Multivariate Gaussian", mu, sigma)
 
