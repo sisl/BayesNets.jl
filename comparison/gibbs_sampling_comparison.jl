@@ -251,10 +251,12 @@ push!(bn, CategoricalCPD{Categorical{Float64}}(:D, [:C], [2,],
 
 # From the paper page 9 part C
 
-function mean_and_stddev_error(samples::DataFrame, bn::BayesNet, target_mu::Array{Float64, 1}, target_sigma::Array{Float64, 2}, is_weighted::Bool)
+function mean_and_stddev_error(samples::DataFrame, bn::BayesNet, target_mu::Array{Float64, 1}, 
+		target_sigma::Array{Float64, 2}, is_weighted::Bool, consistent_with::Assignment)
         num_samples = size(samples)[1]
-        num_vars = length(names(bn))
         assert(num_samples > 0)
+        _names = [name for name in names(bn) if !haskey(consistent_with, name)]
+        num_vars = length(_names)
 
         empirical_mean = zeros(size(target_mu)...)
         empirical_cov = zeros(size(target_sigma)...)
@@ -264,7 +266,7 @@ function mean_and_stddev_error(samples::DataFrame, bn::BayesNet, target_mu::Arra
                 if is_weighted
                         weight = Float64(samples[row, :p])
                 end
-                row_as_vec = squeeze(convert(Array{Float64}, samples[row, names(bn)]), 1)
+                row_as_vec = squeeze(convert(Array{Float64}, samples[row, _names]), 1)
                 empirical_mean += row_as_vec * weight
         end
 
@@ -273,7 +275,7 @@ function mean_and_stddev_error(samples::DataFrame, bn::BayesNet, target_mu::Arra
                 if is_weighted
                         weight = samples[row, :p]
                 end
-                row_as_vec = squeeze(convert(Array{Float64}, samples[row, names(bn)]), 1)
+                row_as_vec = squeeze(convert(Array{Float64}, samples[row, _names]), 1)
                 mean_shifted_vec = reshape(row_as_vec - empirical_mean, (num_vars,1))
                 empirical_cov += *(mean_shifted_vec , mean_shifted_vec.') * weight
         end
@@ -298,11 +300,11 @@ function estimate_mean_and_stddev(bn::BayesNet, burn_in::Int, thinning::Int,
                 print("Sample size: ")
                 println(sample_size)
                 rtw_samples = rand_table_weighted(bn, nsamples=sample_size, consistent_with=consistent_with)
-                rtw_error = mean_and_stddev_error(rtw_samples, bn, target_mu, target_sigma, true)
+                rtw_error = mean_and_stddev_error(rtw_samples, bn, target_mu, target_sigma, true, consistent_with)
 
                 gibbs_samples = gibbs_sample(bn, sample_size, burn_in; sample_skip=thinning,
                          consistent_with=consistent_with)
-                gibbs_error = mean_and_stddev_error(gibbs_samples, bn, target_mu, target_sigma, false)
+                gibbs_error = mean_and_stddev_error(gibbs_samples, bn, target_mu, target_sigma, false, consistent_with)
 
                 results[results_index, 1] = sample_size
                 results[results_index, 2] = rtw_error[1]
@@ -334,19 +336,44 @@ end
 
 bn = BayesNet()
 mu = [0.0, 0.0]
+sig1 = sqrt(1.08)
+sig2 = sqrt(0.31)
+rho = (0.54/sig1)/sig2
 sigma = [[1.08 0.54]; [0.54 0.31]]
+
+#=
 push!(bn, LinearGaussianCPD(:x1, NodeName[], Float64[], mu[1], sigma[1,1]))
 push!(bn, LinearGaussianCPD(:x2, NodeName[:x1], 
        Float64[sigma[1,2] / sigma[1,1]],
        mu[2] - sigma[1,2] / sigma[1,1] * mu[1],
-       sigma[1,1] - sigma[1,2]*sigma[1,2]/sigma[2,2]))
+       sigma[2,2] - sigma[1,2]*sigma[1,2]/sigma[1,1]))
+=#
+
+push!(bn, StaticCPD(:x1, Normal(mu[1], sig1)))
+push!(bn, LinearGaussianCPD(:x2, NodeName[:x1],
+     Float64[rho * sig2 / sig1],
+     mu[2] - mu[1] * rho * sig2 / sig1,
+     sqrt(sig2*sig2 * (1 - rho*rho))
+     ))
+
 assert(names(bn) == [:x1, :x2])
 burn_in = 600
 thinning = 0
 estimate_mean_and_stddev(bn, burn_in, thinning, "Multivariate Gaussian", mu, sigma)
 
-# TODO, do the same but condition on :x2 = 1.5, the likelihood weighted sampling should do worse
+x2_value = 5.0 * (sig2 / sig1 / rho)
+target_mean = (rho * sig1 / sig2) * x2_value
+target_std = sqrt(sig1 * sig1 * (1 - rho*rho))
+# x2_value = 1.5
+#target_mu = [mu[1] + (x2_value -  mu[2]) * sigma[1,2] / sigma[2,2]]
+#target_sigma = ones(1,1) * (sigma[1,1] - sigma[1,2]*sigma[1,2]/sigma[2,2])
+target_mu = [target_mean]
+target_sigma = ones(1,1) * target_std
+println(target_mu)
+println(target_sigma)
 
+#estimate_mean_and_stddev(bn, burn_in, thinning, "Conditional Multivariate Gaussian", 
+#				target_mu, target_sigma, consistent_with=Assignment(:x2 => x2_value))
 
 # Hybrid - Two Gaussians
 

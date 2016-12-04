@@ -132,4 +132,5 @@ end
 
 # Is the conditional variance always less than the unconditional variance
 # If it is, then we will never be in a case where the proposal has lower variance than the actual distribution
+# Acutally this is not always true, TODO test with large stdddevs
 
