@@ -1,7 +1,7 @@
 type GibbsSamplerState
 
     bn::BayesNet
-    name_order::Array{Symbol,1}
+    key_constructor_name_order::Array{Symbol,1}
     max_cache_size::Nullable{Integer}
     markov_blanket_cache::Dict{Symbol, Array{CPD}}
     finite_distribution_cache::Dict{String, Array{Float64, 1}}
@@ -30,17 +30,19 @@ function get_markov_blanket_cpds(gss::GibbsSamplerState, varname::Symbol)
 end
 
 """
+Helper to sample_posterior_finite
+
 Modifies a and gss
 """
 function get_finite_distribution!(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
-    a[varname] = varname
     # Best way to compute this key?
     # A quick test showed that this method was faster than
     # using Array{String, 1} (no join)
     # using Array{Any, 1} (no stringification)
     # using a tuple
     # not caching at all
-    key = join([string(a[name]) for name in gss.name_order], ",")
+    a[varname] = varname
+    key = join([string(a[name]) for name in gss.key_constructor_name_order], ",")
 
     if haskey(gss.finite_distribution_cache, key)
         return gss.finite_distribution_cache[key]
@@ -74,6 +76,8 @@ function sample_weighted_dataframe(rand_samples::DataFrame)
 end
 
 """
+Helper to sample_posterior
+
 set a[varname] ~ P(varname | not varname)
 
 Modifies both a and gss
@@ -104,6 +108,8 @@ variable given its parents ( var_distribution should be get(bn, varname)(a) )
 MH will go through nsamples iterations.  If no proposal is accepted, the original value will remain
 
 This function expects that a[varname] is within the support of the distribution, it will not check to make sure this is true
+
+Helper to sample_posterior
 
 set a[varname] ~ P(varname | not varname)
 
@@ -223,33 +229,60 @@ time_limit::Nullable{Integer})
 end
 
 """
-TODO description
+Implements Gibbs sampling. (https://en.wikipedia.org/wiki/Gibbs_sampling)
+For finite variables, the posterior distribution is sampled by building the exact distribution.
+For continuous variables, the posterior distribution is sampled using Metropolis Hastings MCMC.
+Discrete variables with infinite support are currently not supported.
+The Gibbs Sampler only supports CPDs that return Univariate Distributions. (CPD{D<:UnivariateDistribution})
 
-The Gibbs Sampler only supports CPDs that return Univariate Distributions CDP{D<:UnivariateDistribution}
+bn:: A Bayesian Network to sample from.  bn should only contain CPDs that return UnivariateDistributions.
 
-First burn_in samples will be sampled and then discrded.  Next additional samples will be draw, 
-and every (sample_skip + 1)th sample will be returned while the rest are discarded.
+nsamples: The number of samples to return.
 
-The algorithm will return the samples it has collected when either nsamples samples have been collected or time_limit milliseconds have passed.  If time_limit is not specified then the algorithm will run until nsamples have been collected.
+burn_in:  The first burn_in samples will be discarded.  They will not be returned.
+The thinning parameter does not affect the burn in period.
+This is used to ensure that the Gibbs sampler converges to the target stationary distribution before actual samples are drawn.
+
+thinning (sample_skip): For every thinning + 1 number of samples drawn, only the last is kept.
+Thinning is used to reduce autocorrelation between samples.
+Thinning is not used during the burn in period.
+e.g. If thinning is 1, samples will be drawn in groups of two and only the second sample will be in the output.
+
+time_limit: The number of milliseconds to run the algorithm.
+The algorithm will return the samples it has collected when either nsamples samples have been collected or time_limit 
+milliseconds have passed.  If time_limit is null then the algorithm will run until nsamples have been collected.
+
+error_if_time_out: If error_if_time_out is true and the time_limit expires, an error will be raised.
+If error_if_time_out is false and the time limit expires, the samples that have been collected so far will be returned.
+	This means it is possible that zero samples are returned.  Burn in samples will not be returned.
+If time_limit is null, this parameter does nothing.
+
+consistent_with: the assignment that all samples must be consistent with (ie, Assignment(:A=>1) means all samples must have :A=1).
+Use to sample conditional distributions.
 
 sample_skip: every (sample_skip + 1)th sample will be used, the other sample_skip samples will be thrown out.  The higher the sample_skip, the less correlated samples will be but the longer the computation time per sample.
 variable_order: variable_order determines the order of variables changed when generating a new sample, if variable_order is None, then a random variable order will be used for each sample.
 
 max_cache_size:  If null, cache as much as possible, otherwise cache at most "max_cache_size"  distributions
+
+variable_order: If null use a random order for every sample (this is different from updating the variables at random).
+Otherwise should be a list containing all the variables in the order they should be updated
+
+initial_sample:  The inital assignment to variables to use.  If null, the initial sample is choosen by 
+breifly running rand_table_weighted.
 """
-function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer; sample_skip::Integer=99,
+function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer; sample_skip::Integer=0,
 consistent_with::Assignment=Assignment(), variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(), 
 time_limit::Nullable{Integer}=Nullable{Integer}(), error_if_time_out::Bool=true, 
 initial_sample::Nullable{Assignment}=Nullable{Assignment}(), max_cache_size::Nullable{Integer}=Nullable{Integer}())
     """
-    TODO come up with an automatic method for setting the burn_in period, look at literature.  
-              Once this is implemented, move burn_in to the default parameters
     TODO rename sample_skip to thinning
     """
     # check parameters for correctness
+    thinning = sample_skip
     nsamples > 0 || throw(ArgumentError("nsamples parameter less than 1"))
     burn_in >= 0 || throw(ArgumentError("Negative burn_in parameter"))
-    sample_skip >= 0 || throw(ArgumentError("Negative sample_skip parameter"))
+    thinning >= 0 || throw(ArgumentError("Negative sample_skip parameter"))
     if ~ isnull(variable_order)
         v_order = get(variable_order)
         bn_names = names(bn)
@@ -303,7 +336,7 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}(), max_cache_size::Nul
                       (haskey(consistent_with, varname) ? consistent_with[varname] : burn_in_samples[end, varname])
                       for varname in names(bn))) 
     end
-    samples, samples_time = gibbs_sample_main_loop(gss, nsamples, sample_skip, 
+    samples, samples_time = gibbs_sample_main_loop(gss, nsamples, thinning, 
                                main_samples_initial_sample, consistent_with, variable_order, remaining_time)
     combined_time = burn_in_time + samples_time
     if error_if_time_out && ~isnull(time_limit)
