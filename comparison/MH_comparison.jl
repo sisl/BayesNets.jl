@@ -80,24 +80,22 @@ end
 # single_var_hist(InverseGaussian(1, 0.8), "InverseGaussian(1, 0.8)")
 
 function two_variable_hist(sig1::Float64, sig2::Float64, correlation::Float64, name::String)
-    sigma = [[sig1*sig1 sig1*sig2*correlation]; [sig1*sig2*correlation sig2*sig2]]
-
     bn = BayesNet() # unknown stddev (unknown to the MH algorithm)
-    push!(bn, StaticCPD(:x1, Normal(0, sqrt(sigma[1, 1]))))
+    push!(bn, StaticCPD(:x1, Normal(0, sig1)))
     push!(bn, LinearGaussianCPD(:x2, NodeName[:x1],
-       Float64[sigma[1,2] / sigma[1,1]],
+       Float64[correlation * sig2 / sig1],
        0.0,
-       sqrt(sigma[1,1] - sigma[1,2]*sigma[1,2]/sigma[2,2])
+       sqrt(sig2*sig2 * (1 - correlation*correlation))
        ))
 
-    x2_value = 5.0 * (sigma[2,2] / sigma[1,2])
-    target = Normal( (sigma[1,2] / sigma[2,2]) * x2_value,
-                      sqrt(sigma[2,2] - sigma[1,2]*sigma[1,2]/sigma[1,1])
-                   )
+    x2_value = 5.0 * (sig2 / sig1 / correlation)
+    target_mean = (correlation * sig1 / sig2) * x2_value
+    target_std = sqrt(sig1 * sig1 * (1 - correlation*correlation))
+    target = Normal( target_mean, target_std)
     print("Target Mean: ")
-    print((sigma[1,2] / sigma[2,2]) * x2_value)
+    print(target_mean)
     print(" Target std: ")
-    println( sqrt(sigma[2,2] - sigma[1,2]*sigma[1,2]/sigma[1,1]) )
+    println( target_std )
     print("x2_value: ")
     println(x2_value)
     a = Assignment(:x1 => 0.0, :x2 => x2_value)
