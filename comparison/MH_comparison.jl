@@ -125,8 +125,11 @@ function two_variable_hist(sig1::Float64, sig2::Float64, correlation::Float64, n
     println(pdf(bn, test_a3))
 end
 
-two_variable_hist(1.0, 0.1, 0.8, "Very Small stddev") # posterior has mean 5 std 0.06
-two_variable_hist(1.0, 1.0, 0.8, "Small stddev") # posterior has mean 5 std 0.6
-two_variable_hist(1.0, 10.0, 0.8, "Medium-Small stddev") # posterior has mean 5 std 6
-two_variable_hist(1.0, 100.0, 0.8, "Large stddev") # posterior has mean 5 std 60
+# two_variable_hist(1.0, 1.0, 0.4, "092 stddev") # posterior has mean 5 std 0.92
+# two_variable_hist(1.0, 1.0, 0.8, "06 stddev") # posterior has mean 5 std 0.6
+# two_variable_hist(1.0, 1.0, 0.99, "014 stddev") # posterior has mean 5 std 0.14
+# two_variable_hist(1.0, 1.0, 0.999, "0045 stddev") # posterior has mean 5 std 0.045
+
+# Is the conditional variance always less than the unconditional variance
+# If it is, then we will never be in a case where the proposal has lower variance than the actual distribution
 
