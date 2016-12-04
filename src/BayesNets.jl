@@ -46,6 +46,9 @@ export
     gibbs_sampling,
     loopy_belief_prop,
     random_discrete_bn,
+    get_sprinkler_bn,
+    get_sat_fail_bn,
+    get_asia_bn,
 
     DirichletPrior,
     UniformPrior,
