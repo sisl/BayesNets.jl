@@ -5,13 +5,15 @@ type GibbsSamplerState
     max_cache_size::Nullable{Integer}
     markov_blanket_cache::Dict{Symbol, Array{CPD}}
     finite_distribution_cache::Dict{String, Array{Float64, 1}}
+    AMH_support_point_cache::Dict{Symbol, ARMH_proposal}
 
     function GibbsSamplerState(
         bn::BayesNet,
         max_cache_size::Nullable{Integer}=Nullable{Integer}()
         )
 
-        new(bn, names(bn), max_cache_size, Dict{Symbol, Array{CPD}}(), Dict{String, Array{Float64, 1}}())
+        new(bn, names(bn), max_cache_size, Dict{Symbol, Array{CPD}}(), 
+            Dict{String, Array{Float64, 1}}(), Dict{Symbol, Vector{Vector{Float64}}}())
     end
 
 end
@@ -100,6 +102,104 @@ function sample_posterior_finite!(gss::GibbsSamplerState, varname::Symbol, a::As
 
 end
 
+type ARMH_proposal
+
+    support_points::Vector{Float64}
+    density_cache::Vector{Float64}
+    log_prob_cache::Vector{Float64}
+
+    ARMH_proposal() = (new(Vector{Float64}(), Vector{Float64}(), Vector{Float64}()))
+end
+
+function update_support_points(proposal::ARMH_proposal, proposed_jump::Float64)
+    # TODO
+end
+
+function sample_from_AMH_proposal(proposal::ARMH_proposal)
+    # TODO
+    return new_sample, new_sample_prob
+end
+
+function AMH_proposal_pdf(proposal::ARMH_proposal, proposed_jump::Float64)
+    # TODO
+end
+
+function initialize_proposal(gss::GibbsSamplerState, varname::Symbol
+                                   var_distribution::ContinuousUnivariateDistribution, a::Assignment)
+    # TODO initialze to the 5th, 50th, and 95th percentile values from the previous iteration if the support points
+    	# are available this is based on the suggestion in:
+    # W. R. Gilks, N. G. Best, and K. K. C. Tan, Adaptive rejection metropolis sampling within Gibbs sampling, Appl. Statist., vol. 44, no. 4, pp. 455472, 1995
+    # TODO initalize support points, consider using the bounds of the distribution if they exist
+
+    return ARMH_proposal()
+end
+
+"""
+
+Martino, L.; Read, J.; Luengo, D. (2015-06-01). "Independent Doubly Adaptive Rejection Metropolis Sampling Within Gibbs Sampling". IEEE Transactions on Signal Processing. 63 (12): 31233138. doi:10.1109/TSP.2015.2420537. ISSN 1053-587X
+
+http://ieeexplore.ieee.org/document/7080917/?arnumber=7080917
+
+https://arxiv.org/pdf/1205.5494v4.pdf
+
+(These are different papers)
+"""
+function sample_posterior_continuous_adaptive!(gss::GibbsSamplerState, varname::Symbol, a::Assignment,
+                                     var_distribution::ContinuousUnivariateDistribution; AMH_iterations::Integer=10)
+    # Implements IA2RMS, see 
+    _proposal = initialize_support_points(gss, varname, var_distribution, a)    
+
+    previous_sample_scaled_true_prob = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
+    previous_sample_proposal_prob = AMH_proposal_pdf(_proposal, a[varname])
+
+    for alg_iteration in 1:AMH_iterations
+        current_value = a[varname]
+        proposed_jump, proposed_jump_proposal_prob = sample_from_AMH_proposal(_proposal)
+        a[varname] = proposed_jump
+        proposed_jump_scaled_true_prob = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))    
+
+        # Rejection step
+        acceptance_prob = proposed_jump_scaled_true_prob / proposed_jump_proposal_prob
+        if rand() > acceptance_prob
+            # Reject and add to support points
+            update_support_points(_proposal, proposed_jump)
+            a[varname] = current_value
+            previous_sample_proposal_prob = AMH_proposal_pdf(_proposal, current_value)
+        else
+            # MH acceptance step
+            MH_acceptance_prob = proposed_jump_scaled_true_prob * min(previous_sample_scaled_true_prob, previous_sample_proposal_prob)
+            MH_acceptance_prob /= previous_sample_scaled_true_prob * min(proposed_jump_scaled_true_prob, proposed_jump_proposal_prob)
+            y = proposed_jump
+            y_proposal_prob = proposed_jump_proposal_prob
+            y_scaled_true_prob = proposed_jump_scaled_true_prob
+            if rand() <= MH_acceptance_prob
+                # Accept new sample
+                y = current_value
+                y_proposal_prob = previous_sample_proposal_prob
+                y_scaled_true_prob = previous_sample_scaled_true_prob
+                previous_sample_scaled_true_prob = proposed_jump_scaled_true_prob
+                # a[varname] has already been set to proposed_jump
+                # previous_sample_proposal_prob is updated below
+            else
+                # Reject new sample
+                a[varname] = current_value
+            end
+    
+            # Update proposal
+            update_proposal_rejection_prob = y_proposal_prob / y_scaled_true_prob
+            if rand() > update_proposal_rejection_prob
+                update_support_points(_proposal, y)
+                previous_sample_proposal_prob = AMH_proposal_pdf(_proposal, a[varname])
+            elseif a[varname] != current_value
+                previous_sample_proposal_prob = AMH_proposal_pdf(_proposal, a[varname])
+            end
+        end
+    
+    end
+
+    gss.AMH_support_point_cache[varname] = _proposal
+
+end
 """
 Implements Metropolis-Hastings with a normal distribution proposal with mean equal to the previous value
 of the variable "varname" and stddev equal to 10 times the standard deviation of the distribution of the target
@@ -145,7 +245,7 @@ function sample_posterior_continuous!(gss::GibbsSamplerState, varname::Symbol, a
         accept_prob = proposed_jump_scaled_true_prob/previous_sample_scaled_true_prob # min operation is unnecessary
 
         # Accept or reject and clean up
-        if rand() < accept_prob
+        if rand() <= accept_prob
             # a[varname] = proposed_jump
             previous_sample_scaled_true_prob = proposed_jump_scaled_true_prob
             proposal_distribution = Normal(proposed_jump, stddev)
