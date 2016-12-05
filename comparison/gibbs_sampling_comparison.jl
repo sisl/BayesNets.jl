@@ -341,14 +341,6 @@ sig2 = sqrt(0.31)
 rho = (0.54/sig1)/sig2
 sigma = [[1.08 0.54]; [0.54 0.31]]
 
-#=
-push!(bn, LinearGaussianCPD(:x1, NodeName[], Float64[], mu[1], sigma[1,1]))
-push!(bn, LinearGaussianCPD(:x2, NodeName[:x1], 
-       Float64[sigma[1,2] / sigma[1,1]],
-       mu[2] - sigma[1,2] / sigma[1,1] * mu[1],
-       sigma[2,2] - sigma[1,2]*sigma[1,2]/sigma[1,1]))
-=#
-
 push!(bn, StaticCPD(:x1, Normal(mu[1], sig1)))
 push!(bn, LinearGaussianCPD(:x2, NodeName[:x1],
      Float64[rho * sig2 / sig1],
