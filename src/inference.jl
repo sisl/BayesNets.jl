@@ -88,7 +88,8 @@ function likelihood_weighting(bn::BayesNet, query::Vector{Symbol};
         end
     end
 
-    samples = by(samples, query, df -> DataFrame(probability = sum(df[:probability])))
+    samples = by(samples, query,
+        df -> DataFrame(probability = sum(df[:probability])))
     samples[:probability] /= sum(samples[:probability])
     return samples
 end
@@ -101,13 +102,97 @@ end
 ###############################################################################
 #                       GIBBS SAMPLING
 ###############################################################################
-"""
-"""
-function gibbs_sampling(bn::BayesNet, query::Vector{Symbol},
-        evidence::Assignment=Assignment(), N=100)
+# P(x | markov_blanket(x)) as a factor
+function markov_blanket_factor(bn::BayesNet, node::NodeName,
+        evidence::Assignment=Assignment())
+    cs = children(bn, node)
+    t = table(bn, node, evidence)
 
+    if ~isempty(cs)
+        t = t * foldl((*), [table(bn, c, evidence) for c in cs])
+    end
+
+    return t
 end
 
+# not a real random sample, instead chooses random values for
+#  non-evidence nodes
+function _initial_sample(bn::BayesNet, evidence::Assignment)
+    sample = Assignment()
+
+    for cpd in bn.cpds
+        nn = name(cpd)
+        if haskey(evidence, nn)
+            sample[nn] = evidence[nn]
+        else
+            # random sample from the cpd
+            # ideall this would be uniform for each variable, but i don't
+            #  know how to access each variable's domain
+            sample[nn] = rand(cpd, sample)
+        end
+    end
+
+    return sample
+end
+
+"""
+Gibbs sampling. Runs for `N` iterations.
+Discareds first `burn_in` samples and keeps only the 
+`thin`-th sample. Ex, if `thin=3`, will discard the first two samples and keep
+the third.
+"""
+function gibbs_sampling(bn::BayesNet, query::Vector{Symbol};
+        evidence::Assignment=Assignment(), N=1E3, burn_in=500, thin=3)
+    assert(burn_in < N)
+
+    nodes = names(bn)
+    non_evidence = setdiff(nodes, keys(evidence))
+
+    x = _initial_sample(bn, evidence)
+
+    num_samples = Int(ceil((N-burn_in) / thin))
+    # all the samples seen
+    samples = DataFrame(fill(Int, length(query)), query, num_samples)
+
+    # markov blankets of each node to sample from (assumes all are discrete)
+    mb_factor_lut = Dict{Symbol, DataFrame}()
+    for n in non_evidence
+        mb_factor_lut[n] = markov_blanket_factor(bn, n, evidence)
+    end
+
+    after_burn = false
+    k = 0
+    for i = 1:N
+        # use a random permutation of non-evidence nodes for ordering
+        for n in shuffle(non_evidence)
+            # x without the current node
+            x_prime = Assignment([n => x[n] for n in setdiff(keys(x), [n])])
+            p_n = normalize(select(mb_factor_lut[n], x_prime))
+            # sample x_n ~ P(X_n|mb(X))
+            x[n] = Distributions.sample(p_n[n], WeightVec(p_n[:p].data))
+        end
+
+        if !after_burn && i > burn_in
+            after_burn = true
+        end
+        if after_burn && ( ((i-burn_in) % thin) == 0)
+            k = Int((i - burn_in) / thin)
+            for q in query
+                samples[k, q] = x[q]
+            end
+        end
+    end
+
+    samples = by(samples, query,
+        df -> DataFrame(probability = nrow(df)))
+    samples[:probability] /= sum(samples[:probability])
+    return samples
+end
+
+function gibbs_sampling(bn::BayesNet, query::Symbol;
+        evidence::Assignment=Assignment(),N=1E3, burn_in=500, thin=3)
+    gibbs_sampling(bn, [query], evidence; N, burn_in, thin)
+end
 
 ###############################################################################
 #                       LOOPY BELIEF PROPAGATION
