@@ -36,6 +36,7 @@ export
     rand_cpd,
     rand_table_weighted,
     gibbs_sample,
+    GibbsSampler,
 
     table,
     sumout,

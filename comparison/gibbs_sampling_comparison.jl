@@ -109,7 +109,7 @@ function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::A
                     gibbs_sample_size = sample_size * 10
                 end
                 gibbs_start_time = now()	
-		gibbs_samples = gibbs_sample(bn, gibbs_sample_size, burn_in; sample_skip=thinning,
+		gibbs_samples = gibbs_sample(bn, gibbs_sample_size, burn_in; thinning=thinning,
                          consistent_with=consistent_with, time_limit=time_limit, 
                          error_if_time_out=false)
                 gibbs_duration = convert(Integer, now() - gibbs_start_time)
@@ -302,7 +302,7 @@ function estimate_mean_and_stddev(bn::BayesNet, burn_in::Int, thinning::Int,
                 rtw_samples = rand_table_weighted(bn, nsamples=sample_size, consistent_with=consistent_with)
                 rtw_error = mean_and_stddev_error(rtw_samples, bn, target_mu, target_sigma, true, consistent_with)
 
-                gibbs_samples = gibbs_sample(bn, sample_size, burn_in; sample_skip=thinning,
+                gibbs_samples = gibbs_sample(bn, sample_size, burn_in; thinning=thinning,
                          consistent_with=consistent_with)
                 gibbs_error = mean_and_stddev_error(gibbs_samples, bn, target_mu, target_sigma, false, consistent_with)
 

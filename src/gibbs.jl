@@ -271,15 +271,16 @@ Otherwise should be a list containing all the variables in the order they should
 initial_sample:  The inital assignment to variables to use.  If null, the initial sample is choosen by 
 breifly running rand_table_weighted.
 """
-function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer; sample_skip::Integer=0,
-consistent_with::Assignment=Assignment(), variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(), 
-time_limit::Nullable{Integer}=Nullable{Integer}(), error_if_time_out::Bool=true, 
-initial_sample::Nullable{Assignment}=Nullable{Assignment}(), max_cache_size::Nullable{Integer}=Nullable{Integer}())
-    """
-    TODO rename sample_skip to thinning
-    """
+function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
+        thinning::Integer=0,
+        consistent_with::Assignment=Assignment(),
+        variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(), 
+        time_limit::Nullable{Integer}=Nullable{Integer}(),
+        error_if_time_out::Bool=true, 
+        initial_sample::Nullable{Assignment}=Nullable{Assignment}(),
+        max_cache_size::Nullable{Integer}=Nullable{Integer}()
+        )
     # check parameters for correctness
-    thinning = sample_skip
     nsamples > 0 || throw(ArgumentError("nsamples parameter less than 1"))
     burn_in >= 0 || throw(ArgumentError("Negative burn_in parameter"))
     thinning >= 0 || throw(ArgumentError("Negative sample_skip parameter"))
@@ -347,4 +348,110 @@ initial_sample::Nullable{Assignment}=Nullable{Assignment}(), max_cache_size::Nul
     evidence = DataFrame(Dict(varname => ones(size(samples)[1]) * consistent_with[varname] 
                  for varname in keys(consistent_with)))
     return hcat(samples, evidence)
+end
+
+type GibbsSampler
+
+    burn_in::Integer
+    thinning::Integer
+    consistent_with::Assignment
+    variable_order::Nullable{Vector{Symbol}}
+    time_limit::Nullable{Integer}
+    error_if_time_out::Bool
+    initial_sample::Nullable{Assignment}
+    max_cache_size::Nullable{Integer}
+
+    function GibbsSampler(burn_in::Integer;
+        thinning::Integer=0,
+        consistent_with::Assignment=Assignment(),
+        variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(),
+        time_limit::Nullable{Integer}=Nullable{Integer}(),
+        error_if_time_out::Bool=true,
+        initial_sample::Nullable{Assignment}=Nullable{Assignment}(),
+        max_cache_size::Nullable{Integer}=Nullable{Integer}()
+        )
+
+        new(burn_in, thinning, consistent_with, variable_order, time_limit, error_if_time_out, initial_sample, max_cache_size)
+    end
+
+end
+
+function Base.rand(bn::BayesNet, config::GibbsSampler, nsamples::Integer)
+
+    return gibbs_sample(bn, nsamples, config.burn_in; thinning=config.thinning,
+		consistent_with=config.consistent_with, variable_order=config.variable_order,
+		time_limit=config.time_limit, error_if_time_out=config.error_if_time_out,
+		initial_sample=config.initial_sample, max_cache_size=config.max_cache_size)
+
+    # Use code below if we decide to remove gibbs_sample
+    """
+    # check parameters for correctness
+    nsamples > 0 || throw(ArgumentError("nsamples parameter less than 1"))
+    config.burn_in >= 0 || throw(ArgumentError("Negative burn_in parameter"))
+    config.thinning >= 0 || throw(ArgumentError("Negative thinning parameter"))
+    if ~ isnull(config.variable_order)
+        v_order = get(config.variable_order)
+        bn_names = names(bn)
+        for name in bn_names
+            name in v_order || throw(ArgumentError("Gibbs sample variable_order must contain all variables in the Bayes Net"))
+        end
+        for name in v_order
+            name in bn_names || throw(ArgumentError("Gibbs sample variable_order contains a variable not in the Bayes Net"))
+        end
+    end
+    if ~ isnull(config.time_limit)
+        get(config.time_limit) > 0 || throw(ArgumentError(join(["Invalid time_limit specified (", get(time_limit), ")"])))
+    end
+    if ~ isnull(config.initial_sample)
+        init_sample = get(config.initial_sample)
+        for name in names(bn)
+            haskey(config.init_sample, name) || throw(ArgumentError("Gibbs sample initial_sample must be an assignment with all variables in the Bayes Net"))
+        end
+        for name in keys(consistent_with)
+            config.init_sample[name] == config.consistent_with[name] || throw(ArgumentError("Gibbs sample initial_sample was inconsistent with consistent_with"))
+        end
+    end
+
+    gss = GibbsSamplerState(bn, config.max_cache_size)
+
+    # Burn in
+    # for burn_in_initial_sample use rand_table_weighted, should be consistent with the varibale consistent_with
+    if isnull(config.initial_sample)
+        rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=config.consistent_with)
+        if any(isnan(convert(Array{AbstractFloat}, rand_samples[:p])))
+                error("Gibbs Sampler was unable to find an inital sample with non-zero probability")
+        end
+        burn_in_initial_sample = sample_weighted_dataframe(rand_samples)
+    else
+        burn_in_initial_sample = get(config.initial_sample)
+    end
+    burn_in_samples, burn_in_time = gibbs_sample_main_loop(gss, config.burn_in, 0, burn_in_initial_sample,
+                                         config.consistent_with, config.variable_order, config.time_limit)
+    remaining_time = Nullable{Integer}()
+    if ~isnull(config.time_limit)
+        remaining_time = Nullable{Integer}(get(config.time_limit) - burn_in_time)
+        if error_if_time_out
+            get(remaining_time) > 0 || error("Time expired during Gibbs sampling")
+        end
+    end
+
+    # Real samples
+    main_samples_initial_sample = burn_in_initial_sample
+    if burn_in != 0 && size(burn_in_samples)[1] > 0
+        main_samples_initial_sample = Assignment(Dict(varname =>
+                      (haskey(config.consistent_with, varname) ? config.consistent_with[varname] : burn_in_samples[end, varname])
+                      for varname in names(bn)))
+    end
+    samples, samples_time = gibbs_sample_main_loop(gss, nsamples, config.thinning,
+                               main_samples_initial_sample, config.consistent_with, config.variable_order, remaining_time)
+    combined_time = burn_in_time + samples_time
+    if error_if_time_out && ~isnull(config.time_limit)
+        combined_time < get(config.time_limit) || error("Time expired during Gibbs sampling")
+    end
+
+    # Add in columns for variables that were conditioned on
+    evidence = DataFrame(Dict(varname => ones(size(samples)[1]) * config.consistent_with[varname]
+                 for varname in keys(config.consistent_with)))
+    return hcat(samples, evidence)
+    """
 end
