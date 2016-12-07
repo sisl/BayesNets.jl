@@ -31,19 +31,27 @@ end
 
 # TODO: implement factoring out final value in factor table,
 #       or throwing an error in that case
+# Works for non-binary varliables and possible fixes above TODO
 """
 Factor marginalization
 """
 function sumout(f::Factor, v::Symbol)
     remainingvars = setdiff(names(f), [v, :p])
-    g = groupby(f, v)
-    if length(g) == 1
-        return f[:,vcat(remainingvars, :p)]
-    end
-    j = join(g..., on=remainingvars)
-    j[:,:p] += j[:,:p_1]
-    j[:,vcat(remainingvars, :p)]
+    # note that this will fail miserablely if f is too large (~1E4 I think?)
+    #  nothing I can do :(  github issue about it
+    return by(f, remainingvars, df -> Factor(p = sum(df[:p])))
 end
+
+#function sumout(f::Factor, v::Symbol)
+#    remainingvars = setdiff(names(f), [v, :p])
+#    g = groupby(f, v)
+#    if length(g) == 1
+#        return f[:,vcat(remainingvars, :p)]
+#    end
+#    j = join(g..., on=remainingvars)
+#    j[:,:p] += j[:,:p_1]
+#    j[:,vcat(remainingvars, :p)]
+#end
 function sumout(f::Factor, v::AbstractVector{Symbol})
     while !isempty(v)
         f = sumout(f, pop!(v))

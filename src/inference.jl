@@ -2,8 +2,7 @@
 ###############################################################################
 #                       EXACT INFERENCE
 ###############################################################################
-"""
-Table only works on DiscreteBayesNets, so . . ..
+"""Table only works on DiscreteBayesNets, so . . ..
 Also, Bernoulli does not count as a categoical RV, so that can' tbe added to a
 DiscreteBayesNet
 """
@@ -33,7 +32,8 @@ function exact_inference(bn::BayesNet, query::Vector{Symbol};
         end
     end
 
-    return normalize(foldl((*), factors))
+    # normalize and remove the leftover variables (I'm looking at you sumout)
+    return normalize(foldl((*), factors))[:, vcat(query, [:p])]
 end
 
 function exact_inference(bn::BayesNet, query::Symbol;
@@ -66,7 +66,6 @@ function likelihood_weighting(bn::BayesNet, query::Vector{Symbol};
     sample = Assignment()
 
     for i = 1:N
-
         # will be in topological order because of
         #  _enforce_topological_order
         for cpd in bn.cpds
@@ -94,6 +93,73 @@ function likelihood_weighting(bn::BayesNet, query::Vector{Symbol};
     return samples
 end
 
+"""
+Samples has `a`, replaces its value f(samples[a, :probability], v), else adds it
+
+Samples must have a column called probabiliteis
+
+All columns of samples must be in a, but not all columns of a must be
+in samples
+
+`f` should be able to take a DataFrames.DataArray as its first element
+"""
+function update_samples(samples::DataFrame, a::Assignment, v=1, f::Function=+)
+    # copied this from filter in factors.jl 
+    # assume a has a variable for all columns except :probability
+    mask = trues(nrow(samples))
+    col_names = setdiff(names(samples), [:probability])
+
+    for s in col_names
+        mask &= (samples[s] .== a[s])
+    end
+
+    # hopefully there is only 1, but this still works else
+    if any(mask)
+        samples[mask, :probability] = f(samples[mask, :probability], v)
+    else
+        # get the assignment in the correct order for the dataframe
+        new_row = [a[s] for s in col_names]
+        push!(samples, @data(vcat(new_row, v)))
+    end
+end
+
+# increase size of samples as we go . . .
+function likelihood_weighting_grow(bn::BayesNet, query::Vector{Symbol};
+        evidence::Assignment=Assignment(), N::Int=100)
+    nodes = names(bn)
+    # hidden nodes in the network
+    hidden = setdiff(nodes, vcat(query, collect(keys(evidence))))
+    # all the samples seen
+    samples = DataFrame(push!(fill(Int, length(query)), Float64),
+            vcat(query, [:probability]), 0)
+    sample = Assignment()
+
+    for i = 1:N
+        wt = 1
+        # will be in topological order because of
+        #  _enforce_topological_order
+        for cpd in bn.cpds
+            nn = name(cpd)
+            if haskey(evidence, nn)
+                sample[nn] = evidence[nn]
+                # update the weight with the pdf of the conditional
+                # prob dist of a node given the currently sampled
+                # values and the observed value for that node
+                wt *= pdf(cpd, sample)
+            else
+                sample[nn] = rand(cpd, sample)
+            end
+        end
+
+        # marginalize on the go
+        # samples is over the query variables, sample is not, but it works
+        update_samples(samples, sample, wt)
+    end
+
+    samples[:probability] /= sum(samples[:probability])
+    return samples
+end
+
 function likelihood_weighting(bn::BayesNet, query::Symbol;
         evidence::Assignment=Assignment(), N::Int=100)
     return likelihood_weighting(bn, [query]; evidence=evidence, N=N)
@@ -102,22 +168,11 @@ end
 ###############################################################################
 #                       GIBBS SAMPLING
 ###############################################################################
-# P(x | markov_blanket(x)) as a factor
-function markov_blanket_factor(bn::BayesNet, node::NodeName,
-        evidence::Assignment=Assignment())
-    cs = children(bn, node)
-    t = table(bn, node, evidence)
+""" A random sample of all nodes in network, except for evidence nodes
 
-    if ~isempty(cs)
-        t = t * foldl((*), [table(bn, c, evidence) for c in cs])
-    end
-
-    return t
-end
-
-# not a real random sample, instead chooses random values for
-#  non-evidence nodes
-function _initial_sample(bn::BayesNet, evidence::Assignment)
+Not uniform, not sure how to randomly sample over domain of distribution
+"""
+function initial_sample(bn::BayesNet, evidence::Assignment)
     sample = Assignment()
 
     for cpd in bn.cpds
@@ -125,61 +180,164 @@ function _initial_sample(bn::BayesNet, evidence::Assignment)
         if haskey(evidence, nn)
             sample[nn] = evidence[nn]
         else
-            # random sample from the cpd
-            # ideall this would be uniform for each variable, but i don't
-            #  know how to access each variable's domain
-            sample[nn] = rand(cpd, sample)
+            # uniform sample across domain
+            # pick a random distribution for the node
+            d = rand(cpd.distributions)
+            # pick a random variable from that distribution
+            sample[nn] = Distributions.rand(d)
         end
     end
 
     return sample
 end
 
+"""Get the cpd's of a node and its children"""
+get_mb_cpds(bn, node) = [get(bn, n) for n in push!(children(bn, node), node)]
+
+"""P(node | pa_node) * Prod (c in children) P(c | pa_c)
+
+Trys out all possible values of node (assumes categorical)
+Assignment should have values for all nodes in the network
+"""
+function eval_mb_cpd(node::Symbol, ncategories::Int,
+        assignment::Assignment,
+        mb_cpds::Vector)
+    # pdf accepts Assignment only, so swap out current for new value
+    old_value = assignment[node]
+    p = zeros(ncategories)
+
+    for x in range(1, ncategories)
+        assignment[node] = x
+
+        p[x] = foldl((*), (pdf(cpd, assignment) for cpd in mb_cpds))
+    end
+
+    assignment[node] = old_value
+    return p / sum(p)
+end
+
 """
 Gibbs sampling. Runs for `N` iterations.
-Discareds first `burn_in` samples and keeps only the 
+Discareds first `burn_in` samples and keeps only the
 `thin`-th sample. Ex, if `thin=3`, will discard the first two samples and keep
 the third.
 """
 function gibbs_sampling(bn::BayesNet, query::Vector{Symbol};
-        evidence::Assignment=Assignment(), N=1E3, burn_in=500, thin=3)
+        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=3)
     assert(burn_in < N)
 
     nodes = names(bn)
     non_evidence = setdiff(nodes, keys(evidence))
 
-    x = _initial_sample(bn, evidence)
+    # the current state
+    x = initial_sample(bn, evidence)
 
+    # if the math doesn't work out correctly, loop a couple more times . . .
     num_samples = Int(ceil((N-burn_in) / thin))
+
     # all the samples seen
     samples = DataFrame(fill(Int, length(query)), query, num_samples)
 
-    # markov blankets of each node to sample from (assumes all are discrete)
-    mb_factor_lut = Dict{Symbol, DataFrame}()
-    for n in non_evidence
-        mb_factor_lut[n] = markov_blanket_factor(bn, n, evidence)
+    # markov blankets of each node to sample from
+    mb_cpds = Dict((n => get_mb_cpds(bn, n)) for n = non_evidence)
+
+    order = shuffle(non_evidence)
+
+    finished = false
+    after_burn = false
+    k = 1
+    i = 1
+    # assume that each sample is after changing one variable
+    while !finished
+        # use a random permutation of non-evidence nodes for ordering
+        for n in order
+            # for all possible value of X (assumes discrete)
+            ncat = ncategories(get(bn, n).distributions[1])
+            p = eval_mb_cpd(n, ncat, x, mb_cpds[n])
+            # sample x_n ~ P(X_n|mb(X))
+            x[n] = Distributions.sample(1:ncat, WeightVec(p))
+
+
+            if after_burn && ( ((i - burn_in) % thin) == 0)
+                for q in query
+                    samples[k, q] = x[q]
+                end
+
+                k += 1
+            end
+
+            i += 1
+
+            if !after_burn && i > burn_in
+                after_burn = true
+            end
+
+            if k > num_samples
+                # doubly nested loops!! yay!!
+                finished = true
+                break
+            end
+        end
     end
 
+    samples = by(samples, query,
+        df -> DataFrame(probability = nrow(df)))
+    samples[:probability] /= sum(samples[:probability])
+    return samples
+end
+
+# each new sample is an iteration of all nodes
+function gibbs_sampling_full_iter(bn::BayesNet, query::Vector{Symbol};
+        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=3)
+    assert(burn_in < N)
+
+    nodes = names(bn)
+    non_evidence = setdiff(nodes, keys(evidence))
+
+    # the current state
+    x = initial_sample(bn, evidence)
+
+    # if the math doesn't work out correctly, loop a couple more times . . .
+    num_samples = Int(ceil((N-burn_in) / thin))
+
+    # all the samples seen
+    samples = DataFrame(fill(Int, length(query)), query, num_samples)
+
+    # markov blankets of each node to sample from
+    mb_cpds = Dict((n => get_mb_cpds(bn, n)) for n = non_evidence)
+
+    order = shuffle(non_evidence)
+
     after_burn = false
-    k = 0
-    for i = 1:N
+    k = 1
+    i = 1
+    # assume that each sample is after changing one variable
+    while true
         # use a random permutation of non-evidence nodes for ordering
-        for n in shuffle(non_evidence)
-            # x without the current node
-            x_prime = Assignment([n => x[n] for n in setdiff(keys(x), [n])])
-            p_n = normalize(select(mb_factor_lut[n], x_prime))
+        for n in order
+            # for all possible value of X (assumes discrete)
+            ncat = ncategories(get(bn, n).distributions[1])
+            p = eval_mb_cpd(n, ncat, x, mb_cpds[n])
             # sample x_n ~ P(X_n|mb(X))
-            x[n] = Distributions.sample(p_n[n], WeightVec(p_n[:p].data))
+            x[n] = Distributions.sample(1:ncat, WeightVec(p))
         end
+
+        if after_burn && ( ((i - burn_in) % thin) == 0)
+            for q in query
+                samples[k, q] = x[q]
+            end
+
+            k += 1
+        end
+
+        i += 1
 
         if !after_burn && i > burn_in
             after_burn = true
         end
-        if after_burn && ( ((i-burn_in) % thin) == 0)
-            k = Int((i - burn_in) / thin)
-            for q in query
-                samples[k, q] = x[q]
-            end
+
+        if k > num_samples
+            break
         end
     end
 
@@ -191,7 +349,7 @@ end
 
 function gibbs_sampling(bn::BayesNet, query::Symbol;
         evidence::Assignment=Assignment(),N=1E3, burn_in=500, thin=3)
-    gibbs_sampling(bn, [query], evidence; N, burn_in, thin)
+    gibbs_sampling(bn, [query], evidence; N=N, burn_in=burn_in, thin=thin)
 end
 
 ###############################################################################
@@ -207,7 +365,13 @@ end
 ###############################################################################
 #                       GEN BAYES NETS
 ###############################################################################
-function random_discrete_bn(num_nodes::Int=16,
+""" Generates a random DiscreteBayesNet
+
+Creates DiscreteBayesNet with num_nodes nodes, each with random values (up to)
+max_num_parents and max_num_parents for the number of parents and states
+(respectively)
+"""
+function rand_discrete_bn(num_nodes::Int=16,
         max_num_parents::Int=3,
         max_num_states::Int=5)
     @assert(num_nodes > 0)
@@ -221,6 +385,8 @@ function random_discrete_bn(num_nodes::Int=16,
         n_states = rand(2:max_num_states)
 
         # keep trying different parents until it isn't cyclic
+        # i think its impossible for a cycle to appear based on the
+        #  algorithm i've outlines, but . . .
         while true
             n_par = min(length(bn), rand(1:max_num_parents))
             parents = names(bn)[randperm(length(bn))[1:n_par]]

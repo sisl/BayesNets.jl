@@ -43,7 +43,9 @@ export
 
     exact_inference,
     likelihood_weighting,
+    likelihood_weighting_grow,
     gibbs_sampling,
+    gibbs_sampling_full_iter,
     loopy_belief_prop,
     random_discrete_bn,
     get_sprinkler_bn,
