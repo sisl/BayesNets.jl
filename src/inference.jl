@@ -223,7 +223,7 @@ Discareds first `burn_in` samples and keeps only the
 the third.
 """
 function gibbs_sampling(bn::BayesNet, query::Vector{Symbol};
-        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=3)
+        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=1)
     assert(burn_in < N)
 
     nodes = names(bn)
@@ -255,7 +255,7 @@ function gibbs_sampling(bn::BayesNet, query::Vector{Symbol};
             ncat = ncategories(get(bn, n).distributions[1])
             p = eval_mb_cpd(n, ncat, x, mb_cpds[n])
             # sample x_n ~ P(X_n|mb(X))
-            x[n] = Distributions.sample(1:ncat, WeightVec(p))
+            x[n] = Distributions.sample(WeightVec(p))
 
 
             if after_burn && ( ((i - burn_in) % thin) == 0)
@@ -288,7 +288,7 @@ end
 
 # each new sample is an iteration of all nodes
 function gibbs_sampling_full_iter(bn::BayesNet, query::Vector{Symbol};
-        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=3)
+        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=1)
     assert(burn_in < N)
 
     nodes = names(bn)
@@ -319,7 +319,7 @@ function gibbs_sampling_full_iter(bn::BayesNet, query::Vector{Symbol};
             ncat = ncategories(get(bn, n).distributions[1])
             p = eval_mb_cpd(n, ncat, x, mb_cpds[n])
             # sample x_n ~ P(X_n|mb(X))
-            x[n] = Distributions.sample(1:ncat, WeightVec(p))
+            x[n] = Distributions.sample(WeightVec(p))
         end
 
         if after_burn && ( ((i - burn_in) % thin) == 0)

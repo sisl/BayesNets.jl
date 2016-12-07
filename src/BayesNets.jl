@@ -49,6 +49,7 @@ export
     loopy_belief,
 
     random_discrete_bn,
+    bn_inference_init,
     get_sprinkler_bn,
     get_sat_fail_bn,
     get_asia_bn,

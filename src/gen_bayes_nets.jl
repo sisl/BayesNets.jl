@@ -1,6 +1,4 @@
-"""
-Built in (?) BayesNets
-"""
+# Built in (?) BayesNets
 
 """
 Generates a random DiscreteBayesNet
@@ -26,7 +24,7 @@ function rand_discrete_bn(num_nodes::Int=16,
         # i think its impossible for a cycle to appear based on the
         #  algorithm i've outlines, but . . .
         while true
-            n_par = min(length(bn), rand(1:max_num_parents))
+            n_par = min(length(bn), rand(0:max_num_parents))
             parents = names(bn)[randperm(length(bn))[1:n_par]]
 
             push!(bn, rand_cpd(bn, n_states, s, parents))
@@ -40,6 +38,26 @@ function rand_discrete_bn(num_nodes::Int=16,
     end
 
     return bn
+end
+
+"""
+Given a bn, generate valid query and evidence
+"""
+function bn_inference_init(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)
+    @assert (num_query + num_evidence) <= length(names(bn))
+
+    # yay for convoluted
+    non_hidden = sample(names(bn), num_query + num_evidence; replace=false)
+    query = non_hidden[1:num_query]
+    evidence_nodes = non_hidden[(num_query+1):end]
+    evidence = Assignment()
+
+    for ev in evidence_nodes
+        ncat = ncategories(get(bn, ev).distributions[1])
+        evidence[ev] = sample(1:ncat)
+    end
+
+    return (query, evidence)
 end
 
 """

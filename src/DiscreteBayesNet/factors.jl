@@ -37,9 +37,14 @@ Factor marginalization
 """
 function sumout(f::Factor, v::Symbol)
     remainingvars = setdiff(names(f), [v, :p])
-    # note that this will fail miserablely if f is too large (~1E4 I think?)
-    #  nothing I can do :(  github issue about it
-    return by(f, remainingvars, df -> Factor(p = sum(df[:p])))
+
+    if isempty(remainingvars)
+        return f
+    else
+        # note that this will fail miserablely if f is too large (~1E4 maybe?)
+        #  nothing I can do :'(  github issue about it
+        return by(f, remainingvars, df -> Factor(p = sum(df[:p])))
+    end
 end
 
 #function sumout(f::Factor, v::Symbol)
