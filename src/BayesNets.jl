@@ -46,7 +46,8 @@ export
     likelihood_weighting_grow,
     gibbs_sampling,
     gibbs_sampling_full_iter,
-    loopy_belief_prop,
+    loopy_belief,
+
     random_discrete_bn,
     get_sprinkler_bn,
     get_sat_fail_bn,
@@ -77,7 +78,9 @@ include("bayes_nets.jl")
 include("io.jl")
 include("sampling.jl")
 include("learning.jl")
+
 include("inference.jl")
+include("gen_bayes_nets.jl")
 
 include("DiscreteBayesNet/ndgrid.jl")
 include("DiscreteBayesNet/factors.jl")
