@@ -6,16 +6,9 @@
 Also, Bernoulli does not count as a categoical RV, so that can' tbe added to a
 DiscreteBayesNet
 """
-# P(query | evidence)
 function exact_inference(bn::BayesNet, query::Vector{Symbol};
-         evidence::Assignment=Assignment(), ordering=[])
-
-#----------------------------------------------------------------------------------
-# add in the node ordering stuff here
-#----------------------------------------------------------------------------------
-    if !isempty(ordering)
-        throw(DomainError())
-    end
+         evidence::Assignment=Assignment())
+    # P(query | evidence)
 
     nodes = names(bn)
     hidden = setdiff(nodes, vcat(query, collect(keys(evidence))))
@@ -33,12 +26,14 @@ function exact_inference(bn::BayesNet, query::Vector{Symbol};
     end
 
     # normalize and remove the leftover variables (I'm looking at you sumout)
-    return normalize(foldl((*), factors))[:, vcat(query, [:p])]
+    f = foldl((*), factors)
+    f = normalize(by(f, query, df -> DataFrame(p = sum(df[:p]))))
+    return f
 end
 
 function exact_inference(bn::BayesNet, query::Symbol;
-        evidence::Assignment=Assignment(), ordering=[])
-    return exact_inference(bn, [query]; evidence=evidence, ordering=ordering)
+        evidence::Assignment=Assignment())
+    return exact_inference(bn, [query]; evidence=evidence)
 end
 
 ###############################################################################
@@ -163,6 +158,11 @@ end
 function likelihood_weighting(bn::BayesNet, query::Symbol;
         evidence::Assignment=Assignment(), N::Int=100)
     return likelihood_weighting(bn, [query]; evidence=evidence, N=N)
+end
+
+function likelihood_weighting_grow(bn::BayesNet, query::Symbol;
+        evidence::Assignment=Assignment(), N::Int=100)
+    return likelihood_weighting_grow(bn, [query]; evidence=evidence, N=N)
 end
 
 ###############################################################################
@@ -350,6 +350,11 @@ end
 function gibbs_sampling(bn::BayesNet, query::Symbol;
         evidence::Assignment=Assignment(),N=1E3, burn_in=500, thin=3)
     gibbs_sampling(bn, [query], evidence; N=N, burn_in=burn_in, thin=thin)
+end
+
+function gibbs_sampling_full_iter(bn::BayesNet, query::Symbol;
+        evidence::Assignment=Assignment(),N=1E3, burn_in=500, thin=3)
+    gibbs_sampling_full_iter(bn, [query], evidence; N=N, burn_in=burn_in, thin=thin)
 end
 
 ###############################################################################
