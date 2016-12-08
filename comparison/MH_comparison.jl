@@ -47,7 +47,7 @@ function build_histogram(bn::BayesNet, target::Symbol, a::Assignment, thinning::
 		consistent_with = Assignment(name => a[name] for name in names(bn) if name != target))
 	weights = convert(Array, lw_samples[:p])
         lw_samples = convert(Array, lw_samples[target])
-        n, bins, patches = plt[:hist](lw_samples; bins=75, normed=true, facecolor="red", alpha=0.5)
+        n, bins, patches = plt[:hist](lw_samples; bins=75, normed=true, facecolor="red", alpha=0.5, weights=weights)
 	plot(bins, [pdf(target_distribution, bin) for bin in bins], "b--")
 	name = join([name, " LW"])
         title(name)
@@ -79,7 +79,7 @@ end
 # single_var_hist(Chisq(1), "Chisq(1)")
 # single_var_hist(InverseGaussian(1, 0.8), "InverseGaussian(1, 0.8)")
 
-function two_variable_hist(sig1::Float64, sig2::Float64, correlation::Float64, name::String)
+function two_variable_hist(sig1::Float64, sig2::Float64, correlation::Float64, name::String; mean::Float64 = 5.0)
     bn = BayesNet() # unknown stddev (unknown to the MH algorithm)
     push!(bn, StaticCPD(:x1, Normal(0, sig1)))
     push!(bn, LinearGaussianCPD(:x2, NodeName[:x1],
@@ -88,7 +88,7 @@ function two_variable_hist(sig1::Float64, sig2::Float64, correlation::Float64, n
        sqrt(sig2*sig2 * (1 - correlation*correlation))
        ))
 
-    x2_value = 5.0 * (sig2 / sig1 / correlation)
+    x2_value = mean * (sig2 / sig1 / correlation)
     target_mean = (correlation * sig1 / sig2) * x2_value
     target_std = sqrt(sig1 * sig1 * (1 - correlation*correlation))
     target = Normal( target_mean, target_std)
@@ -125,10 +125,11 @@ function two_variable_hist(sig1::Float64, sig2::Float64, correlation::Float64, n
     println(pdf(bn, test_a3))
 end
 
-# two_variable_hist(1.0, 1.0, 0.4, "092 stddev") # posterior has mean 5 std 0.92
-# two_variable_hist(1.0, 1.0, 0.8, "06 stddev") # posterior has mean 5 std 0.6
-# two_variable_hist(1.0, 1.0, 0.99, "014 stddev") # posterior has mean 5 std 0.14
-# two_variable_hist(1.0, 1.0, 0.999, "0045 stddev") # posterior has mean 5 std 0.045
+two_variable_hist(1.0, 1.0, 0.8, "2 mean"; mean = 2.0) # posterior has mean 5 std 0.6
+two_variable_hist(1.0, 1.0, 0.4, "0.92 stddev") # posterior has mean 5 std 0.92
+two_variable_hist(1.0, 1.0, 0.8, "0.6 stddev") # posterior has mean 5 std 0.6
+two_variable_hist(1.0, 1.0, 0.99, "0.14 stddev") # posterior has mean 5 std 0.14
+two_variable_hist(1.0, 1.0, 0.999, "0.045 stddev") # posterior has mean 5 std 0.045
 
 # Is the conditional variance always less than the unconditional variance
 # If it is, then we will never be in a case where the proposal has lower variance than the actual distribution

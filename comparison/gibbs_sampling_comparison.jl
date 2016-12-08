@@ -83,16 +83,19 @@ end
 function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::Assignment, 
                               burn_in::Integer, thinning::Integer, use_time::Bool = true)
 	# sample_size_comparisons = [4000, 7000, 10000, 20000, 35000, 50000, 75000, 100000, 200000, 500000, 1000000] # , 2000000, 5000000, 10000000]
-        sample_size_comparisons = [50 * i for i in 1:100]
+        sample_size_comparisons = [100 * i for i in 1:50]
+        repetitions = 50
 	rand_table_weighted(bn, nsamples=sample_size_comparisons[1], consistent_with=consistent_with) # The first time takes long, let function compile
 	println("Running...")
 	println(name)
-	results = zeros(length(sample_size_comparisons), 7)
+	results = zeros(length(sample_size_comparisons), repetitions, 7)
         results_index = 1
 	println("Computing true distribution...")
 	true_distribution = compute_true_distribution(bn)
         # println(true_distribution)
 	println("Done.")
+        for repetition_index in 1:repetitions
+        results_index = 1
 	for sample_size in sample_size_comparisons
 		print("Sample size: ")
 		println(sample_size)
@@ -122,15 +125,18 @@ function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::A
 			gibbs_errors = compute_errors(gibbs_samples, bn, false, true_distribution, consistent_with)
 		end
 
-                results[results_index, 1] = rtw_duration
-		results[results_index, 2] = sample_size
-		results[results_index, 3] = size(gibbs_samples)[1]
-		results[results_index, 4] = rtw_errors[1]
-		results[results_index, 5] = gibbs_errors[1]
-		results[results_index, 6] = rtw_errors[2]
-		results[results_index, 7] = gibbs_errors[2]
+                results[results_index, repetition_index, 1] = rtw_duration
+		results[results_index, repetition_index,  2] = sample_size
+		results[results_index, repetition_index, 3] = size(gibbs_samples)[1]
+		results[results_index, repetition_index, 4] = rtw_errors[1]
+		results[results_index, repetition_index, 5] = gibbs_errors[1]
+		results[results_index, repetition_index ,6] = rtw_errors[2]
+		results[results_index, repetition_index, 7] = gibbs_errors[2]
 		results_index = results_index + 1
 	end
+        end
+
+        results = mean(results, 2)[:, 1, :]
 
 	for row in 1:size(results)[1]
 		println(results[row, :])
@@ -192,9 +198,6 @@ function compare_discrete(bn::DiscreteBayesNet, name::String, consistent_with::A
 end
 
 # Continuous compare function
-function compare_continuous(bn::BayesNet, name::String)
-
-end
 
 # One Discrete univariate distribution (one discrete variable)
 println("Building univariate discrete test case")
@@ -243,7 +246,7 @@ bn = DiscreteBayesNet()
 push!(bn, DiscreteCPD(:C, [0.001,0.999]))
 push!(bn, CategoricalCPD{Categorical{Float64}}(:D, [:C], [2,],
                 [Categorical([0.001, 0.999]), Categorical([0.999, 0.001])]))
-# compare_discrete(bn, "Rare Events", Assignment(:D => 2), 200, 0, false)
+# compare_discrete(bn, "Error on Estimation of P(C | D=1)", Assignment(:D => 2), 0, 0, false)
 
 # One continuous distribution
 
@@ -288,12 +291,14 @@ end
 
 function estimate_mean_and_stddev(bn::BayesNet, burn_in::Int, thinning::Int,
                                   name::String, target_mu::Array{Float64, 1}, target_sigma::Array{Float64, 2};
-                                  sample_size_comparisons::Array{Int, 1}=[50 * i for i in 1:100],
+                                  sample_size_comparisons::Array{Int, 1}=[100 * i for i in 1:50],
                                   consistent_with::Assignment = Assignment())
         println("Running...")
         println(name)
 
-        results = zeros(length(sample_size_comparisons), 5)
+        results = zeros(length(sample_size_comparisons), 20, 5)
+
+        for repetition_index in 1:20
         results_index = 1
 
         for sample_size in sample_size_comparisons
@@ -306,13 +311,16 @@ function estimate_mean_and_stddev(bn::BayesNet, burn_in::Int, thinning::Int,
                          consistent_with=consistent_with)
                 gibbs_error = mean_and_stddev_error(gibbs_samples, bn, target_mu, target_sigma, false, consistent_with)
 
-                results[results_index, 1] = sample_size
-                results[results_index, 2] = rtw_error[1]
-                results[results_index, 3] = gibbs_error[1]
-                results[results_index, 4] = rtw_error[2]
-                results[results_index, 5] = gibbs_error[2]
+                results[results_index, repetition_index, 1] = sample_size
+                results[results_index, repetition_index, 2] = rtw_error[1]
+                results[results_index, repetition_index, 3] = gibbs_error[1]
+                results[results_index, repetition_index, 4] = rtw_error[2]
+                results[results_index, repetition_index, 5] = gibbs_error[2]
                 results_index = results_index + 1
         end
+        end
+
+        results = mean(results, 2)[:, 1, :]
 
         for row in 1:size(results)[1]
                 println(results[row, :])
@@ -351,7 +359,7 @@ push!(bn, LinearGaussianCPD(:x2, NodeName[:x1],
 assert(names(bn) == [:x1, :x2])
 burn_in = 600
 thinning = 0
-estimate_mean_and_stddev(bn, burn_in, thinning, "Multivariate Gaussian", mu, sigma)
+# estimate_mean_and_stddev(bn, burn_in, thinning, "Multivariate Gaussian", mu, sigma)
 
 x2_value = 5.0 * (sig2 / sig1 / rho)
 target_mean = (rho * sig1 / sig2) * x2_value
@@ -364,8 +372,8 @@ target_sigma = ones(1,1) * target_std
 println(target_mu)
 println(target_sigma)
 
-#estimate_mean_and_stddev(bn, burn_in, thinning, "Conditional Multivariate Gaussian", 
-#				target_mu, target_sigma, consistent_with=Assignment(:x2 => x2_value))
+estimate_mean_and_stddev(bn, burn_in, thinning, "Conditional Multivariate Gaussian", 
+				target_mu, target_sigma, consistent_with=Assignment(:x2 => x2_value))
 
 # Hybrid - Two Gaussians
 
