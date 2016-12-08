@@ -28,7 +28,9 @@ type GibbsSamplerState
     bn::BayesNet
     key_constructor_name_order::Array{Symbol,1}
     max_cache_size::Nullable{Integer}
-    markov_blanket_cache::Dict{Symbol, Array{CPD}}
+    markov_blanket_cpds_cache::Dict{Symbol, Array{CPD}}
+    markov_blanket_cache::Dict{Symbol, Set{Symbol}}
+    finite_distrbution_is_cacheable::Dict{Symbol, Bool}
     finite_distribution_cache::Dict{String, Array{Float64, 1}}
     AMH_support_point_cache::Dict{Symbol, ARMH_proposal}
 
@@ -37,8 +39,22 @@ type GibbsSamplerState
         max_cache_size::Nullable{Integer}=Nullable{Integer}()
         )
 
-        new(bn, names(bn), max_cache_size, Dict{Symbol, Array{CPD}}(), 
-            Dict{String, Array{Float64, 1}}(), Dict{Symbol, Vector{Vector{Float64}}}())
+        a = rand(bn)
+        markov_blankets = Dict{Symbol, Set{Symbol}}(name => markov_blanket(bn, name) for name in names(bn))
+        is_cacheable = Dict{Symbol, Bool}(
+                       name => all(
+                                  [hasfinitesupport(get(bn, mb_name)(a)) for mb_name in markov_blankets[name]]
+                                  ) 
+                       for name in names(bn)
+                       )
+
+        new(bn, names(bn), max_cache_size, 
+            Dict{Symbol, Array{CPD}}(name => markov_blanket_cpds(bn, name) for name in names(bn)), 
+            markov_blankets,
+            is_cacheable,
+            Dict{String, Array{Float64, 1}}(), 
+            Dict{Symbol, Vector{Vector{Float64}}}()
+            )
     end
 
 end
@@ -47,13 +63,7 @@ end
 Technically modifies gss because gss stores the cache for this function
 """
 function get_markov_blanket_cpds(gss::GibbsSamplerState, varname::Symbol)
-    if haskey(gss.markov_blanket_cache, varname)
-        return gss.markov_blanket_cache[varname]
-    end
-
-    _markov_blanket_cpds = markov_blanket_cpds(gss.bn, varname)
-    gss.markov_blanket_cache[varname] = _markov_blanket_cpds
-    return _markov_blanket_cpds
+    return gss.markov_blanket_cpds_cache[varname]
 end
 
 """
@@ -62,17 +72,18 @@ Helper to sample_posterior_finite
 Modifies a and gss
 """
 function get_finite_distribution!(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
-    # Best way to compute this key?
-    # A quick test showed that this method was faster than
-    # using Array{String, 1} (no join)
-    # using Array{Any, 1} (no stringification)
-    # using a tuple
-    # not caching at all
-    a[varname] = varname
-    key = join([string(a[name]) for name in gss.key_constructor_name_order], ",")
 
-    if haskey(gss.finite_distribution_cache, key)
-        return gss.finite_distribution_cache[key]
+    is_cacheable = gss.finite_distrbution_is_cacheable[varname]
+    key = ""
+    if is_cacheable
+
+        key = join([string(a[name]) for name in gss.markov_blanket_cache[varname]], ",")
+        key = join([string(varname), key], ",")
+
+        if haskey(gss.finite_distribution_cache, key)
+            return gss.finite_distribution_cache[key]
+        end
+
     end
 
     markov_blanket_cpds = get_markov_blanket_cpds(gss, varname)
@@ -83,7 +94,7 @@ function get_finite_distribution!(gss::GibbsSamplerState, varname::Symbol, a::As
         posterior_distribution[index] = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
     end
     posterior_distribution = posterior_distribution / sum(posterior_distribution)
-    if isnull(gss.max_cache_size) || length(gss.finite_distribution_cache) < get(gss.max_cache_size)
+    if is_cacheable && ( isnull(gss.max_cache_size) || length(gss.finite_distribution_cache) < get(gss.max_cache_size) )
         gss.finite_distribution_cache[key] = posterior_distribution
     end
     return posterior_distribution
@@ -453,8 +464,8 @@ function sample_posterior!(gss::GibbsSamplerState, varname::Symbol, a::Assignmen
     elseif typeof(distribution) <: DiscreteUnivariateDistribution
         error("Infinite Discrete distributions are currently not supported in the Gibbs sampler")
     else
-        sample_posterior_continuous_adaptive!(gss, varname, a, distribution)
-        # sample_posterior_continuous!(gss, varname, a, distribution)
+        # sample_posterior_continuous_adaptive!(gss, varname, a, distribution)
+        sample_posterior_continuous!(gss, varname, a, distribution)
     end
 end
 
@@ -631,7 +642,7 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     return hcat(samples, evidence)
 end
 
-type GibbsSampler
+type GibbsSampler <: BayesNetSampler
 
     burn_in::Integer
     thinning::Integer

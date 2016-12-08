@@ -1,3 +1,5 @@
+abstract BayesNetSampler
+
 """
 Overwrites assignment with a joint sample from bn
     NOTE: this will condition as it goes

@@ -27,6 +27,7 @@ export
     parents,
     children,
     markov_blanket_cpds,
+    markov_blanket,
     has_edge,
     enforce_topological_order!,
 
@@ -35,6 +36,7 @@ export
 
     rand_cpd,
     rand_table_weighted,
+    BayesNetSampler,
     gibbs_sample,
     GibbsSampler,
 

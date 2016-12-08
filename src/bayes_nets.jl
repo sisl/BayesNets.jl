@@ -108,6 +108,16 @@ function markov_blanket_cpds(bn::BayesNet, target::NodeName)
 	return markov_blanket_cpds
 end
 
+function markov_blanket(bn::BayesNet, target::NodeName)
+	nodeNames = NodeName[]
+        for child in children(bn, target)
+		append!(nodeNames, parents(bn, child))
+                push!(nodeNames, child)
+        end
+        append!(nodeNames, parents(bn, target))
+        return setdiff(Set(nodeNames), Set(NodeName[target]))
+end
+
 function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)
 	u = get(bn.name_to_index, parent, 0)
 	v = get(bn.name_to_index, child, 0)
