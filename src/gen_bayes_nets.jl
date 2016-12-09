@@ -53,7 +53,7 @@ function bn_inference_init(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)
     evidence = Assignment()
 
     for ev in evidence_nodes
-        ncat = ncategories(get(bn, ev).distributions[1])
+        ncat = ncategories(bn, ev)
         evidence[ev] = sample(1:ncat)
     end
 

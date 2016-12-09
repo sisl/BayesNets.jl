@@ -1,7 +1,3 @@
-function Distributions.ncategories(bn::DiscreteBayesNet, node::Symbol)
-    return Distributions.ncategories(get(bn, node).distributions[1])
-end
-
 ###############################################################################
 #                       EXACT INFERENCE
 ###############################################################################
@@ -378,7 +374,7 @@ end
 Loopy beleif propogation for a network.
 
 Early stopping if change is messages < `tol` for `iters_for_convergence'
-iterations.
+iterations. For no stopping, use tol < 0.
 """
 function loopy_belief(bn::BayesNet, query::Symbol;
         evidence::Assignment=Assignment(), N=100,
@@ -533,11 +529,10 @@ function loopy_belief(bn::BayesNet, query::Symbol;
         lambdas = deepcopy(new_lambdas)
 
         change_per_iter[i] = max_change
-        # a % b in [0, b), so add 1
+        # a % b is in [0, b), so add 1
         i = i % iters_for_convergence + 1
 
         if maximum(change_per_iter) <= tol
-            print("ended at iter $(iter)")
             break
         end
     end

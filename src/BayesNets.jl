@@ -87,8 +87,11 @@ include("DiscreteBayesNet/discrete_bayes_net.jl")
 include("DiscreteBayesNet/structure_scoring.jl")
 include("DiscreteBayesNet/greedy_hill_climbing.jl")
 
-include("inference.jl")
 include("gen_bayes_nets.jl")
+include("inference/exact.jl")
+include("inference/gibbs.jl")
+include("inference/likelihood.jl")
+include("inference/loopy_belief.jl")
 
 end # module
 
