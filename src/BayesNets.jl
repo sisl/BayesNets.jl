@@ -80,15 +80,15 @@ include("io.jl")
 include("sampling.jl")
 include("learning.jl")
 
-include("inference.jl")
-include("gen_bayes_nets.jl")
-
 include("DiscreteBayesNet/ndgrid.jl")
 include("DiscreteBayesNet/factors.jl")
 include("DiscreteBayesNet/dirichlet_priors.jl")
 include("DiscreteBayesNet/discrete_bayes_net.jl")
 include("DiscreteBayesNet/structure_scoring.jl")
 include("DiscreteBayesNet/greedy_hill_climbing.jl")
+
+include("inference.jl")
+include("gen_bayes_nets.jl")
 
 end # module
 
