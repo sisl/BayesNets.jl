@@ -222,4 +222,13 @@ let
         end
         @test pass
 
+        pass = false
+        try
+            error_test = gibbs_sample(bn2, 5, 100; initial_sample=Nullable{Assignment}(Assignment(:a => 1, :b => 1, :c => 3)))
+        catch e
+            pass = true
+        end
+        @test pass
+
+
 end

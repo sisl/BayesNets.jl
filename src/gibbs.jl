@@ -319,6 +319,7 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
         for name in keys(consistent_with)
             init_sample[name] == consistent_with[name] || throw(ArgumentError("Gibbs sample initial_sample was inconsistent with consistent_with"))
         end
+        pdf(bn, init_sample) > 0 || throw(ArgumentError("Gibbs sample initial_sample has a pdf value of zero"))
     end
 
     gss = GibbsSamplerState(bn, max_cache_size)
@@ -328,7 +329,7 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     if isnull(initial_sample)
         rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
 	if any(isnan(convert(Array{AbstractFloat}, rand_samples[:p])))
-		error("Gibbs Sampler was unable to find an inital sample with non-zero probability")
+		error("Gibbs Sampler was unable to find an inital sample with non-zero probability, please supply an inital sample")
 	end
         burn_in_initial_sample = sample_weighted_dataframe(rand_samples)
     else
