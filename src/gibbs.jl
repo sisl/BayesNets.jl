@@ -17,7 +17,8 @@ type GibbsSamplerState
         )
 
         a = rand(bn)
-        markov_blankets = Dict{Symbol, Vector{Symbol}}(name => convert(Vector{Symbol}, markov_blanket(bn, name)) for name in names(bn))
+        markov_blankets = Dict{Symbol, Vector{Symbol}}(name => Vector{Symbol}([ele for ele in markov_blanket(bn, name)]) 
+                                                           for name in names(bn))
         is_cacheable = Dict{Symbol, Bool}(
                        name => all(
                                   [hasfinitesupport(get(bn, mb_name)(a)) for mb_name in markov_blankets[name]]
