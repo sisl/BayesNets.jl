@@ -1,3 +1,6 @@
+"""
+Absract type for sampling with Base.rand(bn::BayesNet, conig::BayesNetSampler, nsamples::Integer)
+"""
 abstract BayesNetSampler
 
 """

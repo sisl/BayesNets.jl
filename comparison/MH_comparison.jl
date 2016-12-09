@@ -27,7 +27,7 @@ function get_samples(bn::BayesNet, target::Symbol, a::Assignment, thinning::Inte
 end
 
 function build_histogram(bn::BayesNet, target::Symbol, a::Assignment, thinning::Integer, 
-               nsamples::Integer, target_distribution::Distribution, name::String; burn_in::Integer=0)
+               nsamples::Integer, target_distribution::Distribution, name::String; burn_in::Integer=0, redo_bins::Bool=false)
 
 	println(name)
 
@@ -43,11 +43,14 @@ function build_histogram(bn::BayesNet, target::Symbol, a::Assignment, thinning::
 	savefig(join([name, ".png"]))
 	clf()	
 
-	lw_samples = rand_table_weighted(bn; nsamples = nsamples, 
+        if redo_bins
+            bins = 75
+        end
+	lw_samples = rand_table_weighted(bn; nsamples = nsamples*thinning + burn_in, 
 		consistent_with = Assignment(name => a[name] for name in names(bn) if name != target))
 	weights = convert(Array, lw_samples[:p])
         lw_samples = convert(Array, lw_samples[target])
-        n, bins, patches = plt[:hist](lw_samples; bins=75, normed=true, facecolor="red", alpha=0.5, weights=weights)
+        n, bins, patches = plt[:hist](lw_samples; bins=bins, normed=true, facecolor="red", alpha=0.5, weights=weights)
 	plot(bins, [pdf(target_distribution, bin) for bin in bins], "b--")
 	name = join([name, " LW"])
         title(name)
@@ -103,8 +106,12 @@ function two_variable_hist(sig1::Float64, sig2::Float64, correlation::Float64, n
     nsamples = 40000
     burn_in = Int(40000 / (thinning + 1))
 
+    redo_bins = false
+    if correlation > 0.9
+	redo_bins = true
+    end
     build_histogram(bn, :x1, a, thinning,
-                       nsamples, target, name; burn_in=burn_in)
+                       nsamples, target, name; burn_in=burn_in, redo_bins=redo_bins)
 
     mb = markov_blanket_cpds(bn, :x1)
     test_a = Assignment(:x1 => 3.0, :x2 => x2_value)

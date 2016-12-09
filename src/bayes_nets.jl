@@ -108,6 +108,9 @@ function markov_blanket_cpds(bn::BayesNet, target::NodeName)
 	return markov_blanket_cpds
 end
 
+"""
+Return the children, parents, and parents of children (excluding target) as a Set of NodeNames
+"""
 function markov_blanket(bn::BayesNet, target::NodeName)
 	nodeNames = NodeName[]
         for child in children(bn, target)
