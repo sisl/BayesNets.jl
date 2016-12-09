@@ -1,28 +1,3 @@
-type ARMH_proposal
-
-    support_points::Vector{Float64}
-    prob_cache::Vector{Float64} # prob_cache[i] = scaled_true_pdf(support_points[i])
-
-    slopes::Vector{Float64}
-    intercepts::Vector{Float64}
-
-    # segment_area[i] = area under support_points[i] - support_points[i-1], has one more element than support_points
-    segment_area::Vector{Float64}
-    total_area::Float64 # sum(segment_area)
-
-    left_exp_slope::Float64
-    left_exp_intercept::Float64
-    right_exp_slope::Float64
-    right_exp_intercept::Float64
-
-    function ARMH_proposal()
-        new( Float64[],
-             Float64[], Float64[], Float64[],
-             Vector{Float64}(Float64[]),
-             0.0, 0.0, 0.0, 0.0, 0.0)
-    end
-end
-
 """
 Used to cache various things the Gibbs sampler needs
 """
@@ -35,7 +10,6 @@ type GibbsSamplerState
     markov_blanket_cache::Dict{Symbol, Vector{Symbol}}
     finite_distrbution_is_cacheable::Dict{Symbol, Bool}
     finite_distribution_cache::Dict{String, Array{Float64, 1}}
-    AMH_support_point_cache::Dict{Symbol, ARMH_proposal}
 
     function GibbsSamplerState(
         bn::BayesNet,
@@ -56,7 +30,6 @@ type GibbsSamplerState
             markov_blankets,
             is_cacheable,
             Dict{String, Array{Float64, 1}}(), 
-            Dict{Symbol, Vector{Vector{Float64}}}()
             )
     end
 
@@ -138,259 +111,6 @@ function sample_posterior_finite!(gss::GibbsSamplerState, varname::Symbol, a::As
 
 end
 
-function L(x::Float64, proposal::ARMH_proposal, index1::Int64, index2::Int64)
-    return proposal.slopes[index1] * x + proposal.intercepts[index1]
-end
-
-function eval_exponential(x::Float64, proposal::ARMH_proposal, left::Bool)
-    if left
-        return exp(proposal.left_exp_slope * x + proposal.left_exp_intercept)
-    end
-    return exp(proposal.right_exp_slope * x + proposal.right_exp_intercept)
-end
-
-function update_segment(proposal::ARMH_proposal, segment_index::Int64)
-    # segment_index in 1 to num_support_points + 1
-    num_points = length(proposal.support_points)
-
-    if segment_index == 1
-        dy = log(proposal.prob_cache[2]) - log(proposal.prob_cache[1])
-        dx = proposal.support_points[2] - proposal.support_points[1]
-        slope = dy/dx
-        slope = max(slope, 0.05)
-        intercept = log(proposal.prob_cache[1]) - slope * proposal.support_points[1]
-        area = 1.0/slope * exp(slope * proposal.support_points[1] + intercept)
-        # TODO for bounded distributions, do area -= 1.0/slope * exp(slope * left_bound + intercept)
-
-        proposal.total_area += area - proposal.segment_area[segment_index]
-        proposal.segment_area[segment_index] = area
-        proposal.left_exp_slope = slope
-        proposal.left_exp_intercept = intercept
-    elseif segment_index == num_points + 1
-        index2 = num_points - 1
-        index1 = num_points
-        dy = log(proposal.prob_cache[index2]) - log(proposal.prob_cache[index1])
-        dx = proposal.support_points[index2] - proposal.support_points[index1]
-        slope = dy/dx
-        slope = min(slope, -0.05)
-        intercept = log(proposal.prob_cache[index1]) - slope * proposal.support_points[index1]
-        area = -1.0/slope * exp(slope * proposal.support_points[index1] + intercept)
-        # TODO for bounded distributions, do area += 1.0/slope * exp(slope * right + intercept)
-
-        proposal.total_area += area - proposal.segment_area[segment_index]
-        proposal.segment_area[segment_index] = area
-        proposal.right_exp_slope = slope
-        proposal.right_exp_intercept = intercept
-    else
-        xl = proposal.support_points[segment_index - 1]
-        xu = proposal.support_points[segment_index]
-        yl = proposal.prob_cache[segment_index - 1]
-        yu = proposal.prob_cache[segment_index]
-
-        area = (xu - xl) * (yu + yl)/2.0
-        slope = (yu - yl)/(xu - xl)
-        intercept = yl - slope * xl
-
-        print("Line (x1, y1, x2, y2): ")
-        println([xl, yl, xu, yu])
-        print("Line area: ")
-        println(area)
-
-        proposal.total_area += area - proposal.segment_area[segment_index]
-        proposal.segment_area[segment_index] = area
-        proposal.slopes[segment_index - 1] = slope
-        proposal.intercepts[segment_index - 1] = intercept
-    end
-
-end
-"""
-Assumes there are atleast 3 points in the proposal
-"""
-function update_support_points(proposal::ARMH_proposal, new_support_point::Float64, support_point_scaled_true_prob::Float64)
-    # If you average the densities correctly, the density update should be small
-    insertion_index = 1 + searchsortedlast(proposal.support_points, new_support_point)
-    insert!(proposal.segment_area, insertion_index + 1, 0.0)
-    insert!(proposal.support_points, insertion_index, new_support_point)
-    insert!(proposal.prob_cache, insertion_index, support_point_scaled_true_prob)
-    insert!(proposal.slopes, insertion_index, 0.0)
-    insert!(proposal.intercepts, insertion_index, 0.0)
-    update_segment(proposal, insertion_index)
-    update_segment(proposal, insertion_index + 1)
-end
-
-function value_at_cdf(proposal::ARMH_proposal, cdf_val::Float64)
-    num_points = length(proposal.support_points)
-    area_jump_val = proposal.total_area * cdf_val
-    segment_index = 0
-    while area_jump_val >= 0.0
-        segment_index += 1
-        area_jump_val -= proposal.segment_area[segment_index]
-    end
-    area_jump_val += proposal.segment_area[segment_index]
-
-    if segment_index == 1
-
-        return (log(area_jump_val * proposal.left_exp_slope) - proposal.left_exp_intercept) / proposal.left_exp_slope
-
-    elseif segment_index == num_points + 1
-
-        tmp = area_jump_val - 
-            exp(proposal.right_exp_slope * proposal.support_points[end] + proposal.right_exp_intercept) / proposal.right_exp_slope
-        return (log(tmp * (-proposal.right_exp_slope)) - proposal.right_exp_intercept) / proposal.right_exp_slope
-
-    else
-        right_bound = proposal.support_points[segment_index]
-        left_bound = proposal.support_points[segment_index - 1]
-        m = proposal.slopes[segment_index - 1]
-        b = proposal.intercepts[segment_index - 1]
-        A = area_jump_val + (m * left_bound * left_bound / 2 + b * left_bound)
-        x = (sqrt(2 * A * m + b*b) - b)/m
-        if isapprox(m, 0.0) 
-            return A/b
-        else
-            if (x > left_bound) && (x < right_bound)
-                return x
-            end
-            return -1 * x 
-        end
-    end
-    
-end
-
-function sample_from_AMH_proposal(proposal::ARMH_proposal)
-    new_sample = value_at_cdf(proposal, rand())
-    return new_sample, AMH_proposal_pdf(proposal, new_sample)
-end
-
-function AMH_proposal_pdf(proposal::ARMH_proposal, proposed_jump::Float64)
-    insertion_index = searchsortedlast(proposal.support_points, proposed_jump)
-    num_points = length(proposal.support_points)
-    out = 0.0
-    if insertion_index == num_points
-        out = eval_exponential(proposed_jump, proposal, false)
-    elseif insertion_index > 0
-        out = L(proposed_jump, proposal, insertion_index, insertion_index + 1)
-    else
-        # insertion_index == 0
-        out = eval_exponential(proposed_jump, proposal, true)
-    end
-    return out / proposal.total_area
-end
-
-function initialize_proposal(gss::GibbsSamplerState, varname::Symbol,
-                                   var_distribution::ContinuousUnivariateDistribution, a::Assignment,
-                                   markov_blanket::Vector{CPD})
-    # initialze to the 5th, 50th, and 95th percentile values from the previous iteration if the support points
-    	# are available this is based on the suggestion in:
-    # W. R. Gilks, N. G. Best, and K. K. C. Tan, Adaptive rejection metropolis sampling within Gibbs sampling, Appl. Statist., vol. 44, no. 4, pp. 455472, 1995
-
-    v1 = 0.0
-    v2 = 0.0
-    v3 = 0.0
-    if haskey(gss.AMH_support_point_cache, varname)
-        old_proposal = gss.AMH_support_point_cache[varname]
-        v1 = value_at_cdf(old_proposal, 0.05)
-        v2 = value_at_cdf(old_proposal, 0.5)
-        v3 = value_at_cdf(old_proposal, 0.95)
-    else
-        v2 = mean(var_distribution)
-        stddev = std(var_distribution)
-        v3 = 5*stddev + v2
-        v1 = v2 - 5 * stddev
-    end
-    # TODO initalize support points, consider using the bounds of the distribution if they exist
-
-    v1 = max(v1, minimum(var_distribution))
-    v3 = min(v3, maximum(var_distribution))
-    p = ARMH_proposal()
-    p.support_points = [v1, v2, v3]
-    print("Initial points")
-    println(p.support_points)
-    sort!(p.support_points)
-    p.segment_area = [0.0 for i in 1:4]
-    p.slopes = [0.0 for i in 1:2]
-    p.intercepts = [0.0 for i in 1:2]
-    old_val = a[varname]
-    for v in p.support_points
-        a[varname] = v
-        push!(p.prob_cache, exp(sum([logpdf(cpd, a) for cpd in markov_blanket])))
-    end
-    a[varname] = old_val
-    for i in 1:4
-        update_segment(p, i)
-    end
-    return p
-end
-
-"""
-Martino, L.; Read, J.; Luengo, D. (2015-06-01). "Independent Doubly Adaptive Rejection Metropolis Sampling Within Gibbs Sampling". IEEE Transactions on Signal Processing. 63 (12): 31233138. doi:10.1109/TSP.2015.2420537. ISSN 1053-587X
-
-This implements the proposal from equation (9)
-
-http://ieeexplore.ieee.org/document/7080917/?arnumber=7080917
-
-https://arxiv.org/pdf/1205.5494v4.pdf
-
-(These are different papers)
-"""
-function sample_posterior_continuous_adaptive!(gss::GibbsSamplerState, varname::Symbol, a::Assignment,
-                                     var_distribution::ContinuousUnivariateDistribution; AMH_iterations::Integer=10)
-    # Implements IA2RMS
-    markov_blanket_cpds = gss.markov_blanket_cpds_cache[varname]
-    _proposal = initialize_proposal(gss, varname, var_distribution, a, markov_blanket_cpds)    
-
-    previous_sample_scaled_true_prob = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
-    previous_sample_proposal_prob = AMH_proposal_pdf(_proposal, a[varname])
-
-    for alg_iteration in 1:AMH_iterations
-        current_value = a[varname]
-        proposed_jump, proposed_jump_proposal_prob = sample_from_AMH_proposal(_proposal)
-        a[varname] = proposed_jump
-        proposed_jump_scaled_true_prob = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))    
-
-        # Rejection step
-        acceptance_prob = proposed_jump_scaled_true_prob / proposed_jump_proposal_prob
-        if rand() > acceptance_prob
-            # Reject and add to support points
-            update_support_points(_proposal, proposed_jump, proposed_jump_scaled_true_prob)
-            a[varname] = current_value
-            previous_sample_proposal_prob = AMH_proposal_pdf(_proposal, current_value)
-        else
-            # MH acceptance step
-            MH_acceptance_prob = proposed_jump_scaled_true_prob * min(previous_sample_scaled_true_prob, previous_sample_proposal_prob)
-            MH_acceptance_prob /= previous_sample_scaled_true_prob * min(proposed_jump_scaled_true_prob, proposed_jump_proposal_prob)
-            y = proposed_jump
-            y_proposal_prob = proposed_jump_proposal_prob
-            y_scaled_true_prob = proposed_jump_scaled_true_prob
-            if rand() <= MH_acceptance_prob
-                # Accept new sample
-                y = current_value
-                y_proposal_prob = previous_sample_proposal_prob
-                y_scaled_true_prob = previous_sample_scaled_true_prob
-                previous_sample_scaled_true_prob = proposed_jump_scaled_true_prob
-                # a[varname] has already been set to proposed_jump
-                # previous_sample_proposal_prob is updated below
-            else
-                # Reject new sample
-                a[varname] = current_value
-            end
-    
-            # Update proposal
-            update_proposal_rejection_prob = y_proposal_prob / y_scaled_true_prob
-            if rand() > update_proposal_rejection_prob
-                update_support_points(_proposal, y, y_scaled_true_prob)
-                previous_sample_proposal_prob = AMH_proposal_pdf(_proposal, a[varname])
-            elseif a[varname] != current_value
-                previous_sample_proposal_prob = AMH_proposal_pdf(_proposal, a[varname])
-            end
-        end
-    
-    end
-
-    gss.AMH_support_point_cache[varname] = _proposal
-
-end
-
 """
 Implements Metropolis-Hastings with a normal distribution proposal with mean equal to the previous value
 of the variable "varname" and stddev equal to 10 times the standard deviation of the distribution of the target
@@ -409,9 +129,6 @@ Modifies a and caches in gss
 """
 function sample_posterior_continuous!(gss::GibbsSamplerState, varname::Symbol, a::Assignment, 
                                      var_distribution::ContinuousUnivariateDistribution; MH_iterations::Integer=10)
-    # TODO consider using slice sampling or having an option for slice sampling
-    # Implement http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7080917
-
     # Random Walk Metropolis Hastings
     markov_blanket_cpds = gss.markov_blanket_cpds_cache[varname]
     stddev = std(var_distribution) * 10.0
@@ -454,7 +171,6 @@ set a[varname] ~ P(varname | not varname)
 Modifies a and caches in gss
 """
 function sample_posterior!(gss::GibbsSamplerState, varname::Symbol, a::Assignment)
-
     bn = gss.bn
     cpd = get(bn, varname)
     distribution = cpd(a)
