@@ -19,13 +19,15 @@ type GibbsSamplerState
         a = rand(bn)
         markov_blankets = Dict{Symbol, Vector{Symbol}}()
         is_cacheable = Dict{Symbol, Bool}()
+        markov_blanket_cpds_cache = Dict{Symbol, Array{CPD}}()
         for name in names(bn)
             markov_blankets[name] = Symbol[ele for ele in markov_blanket(bn, name)]
             is_cacheable[name] = reduce(&, [hasfinitesupport(get(bn, mb_name)(a)) for mb_name in markov_blankets[name]])
+            markov_blanket_cpds_cache[name] = markov_blanket_cpds(bn, name)
         end
 
         new(bn, names(bn), max_cache_size, 
-            Dict{Symbol, Array{CPD}}([name => markov_blanket_cpds(bn, name) for name in names(bn)]), 
+            markov_blanket_cpds_cache, 
             markov_blankets,
             is_cacheable,
             Dict{String, Array{Float64, 1}}(), 
@@ -360,9 +362,11 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     # Real samples
     main_samples_initial_sample = burn_in_initial_sample
     if burn_in != 0 && size(burn_in_samples)[1] > 0
-        main_samples_initial_sample = Assignment(Dict([varname => 
-                      (haskey(consistent_with, varname) ? consistent_with[varname] : burn_in_samples[end, varname])
-                      for varname in names(bn)])) 
+        main_samples_initial_sample = Assignment()
+        for varname in names(bn)
+            main_samples_initial_sample[varname] = haskey(consistent_with, varname) ? 
+                                                       consistent_with[varname] : burn_in_samples[end, varname]
+        end
     end
     samples, samples_time = gibbs_sample_main_loop(gss, nsamples, thinning, 
                                main_samples_initial_sample, consistent_with, variable_order, remaining_time)
@@ -372,8 +376,11 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     end
 
     # Add in columns for variables that were conditioned on
-    evidence = DataFrame(Dict([varname => ones(size(samples)[1]) * consistent_with[varname] 
-                 for varname in keys(consistent_with)]))
+    evidence = Dict{Symbol, Array{Float64,1}}()
+    for varname in keys(consistent_with)
+        evidence[varname] = ones(size(samples)[1]) * consistent_with[varname]
+    end
+    evidence = DataFrame(evidence)
     return hcat(samples, evidence)
 end
 
