@@ -21,7 +21,7 @@ type GibbsSamplerState
         is_cacheable = Dict{Symbol, Bool}()
         for name in names(bn)
             markov_blankets[name] = Symbol[ele for ele in markov_blanket(bn, name)]
-            is_cacheable[name] = all([hasfinitesupport(get(bn, mb_name)(a)) for mb_name in markov_blankets[name]])
+            is_cacheable[name] = reduce(&, [hasfinitesupport(get(bn, mb_name)(a)) for mb_name in markov_blankets[name]])
         end
 
         new(bn, names(bn), max_cache_size, 
@@ -338,7 +338,7 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     # for burn_in_initial_sample use rand_table_weighted, should be consistent with the varibale consistent_with
     if isnull(initial_sample)
         rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
-	if any(isnan(convert(Array{AbstractFloat}, rand_samples[:p])))
+	if reduce(|, isnan(convert(Array{AbstractFloat}, rand_samples[:p])))
 		error("Gibbs Sampler was unable to find an inital sample with non-zero probability, please supply an inital sample")
 	end
         burn_in_initial_sample = sample_weighted_dataframe(rand_samples)
