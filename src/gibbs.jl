@@ -17,17 +17,15 @@ type GibbsSamplerState
         )
 
         a = rand(bn)
-        markov_blankets = Dict{Symbol, Vector{Symbol}}(name => Vector{Symbol}([ele for ele in markov_blanket(bn, name)]) 
-                                                           for name in names(bn))
-        is_cacheable = Dict{Symbol, Bool}(
-                       name => all(
-                                  [hasfinitesupport(get(bn, mb_name)(a)) for mb_name in markov_blankets[name]]
-                                  ) 
-                       for name in names(bn)
-                       )
+        markov_blankets = Dict{Symbol, Vector{Symbol}}()
+        is_cacheable = Dict{Symbol, Bool}()
+        for name in names(bn)
+            markov_blankets[name] = Symbol[ele for ele in markov_blanket(bn, name)]
+            is_cacheable[name] = all([hasfinitesupport(get(bn, mb_name)(a)) for mb_name in markov_blankets[name]])
+        end
 
         new(bn, names(bn), max_cache_size, 
-            Dict{Symbol, Array{CPD}}(name => markov_blanket_cpds(bn, name) for name in names(bn)), 
+            Dict{Symbol, Array{CPD}}([name => markov_blanket_cpds(bn, name) for name in names(bn)]), 
             markov_blankets,
             is_cacheable,
             Dict{String, Array{Float64, 1}}(), 
@@ -82,8 +80,13 @@ function sample_weighted_dataframe(rand_samples::DataFrame)
     while c < u && i < n
         c += p[i += 1]
     end
-
-    return Assignment(Dict(varname => rand_samples[i, varname] for varname in names(rand_samples) if varname != :p))
+    a = Assignment()
+    for varname in names(rand_samples)
+        if varname != :p
+            a[varname] = rand_samples[i, varname]
+        end
+    end
+    return a
 end
 
 """
@@ -206,7 +209,14 @@ time_limit::Nullable{Integer})
          v_order = get(variable_order)
     end
 
-    v_order = [varname for varname in v_order if ~haskey(consistent_with, varname)]
+    # v_order = [varname for varname in v_order if ~haskey(consistent_with, varname)]
+    v_order_query_only = Symbol[]
+    for varname in v_order
+        if ~haskey(consistent_with, varname)
+            push!(v_order_query_only, varname)
+        end
+    end
+    v_order = v_order_query_only
 
     t = Dict{Symbol, Vector{Any}}()
     for name in v_order
@@ -350,9 +360,9 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     # Real samples
     main_samples_initial_sample = burn_in_initial_sample
     if burn_in != 0 && size(burn_in_samples)[1] > 0
-        main_samples_initial_sample = Assignment(Dict(varname => 
+        main_samples_initial_sample = Assignment(Dict([varname => 
                       (haskey(consistent_with, varname) ? consistent_with[varname] : burn_in_samples[end, varname])
-                      for varname in names(bn))) 
+                      for varname in names(bn)])) 
     end
     samples, samples_time = gibbs_sample_main_loop(gss, nsamples, thinning, 
                                main_samples_initial_sample, consistent_with, variable_order, remaining_time)
@@ -362,8 +372,8 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     end
 
     # Add in columns for variables that were conditioned on
-    evidence = DataFrame(Dict(varname => ones(size(samples)[1]) * consistent_with[varname] 
-                 for varname in keys(consistent_with)))
+    evidence = DataFrame(Dict([varname => ones(size(samples)[1]) * consistent_with[varname] 
+                 for varname in keys(consistent_with)]))
     return hcat(samples, evidence)
 end
 
