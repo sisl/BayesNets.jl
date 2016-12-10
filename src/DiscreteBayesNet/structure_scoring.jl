@@ -82,7 +82,7 @@ function bayesian_score_component{I<:Integer}(
     )
 
     if typeof(prior) == UniformPrior
-        #return bayesian_score_component_uniform(i, parents, ncategories, data, prior)
+        return bayesian_score_component_uniform(i, parents, ncategories, data, prior)
     end
     alpha = get(prior, i, ncategories, parents)
     bayesian_score_component(i, parents, ncategories, data, alpha)
