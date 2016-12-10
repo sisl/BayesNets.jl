@@ -22,16 +22,19 @@ function initial_sample(bn::BayesNet, evidence::Assignment)
 end
 
 """Get the cpd's of a node and its children"""
-get_mb_cpds(bn, node) = [get(bn, n) for n in push!(children(bn, node), node)]
+get_mb_cpds(bn::BayesNet, node::Symbol) =
+        [get(bn, n) for n in vcat(children(bn, node), node)]
 
-"""P(node | pa_node) * Prod (c in children) P(c | pa_c)
+"""
+The probability of all instances of a node given its markove blanket:
+    P(node | pa_node) * Prod (c in children) P(c | pa_c)
 
 Trys out all possible values of node (assumes categorical)
-Assignment should have values for all nodes in the network
+Assignment should have values for all in the Markov blanket, including the
+variable itself.
 """
 function eval_mb_cpd(node::Symbol, ncategories::Int,
-        assignment::Assignment,
-        mb_cpds::Vector)
+        assignment::Assignment, mb_cpds::Vector)
     # pdf accepts Assignment only, so swap out current for new value
     old_value = assignment[node]
     p = zeros(ncategories)
@@ -48,12 +51,11 @@ end
 
 """
 Gibbs sampling. Runs for `N` iterations.
-Discareds first `burn_in` samples and keeps only the
-`thin`-th sample. Ex, if `thin=3`, will discard the first two samples and keep
-the third.
+Discareds first `burn_in` samples and keeps only the `thin`-th sample.
+Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
 function gibbs_sampling(bn::BayesNet, query::Vector{Symbol};
-        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=1)
+        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=3)
     assert(burn_in < N)
 
     nodes = names(bn)
@@ -62,13 +64,13 @@ function gibbs_sampling(bn::BayesNet, query::Vector{Symbol};
     # the current state
     x = initial_sample(bn, evidence)
 
-    # if the math doesn't work out correctly, loop a couple more times . . .
+    # if the math doesn't work out correctly, loop a couple more times ...
     num_samples = Int(ceil((N-burn_in) / thin))
 
     # all the samples seen
     samples = DataFrame(fill(Int, length(query)), query, num_samples)
 
-    # markov blankets of each node to sample from
+    # Markov blankets of each node to sample from
     mb_cpds = Dict((n => get_mb_cpds(bn, n)) for n = non_evidence)
 
     order = shuffle(non_evidence)
@@ -87,7 +89,7 @@ function gibbs_sampling(bn::BayesNet, query::Vector{Symbol};
             # sample x_n ~ P(X_n|mb(X))
             x[n] = Distributions.sample(WeightVec(p))
 
-
+            # start collecting after the burn in and on the `thin`-th iteration
             if after_burn && ( ((i - burn_in) % thin) == 0)
                 for q in query
                     samples[k, q] = x[q]
@@ -98,12 +100,13 @@ function gibbs_sampling(bn::BayesNet, query::Vector{Symbol};
 
             i += 1
 
+            # kick in the afterburners
             if !after_burn && i > burn_in
                 after_burn = true
             end
 
+            # doubly nested loops!! yay!!
             if k > num_samples
-                # doubly nested loops!! yay!!
                 finished = true
                 break
             end
@@ -116,9 +119,12 @@ function gibbs_sampling(bn::BayesNet, query::Vector{Symbol};
     return samples
 end
 
-# each new sample is an iteration of all nodes
+"""
+Gibbs sampleing, but each new state samples is generated after iterating over
+all states in the network, not just one.
+"""
 function gibbs_sampling_full_iter(bn::BayesNet, query::Vector{Symbol};
-        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=1)
+        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=3)
     assert(burn_in < N)
 
     nodes = names(bn)
@@ -177,6 +183,7 @@ function gibbs_sampling_full_iter(bn::BayesNet, query::Vector{Symbol};
     return samples
 end
 
+# versions to accept just one query variable, instead of a vector
 function gibbs_sampling(bn::BayesNet, query::Symbol;
         evidence::Assignment=Assignment(),N=1E3, burn_in=500, thin=3)
     gibbs_sampling(bn, [query]; evidence=evidence, N=N, burn_in=burn_in, thin=thin)

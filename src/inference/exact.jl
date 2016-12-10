@@ -1,21 +1,22 @@
-#Bernoulli does not count as a categoical RV, so that can' tbe added to a BayesNet
 """
-Exact inference using factors
+Exact inference using factors and variable eliminations
+
+Returns P(query | evidence)
 """
 function exact_inference(bn::BayesNet, query::Vector{Symbol};
          evidence::Assignment=Assignment())
-    # P(query | evidence)
-
     nodes = names(bn)
     hidden = setdiff(nodes, vcat(query, collect(keys(evidence))))
     factors = map(n -> table(bn, n, evidence), nodes)
 
-    # order impacts performance, so choose a random ordering :)
+    # successively remove the hidden nodes
+    # order impacts performance, but we currently have no ordering heuristics
     for h in hidden
+        # find the facts that contain the hidden variable
         contain_h = filter(f -> h in DataFrames.names(f), factors)
-        # remove the factors that contain the hidden variable
+        # remove those factors
         factors = setdiff(factors, contain_h)
-        # add the product of the factors to the set
+        # add the product of those factors to the set
         if !isempty(contain_h)
             push!(factors, sumout(foldl((*), contain_h), h))
         end

@@ -32,8 +32,6 @@ end
 # TODO: implement factoring out final value in factor table,
 #       or throwing an error in that case
 # Works for non-binary variables and possibly fixes the above todo
-
-# TODO add `!` normalize since it modifies in-place?
 """
 Factor marginalization
 """
@@ -51,6 +49,8 @@ function sumout(f::Factor, v::Union{Symbol, AbstractVector{Symbol}})
         return by(f, remainingvars, df -> Factor(p = sum(df[:p])))
     end
 end
+
+# Should normalize be normalize! since it modifies the table?
 
 """
 Factor normalization

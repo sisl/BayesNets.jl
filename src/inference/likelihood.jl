@@ -1,3 +1,6 @@
+"""
+Likelihood weighted sampling using `rand_table_weighted`
+"""
 function weighted_built_in(bn::BayesNet, query::Union{Vector{Symbol}, Symbol};
         evidence::Assignment=Assignment(), N::Int=100)
     samples = rand_table_weighted(bn; consistent_with=evidence, nsamples=N)
@@ -9,7 +12,7 @@ Approximates p(query|evidence) with N weighted samples using likelihood
 weighted sampling
 """
 function likelihood_weighting(bn::BayesNet, query::Vector{Symbol};
-        evidence::Assignment=Assignment(), N::Int=100)
+        evidence::Assignment=Assignment(), N::Int=500)
     nodes = names(bn)
     # hidden nodes in the network
     hidden = setdiff(nodes, vcat(query, collect(keys(evidence))))
@@ -48,12 +51,13 @@ function likelihood_weighting(bn::BayesNet, query::Vector{Symbol};
 end
 
 """
-Samples has `a`, replaces its value f(samples[a, :probability], v), else adds it
+If `samples` has `a`, replaces its value with f(samples[a, :probability], v).
+Else adds `a` and `v` to `samples`
 
-Samples must have a column called probabiliteis
+`samples` must have a column called probabiliteis
 
-All columns of samples must be in a, but not all columns of a must be
-in samples
+All columns of `samples` must be in `a`, but not all columns of `a` must be
+in `samples`
 
 `f` should be able to take a DataFrames.DataArray as its first element
 """
@@ -77,9 +81,12 @@ function update_samples(samples::DataFrame, a::Assignment, v=1, f::Function=+)
     end
 end
 
-# increase size of samples as we go . . .
+"""
+Likelihood weighting where the samples are stored in a DataFrame that grows
+in size as more unique samples are observed.
+"""
 function likelihood_weighting_grow(bn::BayesNet, query::Vector{Symbol};
-        evidence::Assignment=Assignment(), N::Int=100)
+        evidence::Assignment=Assignment(), N::Int=500)
     nodes = names(bn)
     # hidden nodes in the network
     hidden = setdiff(nodes, vcat(query, collect(keys(evidence))))
@@ -114,13 +121,14 @@ function likelihood_weighting_grow(bn::BayesNet, query::Vector{Symbol};
     return samples
 end
 
+# versions to accept just one query variable, instead of a vector
 function likelihood_weighting(bn::BayesNet, query::Symbol;
-        evidence::Assignment=Assignment(), N::Int=100)
+        evidence::Assignment=Assignment(), N::Int=500)
     return likelihood_weighting(bn, [query]; evidence=evidence, N=N)
 end
 
 function likelihood_weighting_grow(bn::BayesNet, query::Symbol;
-        evidence::Assignment=Assignment(), N::Int=100)
+        evidence::Assignment=Assignment(), N::Int=500)
     return likelihood_weighting_grow(bn, [query]; evidence=evidence, N=N)
 end
 

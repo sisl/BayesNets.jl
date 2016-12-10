@@ -16,7 +16,7 @@ Early stopping if change is messages < `tol` for `iters_for_convergence'
 iterations. For no stopping, use tol < 0.
 """
 function loopy_belief(bn::BayesNet, query::Symbol;
-        evidence::Assignment=Assignment(), N=100,
+        evidence::Assignment=Assignment(), N=500,
         tol::Float64=1E-8, iters_for_convergence::Int=6)
     bn_names = names(bn)
 

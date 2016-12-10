@@ -1,5 +1,8 @@
 # Built in (?) BayesNets
 
+#Also, Bernoulli does not count as a Categoical RV, so they can' be used in
+# a DiscreteBayesNet
+
 """
 Generates a random DiscreteBayesNet
 
@@ -17,16 +20,19 @@ function rand_discrete_bn(num_nodes::Int=16,
     bn = DiscreteBayesNet();
 
     for i in range(1, num_nodes)
+        # the symbol to add, NX, where X is its number
         s = Symbol("N", i)
         n_states = rand(2:max_num_states)
 
         # keep trying different parents until it isn't cyclic
-        # i think its impossible for a cycle to appear based on the
-        #  algorithm i've outlines, but . . .
+        # it should be impossible for a cycle to appear based on the
+        #  algorithm but ...
         while true
-            n_par = min(length(bn), rand(0:max_num_parents))
-            parents = names(bn)[randperm(length(bn))[1:n_par]]
+            # how many parents we can possibly add
+            n_par = rand(0:min(length(bn),max_num_parents))
+            parents = sample(names(bn), n_par; replace=false)
 
+            # add the new random cpd with random parents to the network
             push!(bn, rand_cpd(bn, n_states, s, parents))
 
             if is_cyclic(bn.dag)
@@ -41,7 +47,7 @@ function rand_discrete_bn(num_nodes::Int=16,
 end
 
 """
-Given a bn, generate valid query and evidence
+Given a Bayesian network, randomly generate valid query and evidence assignment
 """
 function bn_inference_init(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)
     @assert (num_query + num_evidence) <= length(names(bn))
@@ -91,8 +97,7 @@ function get_sat_fail_bn()
 end
 
 """
-a factored version of the asia network because the boolean nature of the E
-variable negatively affects gibbs sampleing
+An ergodic version of the asia network, with the E variable removed
 
 Orignal network: Lauritzen, Steffen L. and David J. Spiegelhalter, 1988
 """
