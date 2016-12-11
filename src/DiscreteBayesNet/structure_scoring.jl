@@ -69,7 +69,12 @@ function bayesian_score_component_uniform{I<:Integer}(
     sum1 = n * ncategories[i] * p
     sum2 = n * lgamma(ncategories[i] * u)
     cc = ncategories[i] * u
-    sN = sum(N[i,:] for i=1:ncategories[i])
+
+    @static if Base.VERSION.major == 0 && Base.VERSION.minor < 5 
+        sN = sparsevec(sum(N[1:ncategories[i],:], 1)) # Slower, but should be supported by Julia 0.4
+    else 
+        sN = sum(N[i,:] for i=1:ncategories[i])
+    end
     sum3 = sum(lgamma(nonzeros(sN) + cc)) + (size(N, 2) - nnz(sN)) * lgamma(cc)
     sum0 - sum1 + sum2 - sum3::Float64
 end
