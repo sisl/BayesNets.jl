@@ -98,6 +98,29 @@ function children(bn::BayesNet, target::NodeName)
 	NodeName[name(bn.cpds[j]) for j in out_neighbors(bn.dag, i)]
 end
 
+"""
+Returns all CPDs that involve the target as a list of CPDs
+The variables in these CPDs collectively include the parents, children, and parents of children of the target
+"""
+function markov_blanket_cpds(bn::BayesNet, target::NodeName)
+	markov_blanket_cpds = CPD[get(bn, child_name) for child_name in children(bn, target)]
+	push!(markov_blanket_cpds, get(bn, target))
+	return markov_blanket_cpds
+end
+
+"""
+Return the children, parents, and parents of children (excluding target) as a Set of NodeNames
+"""
+function markov_blanket(bn::BayesNet, target::NodeName)
+	nodeNames = NodeName[]
+        for child in children(bn, target)
+		append!(nodeNames, parents(bn, child))
+                push!(nodeNames, child)
+        end
+        append!(nodeNames, parents(bn, target))
+        return setdiff(Set(nodeNames), Set(NodeName[target]))
+end
+
 function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)
 	u = get(bn.name_to_index, parent, 0)
 	v = get(bn.name_to_index, child, 0)

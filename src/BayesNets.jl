@@ -26,6 +26,8 @@ export
 
     parents,
     children,
+    markov_blanket_cpds,
+    markov_blanket,
     has_edge,
     enforce_topological_order!,
 
@@ -34,6 +36,9 @@ export
 
     rand_cpd,
     rand_table_weighted,
+    BayesNetSampler,
+    gibbs_sample,
+    GibbsSampler,
 
     table,
     sumout,
@@ -62,10 +67,12 @@ export
     bayesian_score_components,
     bayesian_score
 
+
 include("bayes_nets.jl")
 include("io.jl")
 include("sampling.jl")
 include("learning.jl")
+include("gibbs.jl")
 
 include("DiscreteBayesNet/ndgrid.jl")
 include("DiscreteBayesNet/factors.jl")
