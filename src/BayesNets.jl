@@ -15,7 +15,7 @@ pkgdir = dirname(@__DIR__)
 include(joinpath(pkgdir, "src", "CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
-import LightGraphs: DiGraph, add_edge!, rem_edge!, add_vertex!, rem_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, is_cyclic, nv, ne, outdegree, badj
+import LightGraphs: DiGraph, add_edge!, rem_edge!, add_vertex!, rem_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, neighbors, is_cyclic, nv, ne, outdegree, badj
 import TikzGraphs: plot
 import Iterators: subsets, product
 import Base.Collections: PriorityQueue, peek
@@ -54,24 +54,27 @@ export
     GraphSearchStrategy,
     K2GraphSearch,
     GreedyHillClimbing,
+    GreedyThickThinning,
 
     statistics,
     index_data,
     adding_edge_preserves_acyclicity,
+    is_independent,
     bayesian_score_component,
     bayesian_score_components,
     bayesian_score
 
-include("bayes_nets.jl")
-include("io.jl")
-include("sampling.jl")
-include("learning.jl")
+include(joinpath(pkgdir, "src", "bayes_nets.jl"))
+include(joinpath(pkgdir, "src", "io.jl"))
+include(joinpath(pkgdir, "src", "sampling.jl"))
+include(joinpath(pkgdir, "src", "learning.jl"))
 
-include("DiscreteBayesNet/ndgrid.jl")
-include("DiscreteBayesNet/factors.jl")
-include("DiscreteBayesNet/dirichlet_priors.jl")
-include("DiscreteBayesNet/discrete_bayes_net.jl")
-include("DiscreteBayesNet/structure_scoring.jl")
-include("DiscreteBayesNet/greedy_hill_climbing.jl")
+include(joinpath(pkgdir, "src", "DiscreteBayesNet/ndgrid.jl"))
+include(joinpath(pkgdir, "src", "DiscreteBayesNet/factors.jl"))
+include(joinpath(pkgdir, "src", "DiscreteBayesNet/dirichlet_priors.jl"))
+include(joinpath(pkgdir, "src", "DiscreteBayesNet/discrete_bayes_net.jl"))
+include(joinpath(pkgdir, "src", "DiscreteBayesNet/structure_scoring.jl"))
+include(joinpath(pkgdir, "src", "DiscreteBayesNet/greedy_hill_climbing.jl"))
+include(joinpath(pkgdir, "src", "DiscreteBayesNet/greedy_thick_thinning.jl"))
 
 end # module

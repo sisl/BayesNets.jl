@@ -98,6 +98,30 @@ function children(bn::BayesNet, target::NodeName)
 	NodeName[name(bn.cpds[j]) for j in out_neighbors(bn.dag, i)]
 end
 
+function neighbors(bn::BayesNet, target::NodeName)
+	i = bn.name_to_index[target]
+	NodeName[name(bn.cpds[j]) for j in append!(in_neighbors(bn.dag, i), out_neighbors(bn.dag, i))]
+
+end
+
+function descendants_helper(bn::BayesNet, cur_node::NodeName, result::Set{NodeName})
+	next_children = children(bn, cur_node)
+	if !isempty(next_children)
+		for child in next_children
+			if !in(child, result)
+				push!(result, child)
+				union!(result, descendants_helper(bn, child, result))
+			end
+		end
+	end
+	return result
+
+end
+
+function descendants(bn::BayesNet, target::NodeName)
+	return collect(descendants_helper(bn, target, Set{NodeName}()))
+end
+
 function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)
 	u = get(bn.name_to_index, parent, 0)
 	v = get(bn.name_to_index, child, 0)
@@ -126,6 +150,97 @@ function adding_edge_preserves_acyclicity(parent_list::Vector{Vector{Int}}, u::I
         end
     end
     return true
+end
+
+function is_independent(bn::BayesNet, x::Vector{NodeName}, y::Vector{NodeName}, given::Vector{NodeName})
+
+	start_node = x[1]
+	finish_node = y[1]
+
+	if start_node == finish_node
+		return true
+	end
+
+	C = Set(given)
+	analyzed_nodes = Set()
+
+	# Find all paths from x to y
+	paths = []
+	path_queue = []
+	push!(analyzed_nodes, start_node)
+	for next_node in neighbors(bn, start_node)
+		if !in(next_node, analyzed_nodes)
+			push!(analyzed_nodes, next_node)
+			push!(path_queue, [start_node, next_node])
+		end
+	end
+	while (!isempty(path_queue))
+		cur_path = pop!(path_queue)
+	 	last_node = cur_path[end]
+		for next_node in neighbors(bn, last_node)
+			if next_node == finish_node
+				push!(paths, push!(copy(cur_path), next_node))
+			elseif !in(next_node, analyzed_nodes)
+				push!(analyzed_nodes, next_node)
+				push!(path_queue, push!(copy(cur_path), next_node))
+			end
+		end
+	end
+
+	# Check each path to see if it contains information indicating d-separation
+	for path in paths
+		is_d_separated = false
+		if length(path) == 2
+			is_d_separated = true
+		else
+			# Examine all middle nodes
+			for i in 2:(length(path) - 1)
+				prev_node = path[i - 1]
+				cur_node = path[i]
+				next_node = path[i + 1]
+
+				# Check for chain or fork (first or second d-separation criteria)
+				if in(cur_node, C)
+
+					# Chain
+					if in(cur_node, children(bn, prev_node)) && in(next_node, children(bn, cur_node))
+						is_d_separated = true
+						break
+
+					# Fork
+					elseif in(prev_node, children(bn, cur_node)) && in(next_node, children(bn, cur_node))
+						is_d_separated = true
+						break
+					end
+
+				# Check for v-structure (third d-separation criteria)
+				else
+					if in(cur_node, children(bn, prev_node)) && in(cur_node, children(bn, next_node))
+						descendant_list = descendants(bn, cur_node)
+						descendants_in_C = false
+						for d in descendant_list
+							if in(d, C)
+								descendants_in_C = true
+								break
+							end
+						end
+
+						if !descendants_in_C
+							is_d_separated = true
+							break
+						end
+					end
+				end
+			end
+		end
+
+		if !is_d_separated
+			return false
+		end
+	end
+
+	# All paths are d-separated, so x and y are conditionally independent.
+	return true
 end
 
 function Base.push!(bn::BayesNet, cpd::CPD)
@@ -168,8 +283,8 @@ function Base.delete!(bn::BayesNet, target::NodeName)
 	i = bn.name_to_index[target]
 	replacement = name(bn.cpds[end])
 	bn.cpds[i] = bn.cpds[end]
-	pop!(bn.cpds)	
-	bn.name_to_index[replacement] = i	
+	pop!(bn.cpds)
+	bn.name_to_index[replacement] = i
 	delete!(bn.name_to_index, target)
 	rem_vertex!(bn.dag, i)
 	bn
@@ -224,4 +339,3 @@ end
 The pdf of a set of assignment after conditioning on the values
 """
 CPDs.pdf(bn::BayesNet, df::DataFrame) = exp(logpdf(bn, df))
-

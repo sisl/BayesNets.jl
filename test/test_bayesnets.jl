@@ -39,3 +39,29 @@ let
 	@test parents(bn, :a) == NodeName[]
 	@test children(bn, :a) == NodeName[]
 end
+
+let
+	bn = BayesNet()
+	push!(bn, StaticCPD(:A, Normal(0.0,1.0)))
+	push!(bn, StaticCPD(:B, [:A], Normal(0.0,1.0)))
+	push!(bn, StaticCPD(:D, [:A], Normal(0.0,1.0)))
+	push!(bn, StaticCPD(:C, [:A, :B, :D], Normal(0.0, 1.0)))
+	push!(bn, StaticCPD(:F, Normal(0.0,1.0)))
+	push!(bn, StaticCPD(:E, [:F], Normal(0.0,1.0)))
+	@test is_independent(bn, [:B], [:D], [:A])
+	@test !is_independent(bn, [:B], [:D], [:C])
+	@test !is_independent(bn, [:B], [:D], [:E])
+	@test is_independent(bn, [:B], [:C], [:A])
+end
+
+let
+	bn = BayesNet()
+	push!(bn, StaticCPD(:B, Normal(0.0,1.0)))
+	push!(bn, StaticCPD(:S, Normal(0.0,1.0)))
+	push!(bn, StaticCPD(:E, [:B, :S], Normal(0.0,1.0)))
+	push!(bn, StaticCPD(:D, [:E], Normal(0.0,1.0)))
+	push!(bn, StaticCPD(:C, [:E], Normal(0.0,1.0)))
+	@test !is_independent(bn, [:B], [:S], [:E, :D])
+	@test !is_independent(bn, [:B], [:S], [:C])
+
+end
