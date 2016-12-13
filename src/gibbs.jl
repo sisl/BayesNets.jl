@@ -309,7 +309,7 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     # check parameters for correctness
     nsamples > 0 || throw(ArgumentError("nsamples parameter less than 1"))
     burn_in >= 0 || throw(ArgumentError("Negative burn_in parameter"))
-    thinning >= 0 || throw(ArgumentError("Negative sample_skip parameter"))
+    thinning >= 0 || throw(ArgumentError("Negative thinning parameter"))
     if ~ isnull(variable_order)
         v_order = get(variable_order)
         bn_names = names(bn)
