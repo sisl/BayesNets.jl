@@ -59,6 +59,7 @@ export
     GraphSearchStrategy,
     K2GraphSearch,
     GreedyHillClimbing,
+    ScanGreedyHillClimbing,
 
     statistics,
     index_data,
@@ -80,5 +81,6 @@ include("DiscreteBayesNet/dirichlet_priors.jl")
 include("DiscreteBayesNet/discrete_bayes_net.jl")
 include("DiscreteBayesNet/structure_scoring.jl")
 include("DiscreteBayesNet/greedy_hill_climbing.jl")
+include("DiscreteBayesNet/scan_greedy_hill_climbing.jl")
 
 end # module
