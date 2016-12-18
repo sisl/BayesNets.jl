@@ -37,6 +37,47 @@ function bayesian_score_component{I<:Integer}(
     N = sparse(vec(data[i,:]), vec(js), 1, size(alpha)...) # note: duplicates are added together
     sum(lgamma(alpha + N)) - sum(lgamma(alpha)) + sum(lgamma(sum(alpha,1))) - sum(lgamma(sum(alpha,1) + sum(N,1)))::Float64
 end
+function bayesian_score_component_uniform{I<:Integer}(
+    i::Int,
+    parents::AbstractVector{I},
+    ncategories::AbstractVector{Int},
+    data::AbstractMatrix{Int},
+    prior::DirichletPrior,
+    )
+
+    (n, m) = size(data)
+    if !isempty(parents)
+        Np = length(parents)
+        stridevec = fill(1, Np)
+        for k in 2:Np
+            stridevec[k] = stridevec[k-1] * ncategories[parents[k-1]]
+        end
+        js = (data[parents,:] - 1)' * stridevec + 1
+    else
+        js = fill(1, m)
+    end
+
+    n = prod(ncategories[parents])
+    N = sparse(data[i,:], js, 1, ncategories[i], n...) # note: duplicates are added together
+
+    u = prior.α
+    p = lgamma(u)
+
+    # Given a sparse N, we can be clever in our calculation and not waste time 
+    # computing the same lgamma values by exploiting the sparse structure. 
+    sum0 = sum(lgamma(nonzeros(N) + u)) + p * (ncategories[i] * n - nnz(N))
+    sum1 = n * ncategories[i] * p
+    sum2 = n * lgamma(ncategories[i] * u)
+    cc = ncategories[i] * u
+
+    @static if Base.VERSION.major == 0 && Base.VERSION.minor < 5 
+        sN = sparsevec(sum(N[1:ncategories[i],:], 1)) # Slower, but should be supported by Julia 0.4
+    else 
+        sN = sum(N[i,:] for i=1:ncategories[i])
+    end
+    sum3 = sum(lgamma(nonzeros(sN) + cc)) + (size(N, 2) - nnz(sN)) * lgamma(cc)
+    sum0 - sum1 + sum2 - sum3::Float64
+end
 function bayesian_score_component{I<:Integer}(
     i::Int,
     parents::AbstractVector{I},
@@ -45,6 +86,9 @@ function bayesian_score_component{I<:Integer}(
     prior::DirichletPrior,
     )
 
+    if typeof(prior) == UniformPrior
+        return bayesian_score_component_uniform(i, parents, ncategories, data, prior)
+    end
     alpha = get(prior, i, ncategories, parents)
     bayesian_score_component(i, parents, ncategories, data, alpha)
 end
