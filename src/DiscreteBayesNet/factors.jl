@@ -31,36 +31,35 @@ end
 
 # TODO: implement factoring out final value in factor table,
 #       or throwing an error in that case
+# Works for non-binary variables and possibly fixes the above todo
 """
 Factor marginalization
 """
-function sumout(f::Factor, v::Symbol)
-    remainingvars = setdiff(names(f), [v, :p])
-    g = groupby(f, v)
-    if length(g) == 1
-        return f[:,vcat(remainingvars, :p)]
+function sumout(f::Factor, v::Union{Symbol, AbstractVector{Symbol}})
+    # vcat works for single values and vectors alike (magic?)
+    remainingvars = setdiff(names(f), vcat(v, :p))
+
+    if isempty(remainingvars)
+        # they want to remove all variables except for prob column
+        # uh ...
+        return f
+    else
+        # note that this will fail miserablely if f is too large (~1E4 maybe?)
+        #  nothing I can do :'(  github issue about it
+        return by(f, remainingvars, df -> Factor(p = sum(df[:p])))
     end
-    j = join(g..., on=remainingvars)
-    j[:,:p] += j[:,:p_1]
-    j[:,vcat(remainingvars, :p)]
 end
-function sumout(f::Factor, v::AbstractVector{Symbol})
-    while !isempty(v)
-        f = sumout(f, pop!(v))
-    end
-    f
-end
+
+# Should normalize be normalize! since it modifies the table?
 
 """
 Factor normalization
 Ensures that the :p column sums to one
 """
 function normalize(f::Factor)
-    tot = sum(f[:,:p])
-    for k in 1 : length(f[:p])
-        f[k,:p] /= tot
-    end
-    f
+    f[:p] /= sum(f[:p])
+
+    return f
 end
 
 """

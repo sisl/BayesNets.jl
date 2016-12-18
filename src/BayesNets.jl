@@ -21,8 +21,8 @@ import Iterators: subsets, product
 import Base.Collections: PriorityQueue, peek
 
 export
-	BayesNet,
-	DAG,
+    BayesNet,
+    DAG,
 
     parents,
     children,
@@ -31,7 +31,7 @@ export
     has_edge,
     enforce_topological_order!,
 
-	add_edge!,
+    add_edge!,
     has_edge,
 
     rand_cpd,
@@ -45,6 +45,19 @@ export
     normalize,
     estimate_convergence,
     readxdsl,
+
+    exact_inference,
+    likelihood_weighting,
+    likelihood_weighting_grow,
+    gibbs_sampling,
+    gibbs_sampling_full_iter,
+    loopy_belief,
+
+    random_discrete_bn,
+    bn_inference_init,
+    get_sprinkler_bn,
+    get_sat_fail_bn,
+    get_asia_bn,
 
     DirichletPrior,
     UniformPrior,
@@ -86,4 +99,11 @@ include("DiscreteBayesNet/structure_scoring.jl")
 include("DiscreteBayesNet/greedy_hill_climbing.jl")
 include("DiscreteBayesNet/scan_greedy_hill_climbing.jl")
 
+include("gen_bayes_nets.jl")
+include("inference/exact.jl")
+include("inference/gibbs.jl")
+include("inference/likelihood.jl")
+include("inference/loopy_belief.jl")
+
 end # module
+

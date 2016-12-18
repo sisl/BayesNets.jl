@@ -88,6 +88,16 @@ table(bn::DiscreteBayesNet, name::NodeName, a::Assignment) = select(table(bn, na
 table(bn::DiscreteBayesNet, name::NodeName, pair::Pair{NodeName}...) = table(bn, name, Assignment(pair))
 
 """
+    Distributions.ncategories(bn::DiscreteBayesNet, node::Symbol)
+Gets the number of categories for a node in the network. This assumes that the
+node has the same number of catagories for all possible parental 
+instantiations, which may be violated.
+"""
+function Distributions.ncategories(bn::DiscreteBayesNet, node::Symbol)
+    return Distributions.ncategories(get(bn, node).distributions[1])
+end
+
+"""
     Base.count(bn::BayesNet, name::NodeName, data::DataFrame)
 returns a table containing all observed assignments and their
 corresponding counts
