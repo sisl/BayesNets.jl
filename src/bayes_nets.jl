@@ -119,7 +119,7 @@ function descendants_helper(bn::BayesNet, cur_node::NodeName, result::Set{NodeNa
 
 end
 
-function descendants(bn::BayesNet, target::NodeName)
+descendants(bn::BayesNet, target::NodeName) =
 	return collect(descendants_helper(bn, target, Set{NodeName}()))
 
 """

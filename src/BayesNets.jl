@@ -3,16 +3,9 @@ VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 module BayesNets
 
 using Compat
-import Compat.String
-@compat import Base.show
-if isdefined(Base, :normalize)
-    import Base: normalize
-end
-
 using Reexport
 
-pkgdir = dirname(@__DIR__)
-include(joinpath(pkgdir, "src", "CPDs", "cpds.jl"))
+include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
 import LightGraphs: DiGraph, add_edge!, rem_edge!, add_vertex!, rem_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, neighbors, is_cyclic, nv, ne, outdegree, badj
@@ -75,7 +68,6 @@ export
     GreedyThickThinning,
     ScanGreedyHillClimbing,
 
-
     statistics,
     index_data,
     adding_edge_preserves_acyclicity,
@@ -91,19 +83,19 @@ include("sampling.jl")
 include("learning.jl")
 include("gibbs.jl")
 
-include("DiscreteBayesNet/ndgrid.jl")
-include("DiscreteBayesNet/factors.jl")
-include("DiscreteBayesNet/dirichlet_priors.jl")
-include("DiscreteBayesNet/discrete_bayes_net.jl")
-include("DiscreteBayesNet/structure_scoring.jl")
-include("DiscreteBayesNet/greedy_hill_climbing.jl")
-include("DiscreteBayesNet/scan_greedy_hill_climbing.jl")
+include(joinpath("DiscreteBayesNet", "ndgrid.jl"))
+include(joinpath("DiscreteBayesNet", "factors.jl"))
+include(joinpath("DiscreteBayesNet", "dirichlet_priors.jl"))
+include(joinpath("DiscreteBayesNet", "discrete_bayes_net.jl"))
+include(joinpath("DiscreteBayesNet", "structure_scoring.jl"))
+include(joinpath("DiscreteBayesNet", "greedy_hill_climbing.jl"))
+include(joinpath("DiscreteBayesNet", "scan_greedy_hill_climbing.jl"))
 
 include("gen_bayes_nets.jl")
-include("inference/exact.jl")
-include("inference/gibbs.jl")
-include("inference/likelihood.jl")
-include("inference/loopy_belief.jl")
+include(joinpath("inference", "exact.jl"))
+include(joinpath("inference", "gibbs.jl"))
+include(joinpath("inference", "likelihood.jl"))
+include(joinpath("inference", "loopy_belief.jl"))
 
 end # module
 
