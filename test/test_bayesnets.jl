@@ -10,6 +10,8 @@ let
 	@test names(bn) == [:a]
 	@test parents(bn, :a) == NodeName[]
 	@test children(bn, :a) == NodeName[]
+	@test neighbors(bn, :a) == NodeName[]
+	@test descendants(bn, :a) == NodeName[]
 	@test pdf(bn, Assignment(:a=>0.0)) == pdf(Normal(0.0,1.0), 0.0)
 	@test logpdf(bn, Assignment(:a=>0.0)) == logpdf(Normal(0.0,1.0), 0.0)
 	@test isapprox(pdf(bn, DataFrame(a=[0.0, 1.0])), pdf(Normal(0.0,1.0), 0.0) * pdf(Normal(0.0,1.0), 1.0))
@@ -24,8 +26,12 @@ let
 	@test names(bn) == [:a, :b]
 	@test parents(bn, :a) == NodeName[]
 	@test children(bn, :a) == [:b]
+	@test neighbors(bn, :a) == [:b]
+	@test descendants(bn, :a) == [:b]
 	@test parents(bn, :b) == [:a]
 	@test children(bn, :b) == NodeName[]
+	@test neighbors(bn, :b) == [:a]
+	@test descendants(bn, :b) == NodeName[]
 	@test pdf(bn, Assignment(:a=>1.0, :b=>2.0)) == pdf(Normal(0.0,1.0), 1.0) * pdf(Normal(3.0, 1.0), 2.0)
 	@test logpdf(bn, Assignment(:a=>1.0, :b=>2.0)) == logpdf(Normal(0.0,1.0), 1.0) + logpdf(Normal(3.0, 1.0), 2.0)
 
@@ -63,5 +69,4 @@ let
 	push!(bn, StaticCPD(:C, [:E], Normal(0.0,1.0)))
 	@test !is_independent(bn, [:B], [:S], [:E, :D])
 	@test !is_independent(bn, [:B], [:S], [:C])
-
 end

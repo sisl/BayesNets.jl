@@ -5,7 +5,7 @@ type GibbsSamplerState
 
     bn::BayesNet
     key_constructor_name_order::Array{Symbol,1}
-    max_cache_size::Nullable{Integer}
+    max_cache_size::Nullable{Int}
     markov_blanket_cpds_cache::Dict{Symbol, Array{CPD}}
     markov_blanket_cache::Dict{Symbol, Vector{Symbol}}
     finite_distrbution_is_cacheable::Dict{Symbol, Bool}
@@ -13,7 +13,7 @@ type GibbsSamplerState
 
     function GibbsSamplerState(
         bn::BayesNet,
-        max_cache_size::Nullable{Integer}=Nullable{Integer}()
+        max_cache_size::Nullable{Int}=Nullable{Int}()
         )
 
         a = rand(bn)
@@ -23,17 +23,16 @@ type GibbsSamplerState
         for name in names(bn)
             markov_blankets[name] = Symbol[ele for ele in markov_blanket(bn, name)]
             is_cacheable[name] = reduce(&, [hasfinitesupport(get(bn, mb_name)(a)) for mb_name in markov_blankets[name]])
-            markov_blanket_cpds_cache[name] = markov_blanket_cpds(bn, name)
+            markov_blanket_cpds_cache[name] = get(bn, markov_blanket(bn, name))
         end
 
-        new(bn, names(bn), max_cache_size, 
-            markov_blanket_cpds_cache, 
+        new(bn, names(bn), max_cache_size,
+            markov_blanket_cpds_cache,
             markov_blankets,
             is_cacheable,
-            Dict{String, Array{Float64, 1}}(), 
+            Dict{String, Array{Float64, 1}}(),
             )
     end
-
 end
 
 """
@@ -41,7 +40,7 @@ Helper to sample_posterior_finite
 
 Modifies a and gss
 """
-function get_finite_distribution!(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
+function get_finite_distribution!(gss::GibbsSamplerState, varname::NodeName, a::Assignment, support::AbstractArray)
 
     is_cacheable = gss.finite_distrbution_is_cacheable[varname]
     key = ""
@@ -61,34 +60,14 @@ function get_finite_distribution!(gss::GibbsSamplerState, varname::Symbol, a::As
     for (index, domain_element) in enumerate(support)
         a[varname] = domain_element
         # Sum logs for numerical stability
-        posterior_distribution[index] = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]))
+        posterior_distribution[index] = exp(sum([logpdf(cpd, a) for cpd in markov_blanket_cpds]) +
+                                                 logpdf(get(gss.bn, varname), a)) # because A is not in its own Markov blanket
     end
     posterior_distribution = posterior_distribution / sum(posterior_distribution)
     if is_cacheable && ( isnull(gss.max_cache_size) || length(gss.finite_distribution_cache) < get(gss.max_cache_size) )
         gss.finite_distribution_cache[key] = posterior_distribution
     end
     return posterior_distribution
-end
-
-"""
-Chooses a sample at random from the result of rand_table_weighted
-"""
-function sample_weighted_dataframe(rand_samples::DataFrame)
-    p = rand_samples[:, :p]
-    n = length(p)
-    i = 1
-    c = p[1]
-    u = rand()
-    while c < u && i < n
-        c += p[i += 1]
-    end
-    a = Assignment()
-    for varname in names(rand_samples)
-        if varname != :p
-            a[varname] = rand_samples[i, varname]
-        end
-    end
-    return a
 end
 
 """
@@ -99,9 +78,9 @@ set a[varname] ~ P(varname | not varname)
 
 Modifies both a and gss
 """
-function sample_posterior_finite!(gss::GibbsSamplerState, varname::Symbol, a::Assignment, support::AbstractArray)
+function sample_posterior_finite!(gss::GibbsSamplerState, name::NodeName, a::Assignment, support::AbstractArray)
 
-   posterior_distribution = get_finite_distribution!(gss, varname, a, support)
+   posterior_distribution = get_finite_distribution!(gss, name, a, support)
 
    # Adapted from Distributions.jl, credit to its authors
    p = posterior_distribution
@@ -113,8 +92,7 @@ function sample_posterior_finite!(gss::GibbsSamplerState, varname::Symbol, a::As
        c += p[i += 1]
    end
 
-   a[varname] = support[i]
-
+   a[name] = support[i]
 end
 
 """
@@ -133,8 +111,14 @@ set a[varname] ~ P(varname | not varname)
 
 Modifies a and caches in gss
 """
-function sample_posterior_continuous!(gss::GibbsSamplerState, varname::Symbol, a::Assignment, 
-                                     var_distribution::ContinuousUnivariateDistribution; MH_iterations::Integer=10)
+function sample_posterior_continuous!(
+    gss::GibbsSamplerState,
+    varname::NodeName,
+    a::Assignment,
+    var_distribution::ContinuousUnivariateDistribution;
+    MH_iterations::Integer=10,
+    )
+
     # Random Walk Metropolis Hastings
     markov_blanket_cpds = gss.markov_blanket_cpds_cache[varname]
     stddev = std(var_distribution) * 10.0
@@ -168,7 +152,6 @@ function sample_posterior_continuous!(gss::GibbsSamplerState, varname::Symbol, a
     end
 
     # a[varname] is set in the above for loop
-
 end
 
 """
@@ -197,9 +180,15 @@ Returns a data frame with nsamples samples
 Supports the various parameters supported by gibbs_sample
 Refer to gibbs_sample for parameter meanings
 """
-function gibbs_sample_main_loop(gss::GibbsSamplerState, nsamples::Integer, thinning::Integer, 
-start_sample::Assignment, consistent_with::Assignment, variable_order::Nullable{Vector{Symbol}},
-time_limit::Nullable{Integer})
+function gibbs_sample_main_loop(
+    gss::GibbsSamplerState,
+    nsamples::Integer,
+    thinning::Integer,
+    start_sample::Assignment,
+    consistent_with::Assignment,
+    variable_order::Nullable{Vector{Symbol}},
+    time_limit::Nullable{Int},
+    )
 
     start_time = now()
 
@@ -276,7 +265,7 @@ Thinning is not used during the burn in period.
 e.g. If thinning is 1, samples will be drawn in groups of two and only the second sample will be in the output.
 
 time_limit: The number of milliseconds to run the algorithm.
-The algorithm will return the samples it has collected when either nsamples samples have been collected or time_limit 
+The algorithm will return the samples it has collected when either nsamples samples have been collected or time_limit
 milliseconds have passed.  If time_limit is null then the algorithm will run until nsamples have been collected.
 This means it is possible that zero samples are returned.
 
@@ -290,21 +279,21 @@ Use to sample conditional distributions.
 
 max_cache_size:  If null, cache as much as possible, otherwise cache at most "max_cache_size"  distributions
 
-variable_order: variable_order determines the order of variables changed when generating a new sample.  
+variable_order: variable_order determines the order of variables changed when generating a new sample.
 If null use a random order for every sample (this is different from updating the variables at random).
 Otherwise should be a list containing all the variables in the order they should be updated.
 
-initial_sample:  The inital assignment to variables to use.  If null, the initial sample is chosen by 
-briefly running rand_table_weighted.
+initial_sample:  The inital assignment to variables to use.  If null, the initial sample is chosen by
+briefly running rand(bn, WeightedSampler).
 """
 function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
         thinning::Integer=0,
         consistent_with::Assignment=Assignment(),
-        variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(), 
-        time_limit::Nullable{Integer}=Nullable{Integer}(),
-        error_if_time_out::Bool=true, 
+        variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(),
+        time_limit::Nullable{Int}=Nullable{Int}(),
+        error_if_time_out::Bool=true,
         initial_sample::Nullable{Assignment}=Nullable{Assignment}(),
-        max_cache_size::Nullable{Integer}=Nullable{Integer}()
+        max_cache_size::Nullable{Int}=Nullable{Int}()
         )
     # check parameters for correctness
     nsamples > 0 || throw(ArgumentError("nsamples parameter less than 1"))
@@ -335,40 +324,40 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     end
 
     gss = GibbsSamplerState(bn, max_cache_size)
-   
-    # Burn in 
-    # for burn_in_initial_sample use rand_table_weighted, should be consistent with the varibale consistent_with
+
+    # Burn in
+    # for burn_in_initial_sample use WeightedSampler, should be consistent with the varibale consistent_with
     if isnull(initial_sample)
-        rand_samples = rand_table_weighted(bn, nsamples=10, consistent_with=consistent_with)
-	if reduce(|, isnan(convert(Array{AbstractFloat}, rand_samples[:p])))
-		error("Gibbs Sampler was unable to find an inital sample with non-zero probability, please supply an inital sample")
-	end
+        rand_samples = rand(bn, WeightedSampler(consistent_with), 50)
+    	if reduce(|, isnan(convert(Array{AbstractFloat}, rand_samples[:p])))
+    		error("Gibbs Sampler was unable to find an inital sample with non-zero probability, please supply an inital sample")
+    	end
         burn_in_initial_sample = sample_weighted_dataframe(rand_samples)
     else
         burn_in_initial_sample = get(initial_sample)
     end
-    burn_in_samples, burn_in_time = gibbs_sample_main_loop(gss, burn_in, 0, burn_in_initial_sample, 
+    burn_in_samples, burn_in_time = gibbs_sample_main_loop(gss, burn_in, 0, burn_in_initial_sample,
                                          consistent_with, variable_order, time_limit)
 
     # Check that more time is available
-    remaining_time = Nullable{Integer}()
+    remaining_time = Nullable{Int}()
     if ~isnull(time_limit)
-        remaining_time = Nullable{Integer}(get(time_limit) - burn_in_time)
+        remaining_time = Nullable{Int}(get(time_limit) - burn_in_time)
         if error_if_time_out
             get(remaining_time) > 0 || error("Time expired during Gibbs sampling")
         end
     end
-   
+
     # Real samples
     main_samples_initial_sample = burn_in_initial_sample
     if burn_in != 0 && size(burn_in_samples)[1] > 0
         main_samples_initial_sample = Assignment()
         for varname in names(bn)
-            main_samples_initial_sample[varname] = haskey(consistent_with, varname) ? 
+            main_samples_initial_sample[varname] = haskey(consistent_with, varname) ?
                                                        consistent_with[varname] : burn_in_samples[end, varname]
         end
     end
-    samples, samples_time = gibbs_sample_main_loop(gss, nsamples, thinning, 
+    samples, samples_time = gibbs_sample_main_loop(gss, nsamples, thinning,
                                main_samples_initial_sample, consistent_with, variable_order, remaining_time)
     combined_time = burn_in_time + samples_time
     if error_if_time_out && ~isnull(time_limit)
@@ -416,32 +405,31 @@ If null use a random order for every sample (this is different from updating the
 Otherwise should be a list containing all the variables in the order they should be updated.
 
 initial_sample:  The inital assignment to variables to use.  If null, the initial sample is chosen by
-briefly running rand_table_weighted.
+briefly using a WeightedSampler.
 """
 type GibbsSampler <: BayesNetSampler
 
-    burn_in::Integer
-    thinning::Integer
-    consistent_with::Assignment
+    evidence::Assignment
+    burn_in::Int
+    thinning::Int
     variable_order::Nullable{Vector{Symbol}}
-    time_limit::Nullable{Integer}
+    time_limit::Nullable{Int}
     error_if_time_out::Bool
     initial_sample::Nullable{Assignment}
-    max_cache_size::Nullable{Integer}
+    max_cache_size::Nullable{Int}
 
-    function GibbsSampler(burn_in::Integer;
-        thinning::Integer=0,
-        consistent_with::Assignment=Assignment(),
+    function GibbsSampler(evidence::Assignment=Assignment();
+        burn_in::Int=100,
+        thinning::Int=0,
         variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(),
-        time_limit::Nullable{Integer}=Nullable{Integer}(),
+        time_limit::Nullable{Int}=Nullable{Int}(),
         error_if_time_out::Bool=true,
         initial_sample::Nullable{Assignment}=Nullable{Assignment}(),
-        max_cache_size::Nullable{Integer}=Nullable{Integer}()
+        max_cache_size::Nullable{Int}=Nullable{Int}()
         )
 
-        new(burn_in, thinning, consistent_with, variable_order, time_limit, error_if_time_out, initial_sample, max_cache_size)
+        new(evidence, burn_in, thinning, variable_order, time_limit, error_if_time_out, initial_sample, max_cache_size)
     end
-
 end
 
 """
@@ -454,11 +442,22 @@ The Gibbs Sampler only supports CPDs that return Univariate Distributions. (CPD{
 Sampling requires a GibbsSampler object which contains the parameters for Gibbs sampling.
 See the GibbsSampler documentation for parameter details.
 """
-function Base.rand(bn::BayesNet, config::GibbsSampler, nsamples::Integer)
+function Base.rand(bn::BayesNet, sampler::GibbsSampler, nsamples::Integer)
 
-    return gibbs_sample(bn, nsamples, config.burn_in; thinning=config.thinning,
-		consistent_with=config.consistent_with, variable_order=config.variable_order,
-		time_limit=config.time_limit, error_if_time_out=config.error_if_time_out,
-		initial_sample=config.initial_sample, max_cache_size=config.max_cache_size)
+    return gibbs_sample(bn, nsamples, sampler.burn_in; thinning=sampler.thinning,
+		consistent_with=sampler.evidence, variable_order=sampler.variable_order,
+		time_limit=sampler.time_limit, error_if_time_out=sampler.error_if_time_out,
+		initial_sample=sampler.initial_sample, max_cache_size=sampler.max_cache_size)
 
+end
+
+"""
+    NOTE: this is inefficient. Use rand(bn, GibbsSampler, nsamples) whenever you can
+"""
+function Base.rand!(a::Assignment, bn::BayesNet, sampler::GibbsSampler)
+    df = rand(bn, sampler, 1)
+    for name in names(bn)
+        a[name] = df[1, name]
+    end
+    a
 end

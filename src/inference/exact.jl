@@ -22,7 +22,7 @@ function exact_inference(bn::BayesNet, query::Vector{Symbol};
         end
     end
 
-    # normalize and remove the leftover variables (I'm looking at you sumout)
+    # normalize and remove the leftover variables
     f = foldl((*), factors)
     f = normalize(by(f, query, df -> DataFrame(p = sum(df[:p]))))
     return f

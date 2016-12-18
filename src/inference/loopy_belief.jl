@@ -10,14 +10,18 @@ function _gen_evidence_lambda(nn, evidence, ncat)
 end
 
 """
-Loopy beleif propogation for a network.
+Loopy belief propogation for a network.
 
 Early stopping if change is messages < `tol` for `iters_for_convergence'
 iterations. For no stopping, use tol < 0.
 """
-function loopy_belief(bn::BayesNet, query::Symbol;
-        evidence::Assignment=Assignment(), N=500,
-        tol::Float64=1E-8, iters_for_convergence::Int=6)
+function loopy_belief(bn::BayesNet, query::NodeName;
+    evidence::Assignment=Assignment(),
+    N=500,
+    tol::Float64=1e-8,
+    iters_for_convergence::Int=6
+    )
+
     bn_names = names(bn)
 
     ncat_lut = Dict(nn => ncategories(bn, nn) for nn in bn_names)

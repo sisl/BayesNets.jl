@@ -18,6 +18,9 @@ let
 	t3 = rand(bn, 5, :c=>1, :b=>2)
 	@test size(t1) == (5,3)
 
-	t4 = rand_table_weighted(bn; nsamples=5, consistent_with=Assignment(:c=>1))
+	t4 = rand(bn, WeightedSampler(:c=>1), 5)
 
+	t5 = rand(bn, GibbsSampler(Assignment(:c=>1), burn_in=5), 5)
+	@test t5[:a] == [1,1,1,1,1]
+	@test t5[:b] == [2,2,2,2,2]
 end

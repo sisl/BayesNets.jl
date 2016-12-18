@@ -8,7 +8,7 @@ using Reexport
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
-import LightGraphs: DiGraph, add_edge!, rem_edge!, add_vertex!, rem_vertex!, has_edge, topological_sort_by_dfs, in_neighbors, out_neighbors, neighbors, is_cyclic, nv, ne, outdegree, badj
+import LightGraphs: DiGraph, add_edge!, rem_edge!, add_vertex!, rem_vertex!, has_edge, edges, topological_sort_by_dfs, in_neighbors, out_neighbors, neighbors, is_cyclic, nv, ne, outdegree, badj, bfs_tree
 import TikzGraphs: plot
 import Iterators: subsets, product
 import Base.Collections: PriorityQueue, peek
@@ -19,7 +19,8 @@ export
 
     parents,
     children,
-    markov_blanket_cpds,
+    neighbors,
+    descendants,
     markov_blanket,
     has_edge,
     enforce_topological_order!,
@@ -28,7 +29,6 @@ export
     has_edge,
 
     rand_cpd,
-    rand_table_weighted,
     BayesNetSampler,
     gibbs_sample,
     GibbsSampler,
@@ -38,6 +38,11 @@ export
     normalize,
     estimate_convergence,
     readxdsl,
+
+    BayesNetSampler,
+    DirectSampler,
+    RejectionSampler,
+    WeightedSampler,
 
     exact_inference,
     likelihood_weighting,
