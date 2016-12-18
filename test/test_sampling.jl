@@ -19,4 +19,5 @@ let
 	@test size(t1) == (5,3)
 
 	t4 = rand_table_weighted(bn; nsamples=5, consistent_with=Assignment(:c=>1))
+
 end

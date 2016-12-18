@@ -26,6 +26,8 @@ export
 
     parents,
     children,
+    markov_blanket_cpds,
+    markov_blanket,
     has_edge,
     enforce_topological_order!,
 
@@ -34,6 +36,9 @@ export
 
     rand_cpd,
     rand_table_weighted,
+    BayesNetSampler,
+    gibbs_sample,
+    GibbsSampler,
 
     table,
     sumout,
@@ -55,6 +60,8 @@ export
     K2GraphSearch,
     GreedyHillClimbing,
     GreedyThickThinning,
+    ScanGreedyHillClimbing,
+
 
     statistics,
     index_data,
@@ -64,17 +71,19 @@ export
     bayesian_score_components,
     bayesian_score
 
-include(joinpath(pkgdir, "src", "bayes_nets.jl"))
-include(joinpath(pkgdir, "src", "io.jl"))
-include(joinpath(pkgdir, "src", "sampling.jl"))
-include(joinpath(pkgdir, "src", "learning.jl"))
 
-include(joinpath(pkgdir, "src", "DiscreteBayesNet/ndgrid.jl"))
-include(joinpath(pkgdir, "src", "DiscreteBayesNet/factors.jl"))
-include(joinpath(pkgdir, "src", "DiscreteBayesNet/dirichlet_priors.jl"))
-include(joinpath(pkgdir, "src", "DiscreteBayesNet/discrete_bayes_net.jl"))
-include(joinpath(pkgdir, "src", "DiscreteBayesNet/structure_scoring.jl"))
-include(joinpath(pkgdir, "src", "DiscreteBayesNet/greedy_hill_climbing.jl"))
-include(joinpath(pkgdir, "src", "DiscreteBayesNet/greedy_thick_thinning.jl"))
+include("bayes_nets.jl")
+include("io.jl")
+include("sampling.jl")
+include("learning.jl")
+include("gibbs.jl")
+
+include("DiscreteBayesNet/ndgrid.jl")
+include("DiscreteBayesNet/factors.jl")
+include("DiscreteBayesNet/dirichlet_priors.jl")
+include("DiscreteBayesNet/discrete_bayes_net.jl")
+include("DiscreteBayesNet/structure_scoring.jl")
+include("DiscreteBayesNet/greedy_hill_climbing.jl")
+include("DiscreteBayesNet/scan_greedy_hill_climbing.jl")
 
 end # module
