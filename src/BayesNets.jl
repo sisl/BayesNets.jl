@@ -2,6 +2,8 @@ VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 
 module BayesNets
 
+import Factors
+
 using Compat
 import Compat.String
 @compat import Base.show
@@ -48,7 +50,7 @@ export
     gibbs_sampling_full_iter,
     loopy_belief,
 
-    random_discrete_bn,
+    rand_discrete_bn,
     bn_inference_init,
     get_sprinkler_bn,
     get_sat_fail_bn,
@@ -81,13 +83,14 @@ include("sampling.jl")
 include("learning.jl")
 
 include("DiscreteBayesNet/ndgrid.jl")
-include("DiscreteBayesNet/factors.jl")
+include("DiscreteBayesNet/factors.jl") ############## SWAP OUT #####################
 include("DiscreteBayesNet/dirichlet_priors.jl")
 include("DiscreteBayesNet/discrete_bayes_net.jl")
 include("DiscreteBayesNet/structure_scoring.jl")
 include("DiscreteBayesNet/greedy_hill_climbing.jl")
 
 include("gen_bayes_nets.jl")
+include("inference/factors.jl")
 include("inference/exact.jl")
 include("inference/gibbs.jl")
 include("inference/likelihood.jl")
