@@ -1,4 +1,9 @@
 """
+Absract type for sampling with Base.rand(bn::BayesNet, conig::BayesNetSampler, nsamples::Integer)
+"""
+abstract BayesNetSampler
+
+"""
 Overwrites assignment with a joint sample from bn
     NOTE: this will condition as it goes
 """
@@ -107,3 +112,4 @@ function rand_table_weighted(bn::BayesNet; nsamples::Integer=10, consistent_with
     t[:p] = w / sum(w)
     convert(DataFrame, t)
 end
+

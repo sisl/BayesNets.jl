@@ -75,6 +75,7 @@ let
 
 	cache = ScoreComponentCache(data)
 	params = GreedyHillClimbing(cache, max_n_parents=3, prior=UniformPrior(2.0))
+
 	@test params.max_n_parents == 3
 	@test params.prior == UniformPrior(2.0)
 
@@ -87,4 +88,47 @@ let
 	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>2, :c=>1), 0.21428, atol=1e-4)
 	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>1, :c=>2), 0.5, atol=1e-4)
 	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>2, :c=>2), 0.7, atol=1e-4)
+
 end
+
+
+# let
+# 	file_data = readtable("schoolgrades.csv")
+# 	cache = ScoreComponentCache(file_data)
+# 	params = GreedyHillClimbing(cache, max_n_parents=3, prior=UniformPrior(2.0))
+#
+# 	println("Greedy Hill Climbing")
+# 	params = GreedyHillClimbing(cache)
+# 	bn = fit(DiscreteBayesNet, file_data, params)
+#
+# 	bs_from_structure = bayesian_score(bn.dag, Symbol[name(cpd) for cpd in bn.cpds], file_data)
+# 	println(bs_from_structure)
+#
+# 	println("Greedy Thick Thinning")
+# 	params = GreedyThickThinning(cache)
+# 	bn = fit(DiscreteBayesNet, file_data, params)
+# 	bs_from_structure = bayesian_score(bn.dag, Symbol[name(cpd) for cpd in bn.cpds], file_data)
+# 	println(bs_from_structure)
+# end
+
+let
+	data = DataFrame(a=[1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,   2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2],
+		             b=[1,1,1,1,1,1,1,1, 2,2,2,2,2,2,2,2,   1,1,1,1,2,2,2,2, 2,2,2,2,2,2,2,2],
+		             c=[1,1,1,1,1,1,2,2, 2,2,2,2,2,2,1,1,   1,1,2,2,1,1,2,2, 1,1,1,1,1,1,1,1])
+
+	cache = ScoreComponentCache(data)
+	params = ScanGreedyHillClimbing(cache, max_n_parents=3, max_depth=1, prior=UniformPrior(2.0))
+	@test params.max_n_parents == 3
+	@test params.prior == UniformPrior(2.0)
+
+	params = ScanGreedyHillClimbing(cache)
+	bn = fit(DiscreteBayesNet, data, params)
+	@test length(bn) == ncol(data)
+	@test isapprox(pdf(get(bn, :c), :c=>1), 0.61765, atol=1e-4)
+	@test isapprox(pdf(get(bn, :b), :b=>1), 0.38235, atol=1e-4)
+	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>1, :c=>1), 0.7, atol=1e-4)
+	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>2, :c=>1), 0.21428, atol=1e-4)
+	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>1, :c=>2), 0.5, atol=1e-4)
+	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>2, :c=>2), 0.7, atol=1e-4)
+end
+
