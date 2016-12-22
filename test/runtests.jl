@@ -29,12 +29,12 @@ function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F}, y::Abstract
 end
 
 testdir = joinpath(dirname(@__DIR__), "test")
-include(joinpath(testdir, "test_gibbs.jl"))
 include(joinpath(testdir, "test_utils.jl"))
 include(joinpath(testdir, "test_cpds.jl"))
 include(joinpath(testdir, "test_factors.jl"))
 include(joinpath(testdir, "test_bayesnets.jl"))
 include(joinpath(testdir, "test_sampling.jl"))
+include(joinpath(testdir, "test_gibbs.jl"))
 include(joinpath(testdir, "test_learning.jl"))
 include(joinpath(testdir, "test_io.jl"))
 include(joinpath(testdir, "test_ndgrid.jl"))

@@ -1,9 +1,12 @@
 """
-Likelihood weighted sampling using `rand_table_weighted`
+Likelihood weighted sampling using weighted sampling
 """
-function weighted_built_in(bn::BayesNet, query::Union{Vector{Symbol}, Symbol};
-        evidence::Assignment=Assignment(), N::Int=100)
-    samples = rand_table_weighted(bn; consistent_with=evidence, nsamples=N)
+function weighted_built_in(bn::BayesNet, query::Union{Vector{NodeName}, NodeName};
+    evidence::Assignment=Assignment(),
+    nsamples::Int=100,
+    )
+
+    samples = rand(bn, WeightedSampler(evidence), nsamples)
     return by(samples, query, df -> DataFrame(probability = sum(df[:p])))
 end
 

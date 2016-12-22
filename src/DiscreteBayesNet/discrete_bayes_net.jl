@@ -255,3 +255,4 @@ function statistics(bn::DiscreteBayesNet, target::NodeName, data::DataFrame)
 
     statistics(targetind, parents, ncategories, datamat)
 end
+

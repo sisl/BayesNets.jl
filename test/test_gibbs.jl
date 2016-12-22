@@ -7,14 +7,14 @@ let
         push!(bn, CategoricalCPD{Bernoulli}(:c, [:a, :b], [2,2], [Bernoulli(0.1), Bernoulli(0.2), Bernoulli(1.0), Bernoulli(0.4)]))
 
         t5 = gibbs_sample(bn, 5, 100; thinning=5, consistent_with=Assignment(), 
-             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(), 
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(), 
              error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test size(t5) == (5, 3)
         @test t5[:a] == [1,1,1,1,1]
         @test t5[:b] == [2,2,2,2,2]
         @test t5[:c] == [1,1,1,1,1]
 
-        config = GibbsSampler(100; thinning=5)
+        config = GibbsSampler(burn_in=100, thinning=5)
         t5 = rand(bn, config, 5)
         @test size(t5) == (5, 3)
         @test t5[:a] == [1,1,1,1,1]
@@ -29,13 +29,13 @@ let
                Categorical([0, 0, 1.0, 0]), Categorical([0, 0, 0, 1.0])]))
 
         t6 = gibbs_sample(bn2, 5, 100; thinning=5, consistent_with=Assignment(:c=>1),
-             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
              error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test t6[:a] == [1,1,1,1,1]
         @test t6[:b] == [1,1,1,1,1]
         @test t6[:c] == [1,1,1,1,1]
 
-	config.consistent_with = Assignment(:c=>1)
+	config.evidence = Assignment(:c=>1)
 	t6 = rand(bn2, config, 5)
 	@test t6[:a] == [1,1,1,1,1]
         @test t6[:b] == [1,1,1,1,1]
@@ -43,14 +43,14 @@ let
 
 
         t7 = gibbs_sample(bn2, 5, 100; thinning=5, consistent_with=Assignment(:c=>2),
-             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
              error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test t7[:a] == [2,2,2,2,2]
         @test t7[:b] == [1,1,1,1,1]
         @test t7[:c] == [2,2,2,2,2]
 
         rand()
-	config.consistent_with = Assignment(:c=>2)
+	config.evidence = Assignment(:c=>2)
         t7 = rand(bn2, config, 5)
         @test t7[:a] == [2,2,2,2,2]
         @test t7[:b] == [1,1,1,1,1]
@@ -62,26 +62,26 @@ let
         push!(bn3, LinearGaussianCPD(:c, [:a, :b], [0.5, 0.5], 1.0, 0.5))
 
         t8 = gibbs_sample(bn3, 5, 100; thinning=5, consistent_with=Assignment(),
-             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
              error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test size(t8) == (5, 3)
 
         # unlikely c
         t9 = gibbs_sample(bn3, 5, 100; thinning=5, consistent_with=Assignment(:c=>1.0),
-             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
              error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test size(t9) == (5, 3)
 
         # use optional parameters and border cases for other parameters
         t10 = gibbs_sample(bn3, 5, 0; thinning=0, consistent_with=Assignment(:c=>2.0, :b=>1),
-             variable_order=Nullable{Vector{Symbol}}(Vector{Symbol}([:c, :a, :b])), time_limit=Nullable{Integer}(1000000),
+             variable_order=Nullable{Vector{Symbol}}(Vector{Symbol}([:c, :a, :b])), time_limit=Nullable{Int}(1000000),
              error_if_time_out=false, initial_sample=Nullable{Assignment}(Assignment(:a=>1, :b=>1, :c=>2.0)))
         @test size(t10)[2] == 3 && size(t10)[1] <= 5
 
 	config.burn_in = 0
-	config.consistent_with = Assignment(:c=>2.0, :b=>1)
+	config.evidence = Assignment(:c=>2.0, :b=>1)
 	config.variable_order = Nullable{Vector{Symbol}}(Vector{Symbol}([:c, :a, :b]))
-	config.time_limit = Nullable{Integer}(1000000)
+	config.time_limit = Nullable{Int}(1000000)
 	config.error_if_time_out = false
 	config.initial_sample=Nullable{Assignment}(Assignment(:a=>1, :b=>1, :c=>2.0))
 	t10 = rand(bn3, config, 5)
@@ -89,11 +89,11 @@ let
 
         # test early return from time limit
         t11 = gibbs_sample(bn3, 25000, 100; thinning=4, consistent_with=Assignment(),
-             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(1000),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(1000),
              error_if_time_out=false, initial_sample=Nullable{Assignment}())
         @test size(t10)[2] == 3 && size(t10)[1] <= 25000
 
-	config = GibbsSampler(100; thinning=4, time_limit = Nullable{Integer}(1000), error_if_time_out=false)
+	config = GibbsSampler(burn_in=100, thinning=4, time_limit = Nullable{Int}(1000), error_if_time_out=false)
 	t11 = rand(bn3, config, 25000)
         @test size(t10)[2] == 3 && size(t10)[1] <= 25000
 
@@ -104,7 +104,7 @@ let
                         [Categorical([0.1, 0.9]), Categorical([0.2, 0.8]), Categorical([1.0, 0.0]), Categorical([0.4, 0.6])]))
 
 	t12 = gibbs_sample(d_bn, 5, 100; thinning=5, consistent_with=Assignment(),
-             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
              error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test size(t12) == (5, 3)
         @test t12[:a] == [1,1,1,1,1]
@@ -113,7 +113,7 @@ let
 
 
         t13 = gibbs_sample(d_bn, 5, 100; thinning=5, consistent_with=Assignment(:c=>1),
-             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+             variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
              error_if_time_out=true, initial_sample=Nullable{Assignment}())
         @test size(t13) == (5, 3)
         @test t13[:a] == [1,1,1,1,1]
@@ -124,7 +124,7 @@ let
         pass = false
         try
             error_test = gibbs_sample(bn, 0, 100; thinning=5, consistent_with=Assignment(),
-                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
                  error_if_time_out=true, initial_sample=Nullable{Assignment}())
         catch e
             pass = true
@@ -134,7 +134,7 @@ let
         pass = false
         try
             error_test = gibbs_sample(bn, 5, -1; thinning=5, consistent_with=Assignment(),
-                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
                  error_if_time_out=true, initial_sample=Nullable{Assignment}())
         catch e
             pass = true
@@ -144,7 +144,7 @@ let
         pass = false
         try
             error_test = gibbs_sample(bn, 5, 100; thinning=-1, consistent_with=Assignment(),
-                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
                  error_if_time_out=true, initial_sample=Nullable{Assignment}())
         catch e
             pass = true
@@ -165,7 +165,7 @@ let
         pass = false
         try
             v_order = Vector{Symbol}([:a, :c])
-            config = GibbsSampler(100; variable_order=Nullable{Vector{Symbol}}(v_order), thinning=5)
+            config = GibbsSampler(burn_in=100, variable_order=Nullable{Vector{Symbol}}(v_order), thinning=5)
             error_test = rand(bn, config, 5)
         catch e
             pass = true
@@ -176,7 +176,7 @@ let
         try
             v_order = Vector{Symbol}([:a, :c, :b, :d])
             error_test = gibbs_sample(bn, 5, 100; thinning=5, consistent_with=Assignment(),
-                 variable_order=Nullable{Vector{Symbol}}(v_order), time_limit=Nullable{Integer}(),
+                 variable_order=Nullable{Vector{Symbol}}(v_order), time_limit=Nullable{Int}(),
                  error_if_time_out=true, initial_sample=Nullable{Assignment}())
         catch e
             pass = true
@@ -186,7 +186,7 @@ let
         pass = false
         try
             error_test = gibbs_sample(bn, 5, 100; thinning=5, consistent_with=Assignment(),
-                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(0),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(0),
                  error_if_time_out=true, initial_sample=Nullable{Assignment}())
         catch e
             pass = true
@@ -196,7 +196,7 @@ let
         pass = false
         try
             error_test = gibbs_sample(bn, 5, 100; thinning=5, consistent_with=Assignment(),
-                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
                  error_if_time_out=true, initial_sample=Nullable{Assignment}(Assignment(:a => 1, :b => 1)))
         catch e
             pass = true
@@ -205,7 +205,7 @@ let
 
         pass = false
         try
-            config = GibbsSampler(100; thinning=5, initial_sample=Nullable{Assignment}(Assignment(:a => 1, :b => 1)))
+            config = GibbsSampler(burn_in=100, thinning=5, initial_sample=Nullable{Assignment}(Assignment(:a => 1, :b => 1)))
             error_test = rand(bn, config, 5)
         catch e
             pass = true
@@ -215,7 +215,7 @@ let
         pass = false
         try
             error_test = gibbs_sample(bn, 5, 100; thinning=5, consistent_with=Assignment(:c => 2),
-                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Integer}(),
+                 variable_order=Nullable{Vector{Symbol}}(), time_limit=Nullable{Int}(),
                  error_if_time_out=true, initial_sample=Nullable{Assignment}(Assignment(:a => 1, :b => 1, :c => 1)))
         catch e
             pass = true
@@ -229,6 +229,4 @@ let
             pass = true
         end
         @test pass
-
-
 end

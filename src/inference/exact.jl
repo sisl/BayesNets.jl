@@ -18,12 +18,12 @@ function exact_inference(bn::BayesNet, query::Vector{Symbol};
         factors = setdiff(factors, contain_h)
         # add the product of those factors to the set
         if !isempty(contain_h)
-            push!(factors, sumout(foldl((*), contain_h), h))
+            push!(factors, sumout(reduce((*), contain_h), h))
         end
     end
 
     # normalize and remove the leftover variables (I'm looking at you sumout)
-    f = foldl((*), factors)
+    f = reduce((*), factors)
     f = normalize(by(f, query, df -> DataFrame(p = sum(df[:p]))))
     return f
 end
@@ -38,24 +38,22 @@ exact_inference(bn::BayesNet, query::Vector{Symbol};
          evidence::Assignment=Assignment())
     nodes = names(bn)
     hidden = setdiff(nodes, vcat(query, collect(keys(evidence))))
-    factors = map(n -> table(bn, n, evidence), nodes)
+    factors = map(n -> Factor(bn, n, evidence), nodes)
 
     # successively remove the hidden nodes
     # order impacts performance, but we currently have no ordering heuristics
     for h in hidden
         # find the facts that contain the hidden variable
-        contain_h = filter(f -> h in DataFrames.names(f), factors)
+        contain_h = filter(ft -> h in ft, factors)
         # remove those factors
         factors = setdiff(factors, contain_h)
         # add the product of those factors to the set
         if !isempty(contain_h)
-            push!(factors, sumout(foldl((*), contain_h), h))
+            push!(factors, sum(reduce((*), contain_h), h))
         end
     end
 
     # normalize and remove the leftover variables (I'm looking at you sumout)
-    f = foldl((*), factors)
-    f = normalize(by(f, query, df -> DataFrame(p = sum(df[:p]))))
-    return f
+    return normalize(reduce((*), factors))
 end
 

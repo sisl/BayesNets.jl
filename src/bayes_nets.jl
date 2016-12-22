@@ -72,6 +72,8 @@ end
 
 Base.get(bn::BayesNet, i::Int) = bn.cpds[i]
 Base.get(bn::BayesNet, name::NodeName) = bn.cpds[bn.name_to_index[name]]
+Base.get(bn::BayesNet, names::AbstractVector{NodeName}) = [get(bn, name) for name in names]
+Base.get(bn::BayesNet, names::Base.AbstractSet{NodeName}) = get(bn, collect(names))
 Base.length(bn::BayesNet) = length(bn.cpds)
 
 """
@@ -98,38 +100,23 @@ function children(bn::BayesNet, target::NodeName)
 	NodeName[name(bn.cpds[j]) for j in out_neighbors(bn.dag, i)]
 end
 
-
+"""
+Returns all descendants as a list of NodeNames.
+"""
 function neighbors(bn::BayesNet, target::NodeName)
 	i = bn.name_to_index[target]
 	NodeName[name(bn.cpds[j]) for j in append!(in_neighbors(bn.dag, i), out_neighbors(bn.dag, i))]
-
 end
 
-function descendants_helper(bn::BayesNet, cur_node::NodeName, result::Set{NodeName})
-	next_children = children(bn, cur_node)
-	if !isempty(next_children)
-		for child in next_children
-			if !in(child, result)
-				push!(result, child)
-				union!(result, descendants_helper(bn, child, result))
-			end
-		end
-	end
-	return result
-
-end
-
+"""
+Returns all descendants as a list of NodeNames.
+"""
 function descendants(bn::BayesNet, target::NodeName)
-	return collect(descendants_helper(bn, target, Set{NodeName}()))
-
-"""
-Returns all CPDs that involve the target as a list of CPDs
-The variables in these CPDs collectively include the parents, children, and parents of children of the target
-"""
-function markov_blanket_cpds(bn::BayesNet, target::NodeName)
-	markov_blanket_cpds = CPD[get(bn, child_name) for child_name in children(bn, target)]
-	push!(markov_blanket_cpds, get(bn, target))
-	return markov_blanket_cpds
+	retval = Set{Int}()
+	for edge in edges(bfs_tree(bn.dag, bn.name_to_index[target]))
+		push!(retval, edge.second)
+	end
+	NodeName[name(bn.cpds[i]) for i in sort!(collect(retval))]
 end
 
 """
@@ -145,7 +132,10 @@ function markov_blanket(bn::BayesNet, target::NodeName)
         return setdiff(Set(nodeNames), Set(NodeName[target]))
 end
 
-function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)
+"""
+Whether the BayesNet contains the given edge
+"""
+function has_edge(bn::BayesNet, parent::NodeName, child::NodeName)::Bool
 	u = get(bn.name_to_index, parent, 0)
 	v = get(bn.name_to_index, child, 0)
 	u != 0 && v != 0 && has_edge(bn.dag, u, v)
@@ -175,7 +165,10 @@ function adding_edge_preserves_acyclicity(parent_list::Vector{Vector{Int}}, u::I
     return true
 end
 
-function is_independent(bn::BayesNet, x::Vector{NodeName}, y::Vector{NodeName}, given::Vector{NodeName})
+"""
+Returns whether the set of node names `x` is d-separated from the set `y` given the set `given`
+"""
+function is_independent(bn::BayesNet, x::AbstractVector{NodeName}, y::AbstractVector{NodeName}, given::AbstractVector{NodeName})
 
 	start_node = x[1]
 	finish_node = y[1]
