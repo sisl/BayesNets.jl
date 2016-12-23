@@ -89,10 +89,11 @@ table(bn::DiscreteBayesNet, name::NodeName, pair::Pair{NodeName}...) = table(bn,
 
 """
     Distributions.ncategories(bn::DiscreteBayesNet, node::Symbol)
-Gets the number of categories for a node in the network.
+
+Return the number of categories for a node in the network.
 """
-function Distributions.ncategories(bn::DiscreteBayesNet, node::Symbol)
-    return Distributions.ncategories(get(bn, node).distributions[1])
+function Distributions.ncategories(bn::DiscreteBayesNet, node::NodeName)
+    return ncategories(get(bn, node).distributions[1])
 end
 
 """

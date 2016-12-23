@@ -1,8 +1,41 @@
-""" A random sample of all nodes in network, except for evidence nodes
+#
+# Gibbs Sampling code
+#
 
+type GibbsInferenceState <: AbstractInferenceState
+    bn::DiscreteBayesNet
+    factor::Factors.Factor
+    evidence::Assignment
+    state::Assignment
+
+    """
+        GibbsInferenceState(bn, query, evidence=Assignment)
+
+    Holds the state for successive Gibbs Sampling
+    """
+    function GibbsInferenceState(bn::DiscreteBayesNet, query::Vector{NodeName},
+            evidence::Assignment=Assignment())
+        factor = Factor.Factor(query, Float64)
+        state = _init_gibbs_sample(bn, evidence)
+
+        return new(bn, factor, evidence, state)
+    end
+
+    function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeName,
+            evidence::Assignment=Assignment())
+
+        return GibbsInferenceState(bn, [query], evidence)
+    end
+end
+
+
+"""
+    _init_gibbs_sample(bn, evidence)
+
+A random sample of all nodes in network, except for evidence nodes
 Not uniform, not sure how to randomly sample over domain of distribution
 """
-function initial_sample(bn::BayesNet, evidence::Assignment)
+function _init_gibbs_sample(bn::BayesNet, evidence::Assignment())
     sample = Assignment()
 
     for cpd in bn.cpds
@@ -14,7 +47,7 @@ function initial_sample(bn::BayesNet, evidence::Assignment)
             # pick a random distribution for the node
             d = rand(cpd.distributions)
             # pick a random variable from that distribution
-            sample[nn] = Distributions.rand(d)
+            sample[nn] = rand(1:ncategories(bn, nn))
         end
     end
 
