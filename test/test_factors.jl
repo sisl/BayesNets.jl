@@ -1,54 +1,103 @@
-f1 = DataFrame(
-	A = [false, true, false, true],
-	B = [false, false, true, true],
-	p = [0.75, 0.60, 0.25, 0.40]
-	)
-
-f2 = DataFrame(
-	A = [false, true],
-	p = [0.9, 0.1]
-	)
+#
+# Test for Factors
+#
 
 let
-	# factor multiplication
-	f12 = f1 * f2
-	@test size(f12) == (4,3)
-	@test elementwise_isapprox(select(f12, Assignment(:A=>false, :B=>false))[:p], [0.75*0.9])
-	@test elementwise_isapprox(select(f12, Assignment(:A=>true,  :B=>false))[:p], [0.60*0.1])
-	@test elementwise_isapprox(select(f12, Assignment(:A=>false, :B=>true))[:p], [0.25*0.9])
-	@test elementwise_isapprox(select(f12, Assignment(:A=>true,  :B=>true))[:p], [0.40*0.1])
+@test_throws ArgumentError Factor([:X, :X], [2, 3])
+@test_throws ArgumentError Factor([:A, :X], [3])
+@test_throws ArgumentError Factor([:Y, :A, :X], [2, 3])
 end
 
 let
-	# factor marginalization
-	f1_sans_B = sumout(f1, :B)
-	@test size(f1_sans_B) == (2,2)
-	@test elementwise_isapprox(select(f1_sans_B, Assignment(:A=>false))[:p], [0.75 + 0.25])
-	@test elementwise_isapprox(select(f1_sans_B, Assignment(:A=>true))[:p], [0.60 + 0.40])
-
-	f1_sans_A = sumout(f1, :A)
-	@test size(f1_sans_A) == (2,2)
-	@test elementwise_isapprox(select(f1_sans_A, Assignment(:B=>false))[:p], [0.75 + 0.60])
-	@test elementwise_isapprox(select(f1_sans_A, Assignment(:B=>true))[:p], [0.25 + 0.40])
+ft = Factor([:X, :Y], [3, 3], 16)
+@test all(ft.probability .== 16)
 end
 
 let
-	# factor normalization
-	f3 = BayesNets.normalize(DataFrame(
-		A = [false, true],
-		p = [1.0, 3.0]
-	))
-
-	@test elementwise_isapprox(f3[:p], [0.25, 0.75])
+# doesn't freak out
+ft = Factor([:X, :Y], [4, 3], nothing)
+rand!(ft)
 end
 
 let
-	# estimation
-	df = estimate(DataFrame(
-		A = [false, false, true, true, true]
-		))
-	@test elementwise_isapprox(df[:p], [2/5, 3/5])
+ft = Factor([:X, :Y, :Z], [2, 3, 4])
 
-	# TODO: properly test this
-	estimate_convergence(df, Assignment(:A=>true))
+@test eltype(ft) == Float64
+@test ndims(ft) == 3
+@test size(ft, :X) == 2
+@test size(ft) == (2, 3, 4)
+@test size(ft, :Y, :X) == (3, 2)
+
+push!(ft, :A, 5)
+
+@test ndims(ft) == 4
+@test size(ft) == (2, 3, 4, 5)
+@test size(ft, :A, :X) == (5, 2)
+
+permutedims!(ft, [4, 3, 1, 2])
+
+@test names(ft) == [:A, :Z, :X, :Y]
+@test size(ft) == (5, 4, 2, 3)
 end
+
+let
+bn = rand_discrete_bn(10, 4)
+name = :N5
+
+ft = Factor(bn, name)
+df = join(df = DataFrame(ft), table(bn, name), on=names(ft))
+diff = abs(df[:p] - df[:v])
+
+@test any(diff .> 1E-10)
+end
+
+let
+ft = Factor([:l1, :l2], [2, 3])
+
+
+@test pattern(ft, :l1) == [1, 2, 1, 2, 1, 2]
+@test pattern(ft, :l2) == [1, 1, 2, 2, 3, 3]
+@test pattern(ft, [:l1, :l2]) == pattern(ft)
+@test pattern(ft) == [1 1; 2 1; 1 2; 2 2; 1 3; 2 3]
+end
+
+let
+ft = Factor([:X, :Y], Float64[1 2; 3 4; 5 6])
+
+@test elementwise_isapprox(broadcast(*, ft, [:Y, :X], [[10, 0.1], 100]).probability,
+        [1000 20; 3000 40; 5000 60])
+end
+
+let
+ft = factor([:X, :Y, :Z], [3, 2, 2])
+ft.probability[:] = [1, 2, 3, 2, 3, 4, 4, 6, 7, 8, 10, 16]
+
+df_original = DataFrame(ft)
+
+@test_throws ArgumentError reducedim!(*, ft, "waldo")
+# make sure it didn't change ft
+@test DataFrame(ft) == df_original
+
+@test DataFrame(broadcast(+, broadcast(+, ft, :Z, [10, 0.1]), :X, 10)) ==
+        DataFrame(broadcast(+, ft, [:X, :Z], [10, [10, 0.1]])) 
+
+# squeeze does some weird stuff man ...
+@test sum(broadcast(*, ft, :Z, 0), names(ft)).v == squeeze([0.0], 1)
+
+    let
+    df = DataFrame(X = [2, 5, 7], v = [123.0, 165.0, 237.0])
+
+    ft2 = broadcast(*, ft, :Z, [1, 10])
+    sum!(ft2, [:Y, :Z])
+
+    # ft didn't change
+    @test DataFrame(ft2) != df_original
+    @test DataFrame(ft2) == df
+    end
+
+    let
+    df = DataFrame(X = [2, 5, 7], v = [15, 21, 30])
+    @test DataFrame(sum(ft, [:Y, :K, :Z, :waldo])) == df
+    end
+end
+

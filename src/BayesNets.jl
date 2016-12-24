@@ -8,10 +8,11 @@ using Reexport
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
+# for Factors overloading
+import Base: .==, .!=, .<, .<=, .>, .>=, ==, *, +
 import Base.Collections: PriorityQueue, peek
 import Iterators: subsets, product
 import TikzGraphs: plot
-import Factors
 import LightGraphs: DiGraph, add_edge!, rem_edge!,
        add_vertex!, rem_vertex!, has_edge,
        edges, topological_sort_by_dfs, in_neighbors,
@@ -44,6 +45,10 @@ export
     estimate_convergence,
     readxdsl,
 
+    # Factors
+    Factor,
+    pattern,
+
     # Sampler interface
     BayesNetSampler,
     DirectSampler,
@@ -61,14 +66,16 @@ export
     AbstractInferenceState,
     InferenceState,
     GibbsInferenceState,
+    evidence,
+    query,
     exact_inference,
+    weighted_built_in,
     likelihood_weighting,
     gibbs_sampling,
     gibbs_sampling_full_iter,
     loopy_belief,
 # TODO swap out the above for the below###################
     exact_inference_inf,
-    likelihood_weighting_inf,
 
     DirichletPrior,
     UniformPrior,
@@ -100,22 +107,23 @@ include("bayes_nets.jl")
 include("io.jl")
 include("sampling.jl")
 include("learning.jl")
-include("gibbs.jl")
 include("gen_bayes_nets.jl")
 
 include(joinpath("DiscreteBayesNet", "ndgrid.jl"))
-include(joinpath("DiscreteBayesNet", "factors.jl")) # TODO SWAP OUT #####################
+include(joinpath("DiscreteBayesNet", "factors.jl"))
 include(joinpath("DiscreteBayesNet", "dirichlet_priors.jl"))
 include(joinpath("DiscreteBayesNet", "discrete_bayes_net.jl"))
 include(joinpath("DiscreteBayesNet", "structure_scoring.jl"))
 include(joinpath("DiscreteBayesNet", "greedy_hill_climbing.jl"))
 include(joinpath("DiscreteBayesNet", "scan_greedy_hill_climbing.jl"))
 
-include(joinpath("inference", "inference.jl"))
-include(joinpath("inference", "exact.jl"))
-include(joinpath("inference", "gibbs.jl"))
-include(joinpath("inference", "likelihood.jl"))
-include(joinpath("inference", "loopy_belief.jl"))
+include(joinpath("Factors", "Factors.jl"))
+
+include(joinpath("Inference", "inference.jl"))
+include(joinpath("Inference", "exact.jl"))
+include(joinpath("Inference", "likelihood.jl"))
+include(joinpath("Inference", "gibbs.jl"))
+include(joinpath("Inference", "loopy_belief.jl"))
 
 end # module
 

@@ -4,7 +4,9 @@
 # a DiscreteBayesNet
 
 """
-Generates a random DiscreteBayesNet
+    rand_discrete_bn(num_nodes16, max_num_parents=3, max_num_states=5)
+
+Generate a random DiscreteBayesNet
 
 Creates DiscreteBayesNet with num_nodes nodes, each with random values (up to)
 max_num_parents and max_num_parents for the number of parents and states
@@ -63,7 +65,7 @@ function bn_inference_init(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)
         evidence[ev] = sample(1:ncat)
     end
 
-    return (query, evidence)
+    return InferenceState(bn, query, evidence)
 end
 
 """

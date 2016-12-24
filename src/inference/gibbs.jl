@@ -2,9 +2,9 @@
 # Gibbs Sampling code
 #
 
-type GibbsInferenceState <: AbstractInferenceState
+immutable GibbsInferenceState <: AbstractInferenceState
     bn::DiscreteBayesNet
-    factor::Factors.Factor
+    query::Vector{NodeName}
     evidence::Assignment
     state::Assignment
 
@@ -15,10 +15,9 @@ type GibbsInferenceState <: AbstractInferenceState
     """
     function GibbsInferenceState(bn::DiscreteBayesNet, query::Vector{NodeName},
             evidence::Assignment=Assignment())
-        factor = Factor.Factor(query, Float64)
         state = _init_gibbs_sample(bn, evidence)
 
-        return new(bn, factor, evidence, state)
+        return new(bn, evidence, state)
     end
 
     function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeName,
@@ -28,6 +27,24 @@ type GibbsInferenceState <: AbstractInferenceState
     end
 end
 
+Base.convert{I<:AbstractInferenceState}(::Type{I}, inf::GibbsInferenceState) =
+    I(inf.bn, inf.query, inf.evidence)
+
+Base.convert(::Type{GibbsInferenceState}, inf::AbstractInferenceState) =
+    GibbsInferenceState(inf.bn, inf.query, inf.evidence,
+            _init_gibbs_sample(inf.bn, inf.evidence))
+
+function Base.show(io::IO, inf::GibbsInferenceState)
+    println(io, "Query: $(names(inf.factor))")
+    println(io, "Evidence:")
+    for (k, v) in inf.evidence
+        println(io, "  $k => $v")
+    end
+    println(io, "State:")
+    for (k, v) in inf.state
+        println(io, "  $k => $v")
+    end
+end
 
 """
     _init_gibbs_sample(bn, evidence)
@@ -35,7 +52,7 @@ end
 A random sample of all nodes in network, except for evidence nodes
 Not uniform, not sure how to randomly sample over domain of distribution
 """
-function _init_gibbs_sample(bn::BayesNet, evidence::Assignment())
+function _init_gibbs_sample(bn::BayesNet, evidence::Assignment=Assignment())
     sample = Assignment()
 
     for cpd in bn.cpds
@@ -83,25 +100,27 @@ function eval_mb_cpd(node::Symbol, ncategories::Int,
 end
 
 """
+    gibbs_sampling(inf, nsamples=2000; burnin=500, thin=3)
+
 Gibbs sampling. Runs for `N` iterations.
 Discareds first `burn_in` samples and keeps only the `thin`-th sample.
 Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
-function gibbs_sampling(bn::BayesNet, query::Vector{Symbol};
-        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=3)
-    assert(burn_in < N)
-
-    nodes = names(bn)
+function gibbs_sampling(inf::GibbsInferenceState, nsamples=2E3;
+        burn_in=500, thin=3)
+    burn_in < nsamples || throw(ArgumentError("Burn in ($burn_in) " * 
+                "must be less than number of samples ($nsamples)"))
+    bn = inf.bn
+    nodes = names(inf)
+    qu = query(inf)
+    ev = evidence(inf)
     non_evidence = setdiff(nodes, keys(evidence))
 
     # the current state
-    x = initial_sample(bn, evidence)
+    x = inf.state
 
     # if the math doesn't work out correctly, loop a couple more times ...
-    num_samples = Int(ceil((N-burn_in) / thin))
-
-    # all the samples seen
-    samples = DataFrame(fill(Int, length(query)), query, num_samples)
+    num_samples = Int(ceil((nsamples-burn_in) / thin))
 
     # Markov blankets of each node to sample from
     mb_cpds = Dict((n => get_mb_cpds(bn, n)) for n = non_evidence)
@@ -214,16 +233,5 @@ function gibbs_sampling_full_iter(bn::BayesNet, query::Vector{Symbol};
         df -> DataFrame(probability = nrow(df)))
     samples[:probability] /= sum(samples[:probability])
     return samples
-end
-
-# versions to accept just one query variable, instead of a vector
-function gibbs_sampling(bn::BayesNet, query::Symbol;
-        evidence::Assignment=Assignment(),N=1E3, burn_in=500, thin=3)
-    gibbs_sampling(bn, [query]; evidence=evidence, N=N, burn_in=burn_in, thin=thin)
-end
-
-function gibbs_sampling_full_iter(bn::BayesNet, query::Symbol;
-        evidence::Assignment=Assignment(),N=1E3, burn_in=500, thin=3)
-    gibbs_sampling_full_iter(bn, [query]; evidence=evidence, N=N, burn_in=burn_in, thin=thin)
 end
 

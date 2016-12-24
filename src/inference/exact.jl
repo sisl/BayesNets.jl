@@ -3,11 +3,11 @@ Exact inference using factors and variable eliminations
 
 Returns P(query | evidence)
 """
-function exact_inference(bn::BayesNet, query::Vector{NodeName};
-         evidence::Assignment=Assignment())
+function exact_inference(bn::BayesNet, qu::Vector{NodeName};
+         ev::Assignment=Assignment())
     nodes = names(bn)
-    hidden = setdiff(nodes, vcat(query, collect(keys(evidence))))
-    factors = map(n -> table(bn, n, evidence), nodes)
+    hidden = setdiff(nodes, vcat(qu, collect(keys(ev))))
+    factors = map(n -> table(bn, n, ev), nodes)
 
     # successively remove the hidden nodes
     # order impacts performance, but we currently have no ordering heuristics
@@ -24,22 +24,23 @@ function exact_inference(bn::BayesNet, query::Vector{NodeName};
 
     # normalize and remove the leftover variables
     f = reduce((*), factors)
-    f = normalize(by(f, query, df -> DataFrame(p = sum(df[:p]))))
+    f = normalize(by(f, qu, df -> DataFrame(p = sum(df[:p]))))
     return f
 end
 
-function exact_inference(bn::BayesNet, query::NodeName;
-        evidence::Assignment=Assignment())
-    return exact_inference(bn, [query]; evidence=evidence)
+function exact_inference(bn::BayesNet, qu::NodeName;
+        ev::Assignment=Assignment())
+    return exact_inference(bn, [qu], ev=ev)
 end
 
 function exact_inference_inf(inf::AbstractInferenceState)
-    nodes = names(inf.bn)
-    query = names(inf.factor)
-    evidence = inf.evidence
-    hidden = setdiff(nodes, vcat(query, collect(keys(evidence))))
+    bn = inf.bn
+    nodes = names(inf)
+    qu = query(inf)
+    ev = evidence(inf)
+    hidden = setdiff(nodes, vcat(query, names(ev)))
 
-    factors = map(n -> Factors.Factor(bn, n, evidence), nodes)
+    factors = map(n -> Factors.Factor(bn, n, ev), nodes)
 
     # successively remove the hidden nodes
     # order impacts performance, but we currently have no ordering heuristics

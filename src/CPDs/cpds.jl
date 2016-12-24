@@ -48,6 +48,8 @@ export
 typealias NodeName Symbol
 typealias Assignment Dict{Symbol, Any}
 
+Base.names(a::Assignment) = collect(keys(a))
+
 include("utils.jl")
 
 #############################################

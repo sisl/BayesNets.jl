@@ -3,12 +3,15 @@
 #
 # Also, integration of Factors.jl into BayesNets
 
-
+# An AbstractInferenceState should have:
+#  bn::DiscreteBayesNet
+#  evidence::Assignment
+# and a constructor that accepts just those three arguments in that order
 abstract AbstractInferenceState
 
-type InferenceState <: AbstractInferenceState
+immutable InferenceState <: AbstractInferenceState
     bn::DiscreteBayesNet
-    factor::Factors.Factor
+    query::Vector{NodeName}
     evidence::Assignment
 
     """
@@ -18,22 +21,32 @@ type InferenceState <: AbstractInferenceState
     """
     function InferenceState(bn::DiscreteBayesNet, query::Vector{NodeName},
             evidence::Assignment=Assignment())
-        factor = Factor.Factor(query, Float64)
 
-        return new(bn, factor, evidence)
+        inds = indexin(query, names(bn))
+
+        zero_loc = findnext(inds, 0, 1)
+        if zero_loc != 0
+            throw(ArgumentError("$(query[zero_loc]) is not in the bayes net"))
+        end
+
+        return new(bn, query, evidence)
     end
 
-    function InferenceState(bn::DiscreteBayesNet, query::NodeName;
+    function InferenceState(bn::DiscreteBayesNet, query::NodeName,
             evidence::Assignment=Assignment())
 
         return InferenceState(bn, [query], evidence)
     end
 end
 
+Base.names(inf::AbstractInferenceState) = names(inf.bn)
 
-# THE MOST BASIC ASSUMPTION IS THAT ALL VARIABLES ARE CATEGORICAL AND THEREFORE
-# Base.OneTo WORTHY. IF THAT IS VIOLATED, NOTHING WILL WORK
-function Factors.Factor(bn::DiscreteBayesNet, name::NodeName,
+"""
+    Factor(bn, name, evidence::Assignment())
+
+Create a factor for a node, given some evidence.
+"""
+function Factor(bn::DiscreteBayesNet, name::NodeName,
         evidence::Assignment=Assignment())
     cpd = get(bn, name)
     names = vcat(name, parents(bn, name))
@@ -47,15 +60,11 @@ function Factors.Factor(bn::DiscreteBayesNet, name::NodeName,
     return ft[evidence]
 end
 
-"""
-    DataFram(inf)
-
-Return a DataFrame of the probabilities of the query.
-"""
-function DataFrames.DataFrame(inf::AbstractInferenceState)
-    df = DataFrame(inf.factor)
-    rename!(df, :v, :p)
-
-    return df
+function Base.show(io::IO, inf::AbstractInferenceState)
+    println(io, "Query: $(inf.query)")
+    println(io, "Evidence:")
+    for (k, v) in inf.evidence
+        println(io, "  $k => $v")
+    end
 end
 
