@@ -17,7 +17,7 @@ function LinAlg.normalize!(ft::Factor, dims; p::Int=1)
     elseif isa(dims, Vector{NodeName})
         dims = unique(dims)
     else
-        invalid_dims_error()
+        invalid_dims_error(:normalize, typeof(dims))
     end
 
     inds = indexin(dims, ft)
@@ -66,7 +66,7 @@ function Base.reducedim(op, ft::Factor,
     elseif isa(dims, Vector{NodeName})
         dims = unique(dims)
     else
-        invalid_dims_error()
+        invalid_dims_error(:reducedim, typeof(dims))
     end
 
     inds = indexin(dims, ft)
@@ -101,7 +101,7 @@ function reducedim!(op, ft::Factor, dims,
     elseif isa(dims, Vector{NodeName})
         dims = unique(dims)
     else
-        invalid_dims_error()
+        invalid_dims_error(:reducedim!, typeof(dims))
     end
 
     inds = indexin(dims, ft)
@@ -168,7 +168,7 @@ function Base.broadcast!(f, ft::Factor, dims, values)
                         "match number of values to broadcast"))
         end
     else
-        invalid_dims_error()
+        invalid_dims_error(:broadcast!, typeof(dims))
     end
 
     inds = indexin(dims, ft)
@@ -288,5 +288,7 @@ function Base.join(op, ft1::Factor, ft2::Factor, kind=:outer,
 end
 
 *(ft1::Factor, ft2::Factor) = join(*, ft1, ft2)
+/(ft1::Factor, ft2::Factor) = join(/, ft1, ft2)
 +(ft1::Factor, ft2::Factor) = join(+, ft1, ft2)
+-(ft1::Factor, ft2::Factor) = join(-, ft1, ft2)
 

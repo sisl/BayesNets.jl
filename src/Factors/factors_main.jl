@@ -5,13 +5,13 @@
 # THE MOST BASIC ASSUMPTION IS THAT ALL VARIABLES ARE CATEGORICAL AND THEREFORE
 # Base.OneTo WORTHY. IF THAT IS VIOLATED, NOTHING WILL WORK
 
-immutable Factor
+type Factor
     dimensions::Vector{NodeName}
     probability::Array{Float64}
 
     function Factor(dims::Vector{NodeName}, probability::Array{Float64})
         if length(dims) != ndims(probability)
-            throw(ArgumentError("`probability` must have as many " *
+            throw(DimensionMismatch("`probability` must have as many " *
                         "dimensions as dims"))
         end
 
@@ -42,6 +42,24 @@ function Factor(dims::Vector{NodeName}, lengths::Vector{Int}, fill_value=0)
     end
 
     return Factor(dims, p)
+end
+
+"""
+    Factor(bn, name, evidence::Assignment())
+
+Create a factor for a node, given some evidence.
+"""
+function Factor(bn::DiscreteBayesNet, name::NodeName,
+        evidence::Assignment=Assignment())
+    cpd = get(bn, name)
+    dims = vcat(name, parents(bn, name))
+    lengths = ntuple(i -> ncategories(bn, dims[i]), length(dims))
+
+    p = Array{Float64}(lengths)
+    p[:] = vcat([d.p for d in cpd.distributions]...)
+    ft = Factor(dims, p)
+
+    return ft[evidence]
 end
 
 ###############################################################################
@@ -142,7 +160,7 @@ function pattern(ft::Factor, dims)
     lens = [size(ft)...]
 
     inners = vcat(1, cumprod(lens[1:(end-1)]))
-    outers = Vector{Int}(length(ft) ./ lens[inds] ./ inners[inds])
+    outers = Int[(length(ft) ./ lens[inds] ./ inners[inds])...]
 
     hcat([repeat(collect(1:l), inner=i, outer=o) for (l, i, o) in
         zip(lens[inds], inners[inds], outers)]...)
@@ -152,7 +170,7 @@ function pattern(ft::Factor)
     lens = [size(ft)...]
 
     inners = vcat(1, cumprod(lens[1:(end-1)]))
-    outers = Vector{Int}(length(ft) ./ lens ./ inners)
+    outers = Int[(length(ft) ./ lens ./ inners)...]
 
     hcat([repeat(collect(1:l), inner=i, outer=o) for (l, i, o) in
             zip(lens, inners, outers)]...)

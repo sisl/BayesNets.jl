@@ -9,7 +9,7 @@ include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
 # for Factors overloading
-import Base: .==, .!=, .<, .<=, .>, .>=, ==, *, +
+import Base: *, /, +, -
 import Base.Collections: PriorityQueue, peek
 import Iterators: subsets, product
 import TikzGraphs: plot
@@ -45,22 +45,23 @@ export
     estimate_convergence,
     readxdsl,
 
-    # Factors
-    Factor,
-    pattern,
-
-    # Sampler interface
-    BayesNetSampler,
-    DirectSampler,
-    RejectionSampler,
-    WeightedSampler,
-
     # generate BNs
     rand_discrete_bn,
     bn_inference_init,
     get_sprinkler_bn,
     get_sat_fail_bn,
     get_asia_bn,
+
+    # Factors
+    Factor,
+    pattern,
+    reducedim!,
+
+    # Sampler interface
+    BayesNetSampler,
+    DirectSampler,
+    RejectionSampler,
+    WeightedSampler,
 
     # inference
     AbstractInferenceState,
@@ -106,11 +107,12 @@ export
 include("bayes_nets.jl")
 include("io.jl")
 include("sampling.jl")
+include("gibbs.jl")
 include("learning.jl")
 include("gen_bayes_nets.jl")
 
 include(joinpath("DiscreteBayesNet", "ndgrid.jl"))
-include(joinpath("DiscreteBayesNet", "factors.jl"))
+include(joinpath("DiscreteBayesNet", "tables.jl"))
 include(joinpath("DiscreteBayesNet", "dirichlet_priors.jl"))
 include(joinpath("DiscreteBayesNet", "discrete_bayes_net.jl"))
 include(joinpath("DiscreteBayesNet", "structure_scoring.jl"))

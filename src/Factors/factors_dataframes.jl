@@ -1,12 +1,12 @@
 #
-# Factors-DataFrames
+# Factors-DataFrames conversion
 #
 # Bridge between the two
 
 """
 Convert a Factor to a DataFrame
 """
-function DataFrames.DataFrame(ft::Factor)
+function Base.convert(::Type{DataFrame}, ft::Factor)
     df = DataFrames.DataFrame(pattern(ft))
     DataFrames.rename!(df, names(df), names(ft))
     df[:probability] = ft.probability[:]

@@ -15,101 +15,55 @@ Base.getindex(ft::Factor, I::Vararg{Int}) = ft.probability[I]
     getindex(ft, a)
 
 Get values with dimensions consistent with an assignment.
-Colons select entire dimension
+Colons select entire dimension.
 """
 function Base.getindex(ft::Factor, a::Assignment)
     # more complicated logic than finding indices b/c also updating
     #  dimensions
+    inds = _translate_index(ft, a)
+    keep = inds .== Colon()
+    new_dims = ft.dimensions[keep]
+    @inbounds new_p = ft.probability[inds...]
+
+    # in case array access returns a scalar and not an array
+    # as always, the weird edge case to get a zero-dimensional array and not
+    #  a scalar
+    if ndims(new_p) == 0
+        new_p = squeeze([new_p], 1)
+    end
+
+    return Factor(new_dims, new_p)
+end
+
+function Base.setindex!(ft::Factor, v, a::Assignment)
+    @inbounds return ft.probability[_translate_index(ft, a)...] = v
+end
+
+@inline function _translate_index(ft::Factor, a::Assignment)
     inds = Array{Any}(ndims(ft))
     inds[:] = Colon()
 
-    new_dims = deepcopy(ft. dimensions)
-    keep = trues(length(new_dims))
-
     for (i, dim) in enumerate(ft.dimensions)
-        if haskey(a, dim.name)
-            val = a[dim.name]
+        if haskey(a, dim)
+            ind = a[dim]
 
-            if isa(val, Colon)
-                # nothing to be done, really
+            if isa(ind, Colon)
                 continue
-            end
-
-            if isa(val, BitArray)
-                length(dim) == length(val) || throw(ArgumentError("Length " *
-                            "of BitArray does not match dimension $(dim.name)"))
-                ind = val
-            else
-                # index in each dimension is location of value
-                ind = indexin(val, dim)
-
-                # also works for scalars (hopefully)
-                zero_loc = findfirst(ind .== 0)
-                if zero_loc != 0
-                    throw(ArgumentError("$(val[zero_loc]) is not a valid" *
-                                " state of $(name(dim))"))
+            elseif isa(ind, Int)
+                if ind < 1 || ind > size(ft, dim)
+                    throw(BoundsError(dim, ind))
                 end
-            end
-
-            if length(ind) == 1
-                # singleton access, drop the dimension
-                keep[i] = false
-                # make sure the index is a scalar so array access drops
-                #  that dimension
-                ind = first(ind)
             else
-                # update the dimension
-                @inbounds new_dims[i] = update(dim, ind)
+                throw(TypeError(:getindex, "Invalid state for dimension $dim",
+                            Int, typeof(ind)))
             end
 
             inds[i] = ind
         end
     end
 
-    new_dims = new_dims[keep]
-    new_v = ft.probability[inds...]
-
-    # in case array access returns a scalar and not an array
-    if ndims(new_v) == 0
-        new_v = squeeze([new_v], 1)
-    end
-
-    return Factor(new_dims, new_v)
+    return inds
 end
-
-function Base.setindex!(ft::Factor, v, a::Assignment)
-    return ft.probability[_translate_index(ft, a)...] = v
-end
-
-function _translate_index(ft::Factor, a::Assignment)
-    ind = Array{Any}(ndims(ft))
-    # all dimensions are accessed by default
-    ind[:] = Colon()
-
-    for (i, dim) in enumerate(ft.dimensions)
-        if haskey(a, dim.name)
-            val = a[dim.name]
-
-            if isa(val, BitArray)
-                length(dim) == length(val) || throw(ArgumentError("Length " *
-                            "of BitArray does not match dimension $(dim.name)"))
-                ind[i] = val
-            else
-                # index in each dimension is location of value
-                ind[i] = indexin(val, dim)
-
-                if any(ind[i] .== 0)
-                    # if assignment[d] is not valid,shortcircuit and
-                    #  return an empty array
-                    return []
-                end
-            end
-        end
-    end
-
-    return ind
-end
-
 
 Base.sub2ind(ft::Factor, i...) = sub2ind(size(ft), i...)
 Base.ind2sub(ft::Factor, i) = ind2sub(size(ft), i)

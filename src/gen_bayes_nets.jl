@@ -4,7 +4,8 @@
 # a DiscreteBayesNet
 
 """
-    rand_discrete_bn(num_nodes16, max_num_parents=3, max_num_states=5)
+    rand_discrete_bn(num_nodes16, max_num_parents=3,
+            max_num_states=5, parentless=true)
 
 Generate a random DiscreteBayesNet
 
@@ -14,10 +15,15 @@ max_num_parents and max_num_parents for the number of parents and states
 """
 function rand_discrete_bn(num_nodes::Int=16,
         max_num_parents::Int=3,
-        max_num_states::Int=5)
-    @assert(num_nodes > 0)
-    @assert(max_num_parents > 0)
-    @assert(max_num_states > 1)
+        max_num_states::Int=5,
+        parentless::Bool=true)
+    num_nodes > 0 || throw(ArgumentError("`num_nodes` must be greater than 0"))
+    max_num_parents > 0 || throw(ArgumentError("`max_num_parents` must be " *
+                "greater than 0"))
+    max_num_states > 1  || throw(ArgumentError("`max_num_states` must be " *
+                "greater than 1"))
+
+    min_parents = parentless ? 0 : 1
 
     bn = DiscreteBayesNet();
 
@@ -31,8 +37,9 @@ function rand_discrete_bn(num_nodes::Int=16,
         #  algorithm but ...
         while true
             # how many parents we can possibly add
-            n_par = rand(0:min(length(bn),max_num_parents))
-            parents = sample(names(bn), n_par; replace=false)
+            n_par = rand(0:min(length(bn), max_num_parents))
+            parents = sample(names(bn), 
+                    min(length(bn), max(min_parents, n_par)); replace=false)
 
             # add the new random cpd with random parents to the network
             push!(bn, rand_cpd(bn, n_states, s, parents))
