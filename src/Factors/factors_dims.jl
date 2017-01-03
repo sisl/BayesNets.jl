@@ -71,7 +71,7 @@ function Base.reducedim(op, ft::Factor,
 
     inds = indexin(dims, ft)
     # get rid of dimensions not in ft
-    inds = sort!(inds[inds .!= 0])
+    inds = sort(inds[inds .!= 0])
 
     if !isempty(inds)
         # needs to be a tuple for squeeze
@@ -106,20 +106,20 @@ function reducedim!(op, ft::Factor, dims,
 
     inds = indexin(dims, ft)
     # get rid of dimensions not in ft
-    inds = sort!(inds[inds .!= 0])
+    inds = sort(inds[inds .!= 0])
 
     if !isempty(dims)
         # needs to be a tuple for squeeze
         inds = (inds...)
 
         if v0 != nothing
-            v_new = squeeze(reducedim(op, ft.probability, inds, v0), inds)
+            p_new = squeeze(reducedim(op, ft.probability, inds, v0), inds)
         else
-            v_new = squeeze(reducedim(op, ft.probability, inds), inds)
+            p_new = squeeze(reducedim(op, ft.probability, inds), inds)
         end
 
-        ft.probability = v_new
         deleteat!(ft.dimensions, inds)
+        ft.probability = p_new
     end
 
     return ft
@@ -163,6 +163,7 @@ function Base.broadcast!(f, ft::Factor, dims, values)
         if !allunique(dims)
             non_unique_dims_error()
         end
+
         if length(dims) != length(values)
             throw(ArgumentError("Number of dimensions does not " *
                         "match number of values to broadcast"))
@@ -211,16 +212,17 @@ and then the two factors are combined with:
 """
 function Base.join(op, ft1::Factor, ft2::Factor, kind=:outer,
         reducehow=nothing, v0=nothing)
+    if length(ft1) < length(ft2)
+        # avoid all the broadcast overhead with a larger array (ideally)
+        # useful for edge cases where one (or both) is singleton
+        ft2, ft1 = ft1, ft2
+    end
+
     # dimensions in common
     #  more than just names, so will be same type, states (hopefully?)
     common = intersect(ft1.dimensions, ft2.dimensions)
 
     if kind == :outer
-        if length(ft1) < length(ft2)
-            # avoid all the broadcast overhead with a larger array, maybe?
-            ft2, ft1 = ft1, ft2
-        end
-
         # the first dimensions are all from ft1
         new_dims = union(ft1.dimensions, ft2.dimensions)
 
@@ -228,34 +230,36 @@ function Base.join(op, ft1::Factor, ft2::Factor, kind=:outer,
             # permuate the common dimensions in ft2 to the front
             perm = collect(1:ndims(ft2))
             # find which dims in ft2 are shared
-            is_common2 = indexin(ft2.dimensions, common) .!= 0
+            is_common2 = map(d -> d in common, ft2.dimensions)
+            # size of unique dimensions in ft2
+            size_unique2 = size(ft2)[~is_common2]
             # have their indices be moved to the front
             perm = vcat(perm[is_common2], perm[!is_common2])
             temp = permutedims(ft2.probability, perm)
 
-            # now reshape it by lining up the common dims in ft2 with those in ft1
-            #  boolean for which new dimensions come from ft1 only
-            is_unique1 = indexin(new_dims, setdiff(ft1.dimensions, common))
+            # reshape by lining up the common dims in ft2 with those in ft1
+            # find dimensions that come from ft1 only
+            is_unique1 = map(d -> d in setdiff(ft1.dimensions, common),
+                    new_dims)
             # set those dims to have dimension 1 for data in ft2
-            reshape_lengths = map(length, new_dims)
-            nd1 = ndims(ft1)
-            new_v = duplicate(ft1.probability, (reshape_lengths[(nd1+1):end]...))
-            reshape_lengths[is_unique1 .!= 0] = 1
+            reshape_lengths = vcat(size(ft1)..., size_unique2...)
+            #new_v = duplicate(ft1.probability, size_unique2)
+            new_v = Array{Float64}(reshape_lengths...)
+            reshape_lengths[is_unique1] = 1
             temp = reshape(temp, (reshape_lengths...))
         else
-            new_v = copy(ft1.probability)
+            new_v = similar(ft1.probability)
             temp = ft2.probability
         end
 
-        # ft1 has at at least as many elements as ft2, ft1 == 0 -> ft2 == 0
+        # ndims(ft1) == 0 implies ndims(ft2) == 0
         if ndims(ft1) == 0
-            new_v = squeeze([op(new_v[1], temp[1])], 1)
+            new_v = squeeze([op(ft1.probability[1], temp[1])], 1)
         else
-            # broadcast will automatically expand the later dimensions of ft1.probability
-            broadcast!(op, new_v, new_v, temp)
+            broadcast!(op, new_v, ft1.probability, temp)
         end
     elseif kind == :inner
-        error("inner is still unsupported")
+        error("inner is still umimplemented")
 
         new_dims = getdim(ft1, common)
 

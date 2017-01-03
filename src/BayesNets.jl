@@ -5,13 +5,14 @@ module BayesNets
 using Compat
 using Reexport
 
+# exports using Distributions and DataFrames
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
-# for Factors overloading
-import Base: *, /, +, -
+import Base: *, /, +, - # for Factors overloading
 import Base.Collections: PriorityQueue, peek
 import Iterators: subsets, product
+import StatsBase: sample, WeightVec
 import TikzGraphs: plot
 import LightGraphs: DiGraph, add_edge!, rem_edge!,
        add_vertex!, rem_vertex!, has_edge,
@@ -39,6 +40,7 @@ export
     gibbs_sample,
     GibbsSampler,
 
+    # tables, formerly known as factors
     table,
     sumout,
     normalize,
@@ -47,7 +49,7 @@ export
 
     # generate BNs
     rand_discrete_bn,
-    bn_inference_init,
+    rand_bn_inference,
     get_sprinkler_bn,
     get_sat_fail_bn,
     get_asia_bn,
@@ -63,20 +65,18 @@ export
     RejectionSampler,
     WeightedSampler,
 
-    # inference
+    # inference objects
     AbstractInferenceState,
     InferenceState,
     GibbsInferenceState,
-    evidence,
-    query,
+    # inference methods
     exact_inference,
+    exact_inference_old,
     weighted_built_in,
     likelihood_weighting,
     gibbs_sampling,
     gibbs_sampling_full_iter,
     loopy_belief,
-# TODO swap out the above for the below###################
-    exact_inference_inf,
 
     DirichletPrior,
     UniformPrior,
@@ -88,7 +88,6 @@ export
     score_component,
     score_components,
 
-    # structure learning
     GraphSearchStrategy,
     K2GraphSearch,
     GreedyHillClimbing,
@@ -120,12 +119,7 @@ include(joinpath("DiscreteBayesNet", "greedy_hill_climbing.jl"))
 include(joinpath("DiscreteBayesNet", "scan_greedy_hill_climbing.jl"))
 
 include(joinpath("Factors", "Factors.jl"))
-
 include(joinpath("Inference", "inference.jl"))
-include(joinpath("Inference", "exact.jl"))
-include(joinpath("Inference", "likelihood.jl"))
-include(joinpath("Inference", "gibbs.jl"))
-include(joinpath("Inference", "loopy_belief.jl"))
 
 end # module
 

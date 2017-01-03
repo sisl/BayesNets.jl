@@ -1,29 +1,34 @@
-# Built in (?) BayesNets
-
-#Also, Bernoulli does not count as a Categoical RV, so they can' be used in
+#
+# Generate BayesNets
+#
+# Create (random) Bayesian Networks
+#
+# Also, Bernoulli does not count as a Categoical RV, so they can't be used in
 # a DiscreteBayesNet
 
 """
     rand_discrete_bn(num_nodes16, max_num_parents=3,
-            max_num_states=5, parentless=true)
+            max_num_states=5, connected=true)
 
-Generate a random DiscreteBayesNet
+Generate a random DiscreteBayesNet.
 
-Creates DiscreteBayesNet with num_nodes nodes, each with random values (up to)
-max_num_parents and max_num_parents for the number of parents and states
-(respectively)
+Creates DiscreteBayesNet with `num_nodes` nodes, with each node having
+a random number of states and parents, up to `max_num_parents` and 
+`max_num_parents`, respectively.
+If `connected`, each node (except the first) will be guaranteed at least one
+parent, making the graph connected.
 """
 function rand_discrete_bn(num_nodes::Int=16,
         max_num_parents::Int=3,
         max_num_states::Int=5,
-        parentless::Bool=true)
+        connected::Bool=true)
     num_nodes > 0 || throw(ArgumentError("`num_nodes` must be greater than 0"))
     max_num_parents > 0 || throw(ArgumentError("`max_num_parents` must be " *
                 "greater than 0"))
     max_num_states > 1  || throw(ArgumentError("`max_num_states` must be " *
                 "greater than 1"))
 
-    min_parents = parentless ? 0 : 1
+    min_parents = connected ? 0 : 1
 
     bn = DiscreteBayesNet();
 
@@ -58,8 +63,11 @@ end
 """
 Given a Bayesian network, randomly generate valid query and evidence assignment
 """
-function bn_inference_init(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)
-    @assert (num_query + num_evidence) <= length(names(bn))
+function rand_bn_inference(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)
+    (num_query + num_evidence) <= length(bn) ||
+        throw(ArgumentError("Number of qurey and evidence nodes " *
+                    "($(num_query + num_evidence)) is greater than number " *
+                    "of nodes ($(length(bn)))"))
 
     # yay for convoluted
     non_hidden = sample(names(bn), num_query + num_evidence; replace=false)

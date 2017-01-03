@@ -130,7 +130,7 @@ Appends a new dimension to a Factor
         error("Dimension $(dim) already exists")
     end
 
-    p = duplicate(ft.probability, length)
+    p = duplicate(ft.probability, (length, ))
     ft.dimensions = push!(ft.dimensions, dim)
     ft.probability = p
 

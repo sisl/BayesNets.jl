@@ -10,7 +10,7 @@ Repeates an array only through higer dimensions `dims`.
 
 Custom version of repeate, but only outer repetition, and only duplicates
 the array for the number of times specified in `dims` for dimensions greater
-than `ndims(A)`
+than `ndims(A)`. If `dims` is empty, returns a copy of `A`.
 
 ```jldoctest
 julia> duplicate(collect(1:3), 2)
@@ -34,7 +34,7 @@ julia> duplicate([1 3; 2 4], 3)
  2  4
 ```
 """
-function duplicate(A::Array, dims)
+function duplicate(A::Array, dims::Dims)
     size_in = size(A)
 
     length_in = length(A)

@@ -30,32 +30,30 @@ function likelihood_weighting(inf::AbstractInferenceState, nsamples::Int=500)
     query = inf.query
     evidence = inf.evidence
 
-    factor = Factors.Factor(query,
-                map(n -> ncategories(bn, n), query), Float64)
+    factor = Factor(query, map(n -> ncategories(bn, n), query))
 
     # if nodes are evidence
-    #  for cpd selection; cpds and names have the same order
-    ev_mask = reduce(|, map(s -> nodes .== s, keys(evidence)))
-    evidence_cpds = bn.cpds[ev_mask]
-    non_evidence_cpds = bn.cpds[!ev_mask]
+    evidence_mask = reduce(|, map(s -> nodes .== s, keys(evidence)))
 
     sample = Assignment()
     # add the evidence to the sample
     merge!(sample, evidence)
 
-    # manual index into factor.f since categorical implies Base.OneTo
+    # manual index into factor.probability since categorical implies Base.OneTo
     q_ind = similar(query, Int)
 
     for i = 1:nsamples
         w = 1.0
 
-        for cpd in non_evidence_cpds
+        for (cpd, is_ev) in zip(bn.cpds, evidence_mask)
             nn = name(cpd)
-            sample[nn] = rand(_get_pdf(cpd, sample))
-        end
+            d = cpd(sample)
 
-        for cpd in evidence_cpds
-            w *= pdf(_get_pdf(cpd), sample[cpd.name])
+            if !is_ev
+                sample[nn] = rand(d)
+            else
+                w *= pdf(d, sample[nn])
+            end
         end
 
         # pick out the query variables to index by
@@ -63,19 +61,10 @@ function likelihood_weighting(inf::AbstractInferenceState, nsamples::Int=500)
             q_ind[i] = sample[q]
         end
 
-        factor.v[q_ind...] += w
+        factor.probability[q_ind...] += w
     end
 
     normalize!(factor)
     return factor
 end
-
-@inline function _get_pdf(cpd::CategoricalCPD{Categorical{Float64}}, 
-        sample::Dict{Symbol, Any})
-    ind = [p -> sample[p] for p in cpd.parents]
-    i = sub2ind((cpd.parental_ncategories...), ind...)
-
-    return cpd.distributions[i]
-end
-
 
