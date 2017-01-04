@@ -19,23 +19,20 @@ immutable InferenceState <: AbstractInferenceState
 
     Generates an inference state to be used for inference.
     """
-    function InferenceState(bn::DiscreteBayesNet, query::Vector{NodeName},
+    function InferenceState(bn::DiscreteBayesNet, query::NodeNames,
             evidence::Assignment=Assignment())
+        if isa(query, NodeName)
+            query = [query]
+        end
 
+        # check if any queries aren't in the network
         inds = indexin(query, names(bn))
-
         zero_loc = findnext(inds, 0, 1)
         if zero_loc != 0
             throw(ArgumentError("$(query[zero_loc]) is not in the bayes net"))
         end
 
         return new(bn, query, evidence)
-    end
-
-    function InferenceState(bn::DiscreteBayesNet, query::NodeName,
-            evidence::Assignment=Assignment())
-
-        return InferenceState(bn, [query], evidence)
     end
 end
 

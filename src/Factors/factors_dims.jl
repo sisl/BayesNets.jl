@@ -174,8 +174,8 @@ function Base.broadcast!(f, ft::Factor, dims::NodeNames, values)
     # or that vector is a scalar
     if any( ( [size(ft, dims...)...] .!= map(length, values)) &
             (map(length, values) .!= 1) )
-        throw(ArgumentError("Length of dimensions don't match " *
-                    "lengths of broadcast array"))
+        throw(DimensionMismatch("Length of dimensions don't match " *
+                    "lengths of broadcast values"))
     end
 
     # actually broadcast stuff

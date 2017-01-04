@@ -75,7 +75,7 @@ export
     weighted_built_in,
     likelihood_weighting,
     gibbs_sampling,
-    gibbs_sampling_full_iter,
+    gibbs_sampling_full,
     loopy_belief,
 
     DirichletPrior,

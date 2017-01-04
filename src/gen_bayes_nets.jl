@@ -61,7 +61,10 @@ function rand_discrete_bn(num_nodes::Int=16,
 end
 
 """
-Given a Bayesian network, randomly generate valid query and evidence assignment
+    rand_bn_inference(bn, num_query=2, num_evidence=3)
+
+Generate a random inference state for a Bayesian Network with an evidence 
+assignment sample uniformly over the chosen nodes' domain.
 """
 function rand_bn_inference(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)
     (num_query + num_evidence) <= length(bn) ||

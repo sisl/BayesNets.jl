@@ -1,6 +1,7 @@
 #
 # Gibbs Sampling code
 #
+# Gibbs sampling, inference state, and helper functions
 
 """
     GibbsInferenceState(bn, query, evidence=Assignment())
@@ -14,21 +15,25 @@ immutable GibbsInferenceState <: AbstractInferenceState
     evidence::Assignment
     state::Assignment
 
-    function GibbsInferenceState(bn::DiscreteBayesNet, query::Vector{NodeName},
+    function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNames,
             evidence::Assignment=Assignment())
         state = _init_gibbs_sample(bn, evidence)
 
-        return new(bn, query, evidence, state)
+        return Factor(bn, query, evidence, state)
     end
 
-    function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeName,
-            evidence::Assignment=Assignment())
-
-        return GibbsInferenceState(bn, [query], evidence)
-    end
-
-    function GibbsInferenceState(bn::DiscreteBayesNet, query::Vector{NodeName},
+    function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNames,
             evidence::Assignment, state::Assignment)
+        if isa(query, NodeName)
+            query = [query]
+        end
+
+        # check if any queries aren't in the network
+        inds = indexin(query, names(bn))
+        zero_loc = findnext(inds, 0, 1)
+        if zero_loc != 0
+            throw(ArgumentError("$(query[zero_loc]) is not in the bayes net"))
+        end
 
         return new(bn, query, evidence, state)
     end
@@ -57,7 +62,7 @@ end
 
 A random sample of non-evidence nodes uniformly over their domain
 """
-@inline function _init_gibbs_sample(bn::BayesNet, 
+@inline function _init_gibbs_sample(bn::BayesNet,
         evidence::Assignment=Assignment())
     sample = Assignment()
 
@@ -81,7 +86,7 @@ get_mb_cpds(bn::BayesNet, node::Symbol) =
 """
     eval_mb_cpd(node, ncategories, assignment, mb_cpds)
 
-Return the probability of all instances of a node given its markove blanket
+Return the potential of all instances of a node given its markove blanket
 as a WeightVec:
     P(node | pa_node) * Prod (c in children) P(c | pa_c)
 
@@ -108,7 +113,8 @@ end
 """
     gibbs_sampling(inf, nsamples=2000; burnin=500, thin=3)
 
-Gibbs sampling. Runs for `N` iterations.
+Run Gibbs sampling for `N` iterations. Each iteration changes one node.
+
 Discareds first `burn_in` samples and keeps only the `thin`-th sample.
 Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
@@ -134,7 +140,7 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
     x = inf.state
 
     factor = Factor(query, [n_cats[q] for q in query])
-    # manual index into factor.probability
+    # manual index into factor.potential
     q_ind = [x[q] for q in query]
 
     # Markov blankets of each node to sample from
@@ -142,32 +148,32 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
 
     finished = false
     after_burn = false
-    num_smpls = 1
-    num_iters = 1
+    num_smpls = 0
+    num_iters = 0
 
     # a sample is samples after sampling just one node
     while !finished
         for (i, n) in enumerate(non_evidence)
-            # probability of each instance of n
+            num_iters += 1
+
+            # potential of each instance of n
             wv = eval_mb_cpd(n, n_cats[n], x, mb_cpds[n])
             # sample x_n ~ P(X_n|mb(X))
             x[n] = sample(wv)
 
             # start collecting after the burn in and on the `thin`-th iteration
             if after_burn && ( ((num_iters - burn_in) % thin) == 0 )
+                num_smpls += 1
+
                 # changing one variable at a time, so can just update that node
                 qi = q_loc[i]
 
                 if qi != 0
                     # if it is a query variable
                     q_ind[qi] = x[n]
-                    factor.probability[q_ind...] += 1
+                    factor.potential[q_ind...] += 1
                 end
-
-                num_smpls += 1
             end
-
-            num_iters += 1
 
             # kick in the afterburners
             if !after_burn && num_iters > burn_in
@@ -175,77 +181,92 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
             end
 
             # doubly nested loops!! yay!!
-            if num_smpls > total_num_samples
+            if num_smpls >= total_num_samples
                 finished = true
                 break
             end
         end
     end
 
+    normalize!(factor)
     return factor
 end
 
 """
-Gibbs sampleing, but each new state samples is generated after iterating over
-all states in the network, not just one.
-"""
-function gibbs_sampling_full_iter(bn::BayesNet, query::Vector{Symbol};
-        evidence::Assignment=Assignment(), N=2E3, burn_in=500, thin=3)
-    assert(burn_in < N)
+    gibbs_sampling_full(inf, nsamples=2000; burnin=500, thin=3)
 
-    nodes = names(bn)
+Run Gibbs sampling for `N` iterations. Each iteration changes all nodes.
+Discareds first `burn_in` samples and keeps only the `thin`-th sample.
+Ex, if `thin=3`, will discard the first two samples and keep the third.
+"""
+function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
+        burn_in=500, thin=3)
+    burn_in < nsamples || throw(ArgumentError("Burn in ($burn_in) " *
+                "must be less than number of samples ($nsamples)"))
+
+    # if the math doesn't work out correctly, loop a couple more times ...
+    total_num_samples = Int(ceil((nsamples-burn_in) / thin))
+
+    bn = inf.bn
+    nodes = names(inf)
+    query = inf.query
+    evidence = inf.evidence
     non_evidence = setdiff(nodes, keys(evidence))
 
+    n_cats = Dict(n => ncategories(bn, n) for n in non_evidence)
+    # if each non-evidence node is a query variable, and its order as a query
+    q_loc = indexin(non_evidence, query)
+
     # the current state
-    x = initial_sample(bn, evidence)
+    x = inf.state
 
-    # if the math doesn't work out correctly, loop a couple more times . . .
-    num_samples = Int(ceil((N-burn_in) / thin))
+    factor = Factor(query, [n_cats[q] for q in query])
+    # manual index into factor.potential
+    q_ind = [x[q] for q in query]
 
-    # all the samples seen
-    samples = DataFrame(fill(Int, length(query)), query, num_samples)
+    # Markov blankets of each node to sample from
+    mb_cpds = Dict(n => get_mb_cpds(bn, n) for n = non_evidence)
 
-    # markov blankets of each node to sample from
-    mb_cpds = Dict((n => get_mb_cpds(bn, n)) for n = non_evidence)
-
-    order = shuffle(non_evidence)
-
+    finished = false
     after_burn = false
-    k = 1
-    i = 1
-    # assume that each sample is after changing one variable
-    while true
-        # use a random permutation of non-evidence nodes for ordering
-        for n in order
-            # for all possible value of X (assumes discrete)
-            ncat = ncategories(bn, n)
-            p = eval_mb_cpd(n, ncat, x, mb_cpds[n])
+    num_smpls = 0
+    num_iters = 0
+
+    while !finished
+        num_iters += 1
+
+        # generate a new sample
+        for (i, n) in enumerate(non_evidence)
+            # potential of each instance of n
+            wv = eval_mb_cpd(n, n_cats[n], x, mb_cpds[n])
             # sample x_n ~ P(X_n|mb(X))
-            x[n] = Distributions.sample(WeightVec(p))
-        end
+            x[n] = sample(wv)
 
-        if after_burn && ( ((i - burn_in) % thin) == 0)
-            for q in query
-                samples[k, q] = x[q]
+            # check if `n` is a query node, and update the index
+            qi = q_loc[i]
+
+            if qi != 0
+                q_ind[qi] = x[n]
             end
-
-            k += 1
         end
 
-        i += 1
+        # start collecting after the burn in and on the `thin`-th iteration
+        if after_burn && ( ((num_iters - burn_in) % thin) == 0 )
+            num_smpls += 1
+            factor.potential[q_ind...] += 1
+        end
 
-        if !after_burn && i > burn_in
+        # kick in the afterburners
+        if !after_burn && num_iters > burn_in
             after_burn = true
         end
 
-        if k > num_samples
-            break
+        if num_smpls >= total_num_samples
+            finished = true
         end
     end
 
-    samples = by(samples, query,
-        df -> DataFrame(probability = nrow(df)))
-    samples[:probability] /= sum(samples[:probability])
-    return samples
+    normalize!(factor)
+    return factor
 end
 

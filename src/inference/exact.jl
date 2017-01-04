@@ -1,3 +1,7 @@
+#
+# Exact Inference
+#
+
 function exact_inference_old(inf::AbstractInferenceState)
     bn = inf.bn
     nodes = names(inf)

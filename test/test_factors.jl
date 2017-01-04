@@ -72,6 +72,9 @@ ft = Factor([:X, :Y], Float64[1 2; 3 4; 5 6])
         Float64[1000 20; 3000 40; 5000 60])
 end
 
+
+# TODO test DimensionMismatch case
+
 ###############################################################################
 #                   reduce dims
 let
