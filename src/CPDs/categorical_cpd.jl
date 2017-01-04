@@ -1,5 +1,5 @@
 """
-A categorical distribution, P(x|parents(x)) where all parents are discrete integers 1:Nᵢ
+A categorical distribution, P(x|parents(x)) where all parents are discrete integers 1:N.
 
 The ordering of `distributions` array follows the convention in Decision Making Under Uncertainty.
 Suppose a variable has three discrete parents. The first parental instantiation
@@ -11,10 +11,12 @@ to their last bins.
 This is equivalent to:
 
 X,Y,Z
-1,1,1  
+
+1,1,1
+
 2,1,1
 
-1,2,1  
+1,2,1
 
 2,2,1
 

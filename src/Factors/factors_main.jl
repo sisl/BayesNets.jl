@@ -7,11 +7,13 @@
 
 type Factor
     dimensions::Vector{NodeName}
-    probability::Array{Float64}
+    # in some (most?) cases, this will be a probability, but since that may
+    #  not always be the case, I will use this random word that may apply ...
+    potential::Array{Float64}
 
-    function Factor(dims::Vector{NodeName}, probability::Array{Float64})
-        if length(dims) != ndims(probability)
-            throw(DimensionMismatch("`probability` must have as many " *
+    function Factor(dims::Vector{NodeName}, potential::Array{Float64})
+        if length(dims) != ndims(potential)
+            throw(DimensionMismatch("`potential` must have as many " *
                         "dimensions as dims"))
         end
 
@@ -19,11 +21,11 @@ type Factor
             non_unique_dims_error()
         end
 
-        if :probability in dims
-            warn("Having a dimension called `probability` will cause problems")
+        if :potential in dims
+            warn("Having a dimension called `potential` will cause problems")
         end
 
-        return new(dims, probability)
+        return new(dims, potential)
     end
 end
 
@@ -31,7 +33,7 @@ end
     Factor(dims, lengths, fill=0)
 
 Create a factor with dimensions `dims`, each with lengths corresponding to
-`lengths`. `fill` will fill the probability array with that value.
+`lengths`. `fill` will fill the potential array with that value.
 To keep uninitialized, use nothing.
 """
 function Factor(dims::Vector{NodeName}, lengths::Vector{Int}, fill_value=0)
@@ -45,7 +47,7 @@ function Factor(dims::Vector{NodeName}, lengths::Vector{Int}, fill_value=0)
 end
 
 """
-    Factor(bn, name, evidence::Assignment())
+    Factor(bn, name, evidence=Assignment())
 
 Create a factor for a node, given some evidence.
 """
@@ -70,7 +72,7 @@ end
 
 Return a factor similar to `ft` with unitialized values
 """
-Base.similar(ft::Factor) = Factor(ft.dimensions, similar(ft.probability))
+Base.similar(ft::Factor) = Factor(ft.dimensions, similar(ft.potential))
 
 """
 Returns Float64
@@ -82,22 +84,22 @@ Names of each dimension
 """
 Base.names(ft::Factor) = ft.dimensions
 
-Base.ndims(ft::Factor) = ndims(ft.probability)
+Base.ndims(ft::Factor) = ndims(ft.potential)
 
 """
     size(ft, [dims...])
 
 Returns a tuple of the dimensions of `ft`
 """
-Base.size(ft::Factor) = size(ft.probability)
-Base.size(ft::Factor, dim::NodeName) = size(ft.probability, indexin(dim, ft))
+Base.size(ft::Factor) = size(ft.potential)
+Base.size(ft::Factor, dim::NodeName) = size(ft.potential, indexin(dim, ft))
 Base.size{N}(ft::Factor, dims::Vararg{NodeName, N}) =
     ntuple(k -> size(ft, dims[k]), Val{N})
 
 """
 Total number of elements total
 """
-Base.length(ft::Factor) = length(ft.probability)
+Base.length(ft::Factor) = length(ft.potential)
 
 """
     in(dim, ft) -> Bool
@@ -120,7 +122,7 @@ Base.indexin(dims::Vector{NodeName}, ft::Factor) = indexin(dims, names(ft))
 
 Fill with random values
 """
-Base.rand!(ft) = rand!(ft.probability)
+Base.rand!(ft) = rand!(ft.potential)
 
 """
 Appends a new dimension to a Factor
@@ -130,15 +132,15 @@ Appends a new dimension to a Factor
         error("Dimension $(dim) already exists")
     end
 
-    p = duplicate(ft.probability, (length, ))
+    p = duplicate(ft.potential, (length, ))
     ft.dimensions = push!(ft.dimensions, dim)
-    ft.probability = p
+    ft.potential = p
 
     return ft
 end
 
 @inline function Base.permutedims!(ft::Factor, perm)
-    ft.probability = permutedims(ft.probability, perm)
+    ft.potential = permutedims(ft.potential, perm)
     ft.dimensions = ft.dimensions[perm]
     return ft
 end

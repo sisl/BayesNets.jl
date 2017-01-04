@@ -23,28 +23,26 @@ Table multiplication
         j = join(f1, f2, on=onnames, kind=:outer)
     end
 
-    for k in 1 : length(j[:p])
-        j[k,:p] *= j[k,:p_1]
-    end
-    return j[:,finalnames]
+    j[:p] = j[:p] .* j[:p_1]
+
+    return j[finalnames]
 end
 
-# TODO: implement factoring out final value in factor table,
-#       or throwing an error in that case
-# Works for non-binary variables and possibly fixes the above todo
 """
+    sumout(f, v)
+
 Table marginalization
 """
-function sumout(f::Table, v::Union{Symbol, AbstractVector{Symbol}})
+function sumout(f::Table, v::NodeNames)
     # vcat works for single values and vectors alike (magic?)
     remainingvars = setdiff(names(f), vcat(v, :p))
 
     if isempty(remainingvars)
         # they want to remove all variables except for prob column
-        # uh ...
-        return f
+        # uh ... 'singleton' table?
+        return DataFrame(p = sum(f[:p]))
     else
-        # note that this will fail miserablely if f is too large (~1E4 maybe?)
+        # note that this will fail miserably if f is too large (~1E4 maybe?)
         #  nothing I can do :'(  github issue about it
         return by(f, remainingvars, df -> Table(p = sum(df[:p])))
     end

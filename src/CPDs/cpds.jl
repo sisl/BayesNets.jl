@@ -20,6 +20,8 @@ export
 
     Assignment,                    # variable assignment type, complete or partial, for a Bayesian Network
     NodeName,                      # variable name type
+    # either a single variable name or a vector of names
+    NodeNames,
 
     StaticCPD,                     # static distribution (never uses parental information)
     FunctionalCPD,                 # for implementing quick and easy custom CPDs
@@ -46,6 +48,7 @@ export
 #############################################
 
 typealias NodeName Symbol
+typealias NodeNames Union{NodeName, AbstractVector{NodeName}}
 typealias Assignment Dict{Symbol, Any}
 
 Base.names(a::Assignment) = collect(keys(a))

@@ -11,13 +11,11 @@
 Normalize the factor so all instances of dims have (or the entire factors has)
 p-norm of 1
 """
-function LinAlg.normalize!(ft::Factor, dims; p::Int=1)
+function LinAlg.normalize!(ft::Factor, dims::NodeNames; p::Int=1)
     if isa(dims, NodeName)
         dims = [dims]
-    elseif isa(dims, Vector{NodeName})
-        dims = unique(dims)
     else
-        invalid_dims_error(:normalize, typeof(dims))
+        dims = unique(dims)
     end
 
     inds = indexin(dims, ft)
@@ -25,14 +23,14 @@ function LinAlg.normalize!(ft::Factor, dims; p::Int=1)
 
     if !isempty(inds)
         if p == 1
-            total = sumabs(ft.probability, inds)
+            total = sumabs(ft.potential, inds)
         elseif p == 2
-            total = sumabs2(ft.probability, inds)
+            total = sumabs2(ft.potential, inds)
         else
             throw(ArgumentError("p = $(p) is not supported"))
         end
 
-        ft.probability ./= total
+        ft.potential ./= total
     end
 
     return ft
@@ -40,14 +38,14 @@ end
 
 function LinAlg.normalize!(ft::Factor; p::Int=1)
     if p == 1
-        total = sumabs(ft.probability)
+        total = sumabs(ft.potential)
     elseif p == 2
-        total = sumabs2(ft.probability)
+        total = sumabs2(ft.potential)
     else
         throw(ArgumentError("p = $(p) is not supported"))
     end
 
-    ft.probability ./= total
+    ft.potential ./= total
 
     return ft
 end
@@ -59,14 +57,12 @@ Reduce dimensions `dims` in `ft` using function `op`.
 See Base.reducedim for more details
 """
 function Base.reducedim(op, ft::Factor,
-        dims, v0=nothing)
-    # opt for a more efficient version than reducedim!(deepcopy(ft))
+        dims::NodeNames, v0=nothing)
+    # a (possibly?) more efficient version than reducedim!(deepcopy(ft))
     if isa(dims, NodeName)
         dims = [dims]
-    elseif isa(dims, Vector{NodeName})
-        dims = unique(dims)
     else
-        invalid_dims_error(:reducedim, typeof(dims))
+        dims = unique(dims)
     end
 
     inds = indexin(dims, ft)
@@ -81,12 +77,12 @@ function Base.reducedim(op, ft::Factor,
         deleteat!(dims_new, inds)
 
         if v0 != nothing
-            p_new = squeeze(reducedim(op, ft.probability, inds, v0), inds)
+            v_new = squeeze(reducedim(op, ft.potential, inds, v0), inds)
         else
-            p_new = squeeze(reducedim(op, ft.probability, inds), inds)
+            v_new = squeeze(reducedim(op, ft.potential, inds), inds)
         end
 
-        ft = Factor(dims_new, p_new)
+        ft = Factor(dims_new, v_new)
     else
         ft = deepcopy(ft)
     end
@@ -94,14 +90,12 @@ function Base.reducedim(op, ft::Factor,
     return ft
 end
 
-function reducedim!(op, ft::Factor, dims,
+function reducedim!(op, ft::Factor, dims::NodeNames,
         v0=nothing)
     if isa(dims, NodeName)
         dims = [dims]
-    elseif isa(dims, Vector{NodeName})
-        dims = unique(dims)
     else
-        invalid_dims_error(:reducedim!, typeof(dims))
+        dims = unique(dims)
     end
 
     inds = indexin(dims, ft)
@@ -113,13 +107,13 @@ function reducedim!(op, ft::Factor, dims,
         inds = (inds...)
 
         if v0 != nothing
-            p_new = squeeze(reducedim(op, ft.probability, inds, v0), inds)
+            v_new = squeeze(reducedim(op, ft.potential, inds, v0), inds)
         else
-            p_new = squeeze(reducedim(op, ft.probability, inds), inds)
+            v_new = squeeze(reducedim(op, ft.potential, inds), inds)
         end
 
         deleteat!(ft.dimensions, inds)
-        ft.probability = p_new
+        ft.potential = v_new
     end
 
     return ft
@@ -155,11 +149,11 @@ in `dims`
 
 See Base.broadcast for more info.
 """
-function Base.broadcast!(f, ft::Factor, dims, values)
+function Base.broadcast!(f, ft::Factor, dims::NodeNames, values)
     if isa(dims, NodeName)
         dims = [dims]
         values = [values]
-    elseif isa(dims, Vector{NodeName})
+    else
         if !allunique(dims)
             non_unique_dims_error()
         end
@@ -168,8 +162,6 @@ function Base.broadcast!(f, ft::Factor, dims, values)
             throw(ArgumentError("Number of dimensions does not " *
                         "match number of values to broadcast"))
         end
-    else
-        invalid_dims_error(:broadcast!, typeof(dims))
     end
 
     inds = indexin(dims, ft)
@@ -193,73 +185,79 @@ function Base.broadcast!(f, ft::Factor, dims, values)
             reshape_dims = (vcat(ones(Int, inds[i]-1), length(val))...)
             val = reshape(val, reshape_dims)
         end
-        broadcast!(f, ft.probability, ft.probability, val)
+        broadcast!(f, ft.potential, ft.potential, val)
     end
 
     return ft
 end
 
 """
-Joins two factos. Only two kinds are allowed: inner and outer
+    join(op, ft1, ft2, :outer, [v0])
+    join(op, ft1, ft2, :inner, [reducehow], [v0])
 
-Outer returns a Factor with the union of the two dimensions
+Performs either an inner or outer join,
+
+An outer join returns a Factor with the union of the two dimensions
 The two factors are combined with Base.broadcast(op, ...)
 
-Inner keeps only the intersect between the two
-The extra dimensions are first reduced with reducedim(reducehow, ...)
+An inner join keeps the dimensions in common between the two Factors.
+The extra dimensions are reduced with 
+    reducedim(reducehow, ...)
 and then the two factors are combined with:
-    op(ft1[intersect].probability, ft2[intersect.probability])
+    op(ft1[common_dims].potential, ft2[common_dims].potential)
 """
-function Base.join(op, ft1::Factor, ft2::Factor, kind=:outer,
+function Base.join(op, ft1::Factor, ft2::Factor, kind::Symbol=:outer,
         reducehow=nothing, v0=nothing)
+    # avoid all the broadcast overhead with a larger array (ideally)
+    # more useful for edge cases where one (or both) is (are) singleton
     if length(ft1) < length(ft2)
-        # avoid all the broadcast overhead with a larger array (ideally)
-        # useful for edge cases where one (or both) is singleton
         ft2, ft1 = ft1, ft2
     end
 
-    # dimensions in common
-    #  more than just names, so will be same type, states (hopefully?)
     common = intersect(ft1.dimensions, ft2.dimensions)
+    index_common1 = indexin(common, ft1.dimensions)
+    index_common2 = indexin(common, ft2.dimensions)
+
+    if [size(ft1)[index_common1]...] != [size(ft2)[index_common2]...]
+        throw(DimensionMismatch("Common dimensions must have same size"))
+    end
 
     if kind == :outer
         # the first dimensions are all from ft1
         new_dims = union(ft1.dimensions, ft2.dimensions)
 
         if ndims(ft2) != 0
-            # permuate the common dimensions in ft2 to the front
-            perm = collect(1:ndims(ft2))
-            # find which dims in ft2 are shared
-            is_common2 = map(d -> d in common, ft2.dimensions)
-            # size of unique dimensions in ft2
-            size_unique2 = size(ft2)[~is_common2]
-            # have their indices be moved to the front
-            perm = vcat(perm[is_common2], perm[!is_common2])
-            temp = permutedims(ft2.probability, perm)
+            # permute the common dimensions in ft2 to the beginning,
+            #  in the order that they appear in ft1 (and therefore new_dims)
+            unique1 = setdiff(ft1.dimensions, common)
+            unique2 = setdiff(ft2.dimensions, common)
+            # these will also be the same indices for new_dims
+            index_unique1 = indexin(unique1, ft1.dimensions)
+            index_unique2 = indexin(unique2, ft2.dimensions)
+            perm = vcat(index_common2, index_unique2)
+            temp = permutedims(ft2.potential, perm)
 
             # reshape by lining up the common dims in ft2 with those in ft1
-            # find dimensions that come from ft1 only
-            is_unique1 = map(d -> d in setdiff(ft1.dimensions, common),
-                    new_dims)
+            size_unique2 = size(ft2)[index_unique2]
             # set those dims to have dimension 1 for data in ft2
             reshape_lengths = vcat(size(ft1)..., size_unique2...)
-            #new_v = duplicate(ft1.probability, size_unique2)
+            #new_v = duplicate(ft1.potential, size_unique2)
             new_v = Array{Float64}(reshape_lengths...)
-            reshape_lengths[is_unique1] = 1
+            reshape_lengths[index_unique1] = 1
             temp = reshape(temp, (reshape_lengths...))
         else
-            new_v = similar(ft1.probability)
-            temp = ft2.probability
+            new_v = similar(ft1.potential)
+            temp = ft2.potential
         end
 
         # ndims(ft1) == 0 implies ndims(ft2) == 0
         if ndims(ft1) == 0
-            new_v = squeeze([op(ft1.probability[1], temp[1])], 1)
+            new_v = squeeze([op(ft1.potential[1], temp[1])], 1)
         else
-            broadcast!(op, new_v, ft1.probability, temp)
+            broadcast!(op, new_v, ft1.potential, temp)
         end
     elseif kind == :inner
-        error("inner is still umimplemented")
+        error("Inner joins are (still) umimplemented")
 
         new_dims = getdim(ft1, common)
 
@@ -268,20 +266,21 @@ function Base.join(op, ft1::Factor, ft2::Factor, kind=:outer,
             v_new = squeeze(zero(eltype(ft1), 0), 1)
         else
             if reducehow == nothing
-                throw(ArgumentError("Need reducehow"))
+                throw(ArgumentError("`reducehow` is needed to reduce " *
+                            "non-common dimensions"))
             end
 
             inds1 = (findin(ft1.dimensions, common)...)
             inds2 = (findin(ft2.dimensions, common)...)
 
             if v0 != nothing
-                v1_new = squeeze(reducedim(op, ft1.probability, inds1, v0), inds)
-                v2_new = squeeze(reducedim(op, ft2.probability, inds2, v0), inds)
+                v1_new = squeeze(reducedim(op, ft1.potential, inds1, v0), inds)
+                v2_new = squeeze(reducedim(op, ft2.potential, inds2, v0), inds)
             else
-                v1_new = squeeze(reducedim(op, ft1.probability, inds1), inds)
-                v2_new = squeeze(reducedim(op, ft2.probability, inds2), inds)
-        new_m = zeros(eltype(ft1.probability), reshape_lengths)
+                v1_new = squeeze(reducedim(op, ft1.potential, inds1), inds)
+                v2_new = squeeze(reducedim(op, ft2.potential, inds2), inds)
             end
+
             v_new = op(v1_new, v2_new)
         end
     else

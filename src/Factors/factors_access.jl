@@ -8,8 +8,8 @@ Base.getindex(ft::Factor, dim::NodeName) = pattern(ft, dim)
 Base.getindex(ft::Factor, dims::Vector{NodeName}) = pattern(ft, dims)
 
 # Index by number gets that ind
-Base.getindex(ft::Factor, i::Int) = ft.probability[i]
-Base.getindex(ft::Factor, I::Vararg{Int}) = ft.probability[I]
+Base.getindex(ft::Factor, i::Int) = ft.potential[i]
+Base.getindex(ft::Factor, I::Vararg{Int}) = ft.potential[I]
 
 """
     getindex(ft, a)
@@ -23,7 +23,7 @@ function Base.getindex(ft::Factor, a::Assignment)
     inds = _translate_index(ft, a)
     keep = inds .== Colon()
     new_dims = ft.dimensions[keep]
-    @inbounds new_p = ft.probability[inds...]
+    @inbounds new_p = ft.potential[inds...]
 
     # in case array access returns a scalar and not an array
     # as always, the weird edge case to get a zero-dimensional array and not
@@ -36,7 +36,7 @@ function Base.getindex(ft::Factor, a::Assignment)
 end
 
 function Base.setindex!(ft::Factor, v, a::Assignment)
-    @inbounds return ft.probability[_translate_index(ft, a)...] = v
+    @inbounds return ft.potential[_translate_index(ft, a)...] = v
 end
 
 @inline function _translate_index(ft::Factor, a::Assignment)

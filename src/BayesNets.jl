@@ -71,7 +71,7 @@ export
     GibbsInferenceState,
     # inference methods
     exact_inference,
-    exact_inference_old,
+    exact_inference_old, #TODO remove
     weighted_built_in,
     likelihood_weighting,
     gibbs_sampling,
