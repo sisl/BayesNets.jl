@@ -29,6 +29,11 @@ type Factor
     end
 end
 
+function Factor(dim::NodeName, length::Int,
+        fill_value::Union{Float64, Void}=0.0)
+    return Factor([dim], [length], fill_value)
+end
+
 """
     Factor(dims, lengths, fill=0)
 
@@ -36,7 +41,8 @@ Create a factor with dimensions `dims`, each with lengths corresponding to
 `lengths`. `fill` will fill the potential array with that value.
 To keep uninitialized, use nothing.
 """
-function Factor(dims::Vector{NodeName}, lengths::Vector{Int}, fill_value=0)
+function Factor(dims::Vector{NodeName}, lengths::Vector{Int},
+        fill_value::Union{Float64, Void}=0.0)
     if fill_value == nothing
         p = Array{Float64}(lengths...)
     else

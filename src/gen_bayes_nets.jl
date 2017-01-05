@@ -28,7 +28,7 @@ function rand_discrete_bn(num_nodes::Int=16,
     max_num_states > 1  || throw(ArgumentError("`max_num_states` must be " *
                 "greater than 1"))
 
-    min_parents = connected ? 0 : 1
+    min_parents = connected ? 1 : 0
 
     bn = DiscreteBayesNet();
 

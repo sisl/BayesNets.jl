@@ -19,20 +19,31 @@ immutable GibbsInferenceState <: AbstractInferenceState
             evidence::Assignment=Assignment())
         state = _init_gibbs_sample(bn, evidence)
 
-        return Factor(bn, query, evidence, state)
+        return GibbsInferenceState(bn, query, evidence, state)
     end
 
     function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNames,
             evidence::Assignment, state::Assignment)
         if isa(query, NodeName)
             query = [query]
+        else
+            query = unique(query)
         end
 
         # check if any queries aren't in the network
         inds = indexin(query, names(bn))
         zero_loc = findnext(inds, 0, 1)
         if zero_loc != 0
-            throw(ArgumentError("$(query[zero_loc]) is not in the bayes net"))
+            throw(ArgumentError("Query $(query[zero_loc]) is not "
+                        * "in the bayes net"))
+        end
+
+        # check if any queries are also evidence
+        inds = indexin(query, collect(keys(evidence)))
+        nonzero_loc = find(inds .> 0)
+        if nonzero_loc != 0
+            throw(ArgumentError("Query $(query[nonzero_loc]) is part "
+                        * "of the evidence"))
         end
 
         return new(bn, query, evidence, state)
@@ -119,7 +130,7 @@ Discareds first `burn_in` samples and keeps only the `thin`-th sample.
 Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
 function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
-        burn_in=500, thin=3)
+        burn_in::Int=500, thin::Int=3)
     burn_in < nsamples || throw(ArgumentError("Burn in ($burn_in) " *
                 "must be less than number of samples ($nsamples)"))
 
@@ -139,7 +150,7 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
     # the current state
     x = inf.state
 
-    factor = Factor(query, [n_cats[q] for q in query])
+    ft = Factor(query, [n_cats[q] for q in query])
     # manual index into factor.potential
     q_ind = [x[q] for q in query]
 
@@ -167,12 +178,11 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
 
                 # changing one variable at a time, so can just update that node
                 qi = q_loc[i]
+                # if it is a query variable, update the index
+                qi != 0 && (q_ind[qi] = x[n])
 
-                if qi != 0
-                    # if it is a query variable
-                    q_ind[qi] = x[n]
-                    factor.potential[q_ind...] += 1
-                end
+                # sample
+                @inbounds ft.potential[q_ind...] += 1
             end
 
             # kick in the afterburners
@@ -188,8 +198,8 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
         end
     end
 
-    normalize!(factor)
-    return factor
+    normalize!(ft)
+    return ft
 end
 
 """
@@ -200,7 +210,7 @@ Discareds first `burn_in` samples and keeps only the `thin`-th sample.
 Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
 function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
-        burn_in=500, thin=3)
+        burn_in::Int=500, thin::Int=3)
     burn_in < nsamples || throw(ArgumentError("Burn in ($burn_in) " *
                 "must be less than number of samples ($nsamples)"))
 
@@ -220,7 +230,7 @@ function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
     # the current state
     x = inf.state
 
-    factor = Factor(query, [n_cats[q] for q in query])
+    ft = Factor(query, [n_cats[q] for q in query])
     # manual index into factor.potential
     q_ind = [x[q] for q in query]
 
@@ -244,16 +254,13 @@ function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
 
             # check if `n` is a query node, and update the index
             qi = q_loc[i]
-
-            if qi != 0
-                q_ind[qi] = x[n]
-            end
+            qi != 0 && (q_ind[qi] = x[n])
         end
 
         # start collecting after the burn in and on the `thin`-th iteration
         if after_burn && ( ((num_iters - burn_in) % thin) == 0 )
             num_smpls += 1
-            factor.potential[q_ind...] += 1
+            @inbounds ft.potential[q_ind...] += 1
         end
 
         # kick in the afterburners
@@ -266,7 +273,7 @@ function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
         end
     end
 
-    normalize!(factor)
-    return factor
+    normalize!(ft)
+    return ft
 end
 

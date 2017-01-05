@@ -23,13 +23,24 @@ immutable InferenceState <: AbstractInferenceState
             evidence::Assignment=Assignment())
         if isa(query, NodeName)
             query = [query]
+        else
+            query = unique(query)
         end
 
         # check if any queries aren't in the network
         inds = indexin(query, names(bn))
         zero_loc = findnext(inds, 0, 1)
         if zero_loc != 0
-            throw(ArgumentError("$(query[zero_loc]) is not in the bayes net"))
+            throw(ArgumentError("Query $(query[zero_loc]) is not "
+                        * "in the bayes net"))
+        end
+
+        # check if any queries are also evidence
+        inds = indexin(query, collect(keys(evidence)))
+        nonzero_loc = find(inds .> 0)
+        if nonzero_loc != 0
+            throw(ArgumentError("Query $(query[nonzero_loc]) is part "
+                        * "of the evidence"))
         end
 
         return new(bn, query, evidence)

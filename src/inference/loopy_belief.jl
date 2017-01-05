@@ -1,6 +1,7 @@
 #
 # Loopy Belief Propagation
 #
+# LBP and associated functions
 
 """
 Get the lambda-message to itself for an evidence node.
@@ -25,28 +26,31 @@ function loopy_belief(inf, nsamples::Int=500;
         tol::Float64=1e-8, iters_for_convergence::Int=6)
     bn = inf.bn
     nodes = names(inf)
-    query = inf.query
+    query = first(inf.query)
     evidence = inf.evidence
     evidence_nodes = collect(keys(evidence))
 
+    length(query) == 1 ||
+            throw(ArgumentError("Can only be one query variable"))
+
     ncat_lut = Dict(nn => ncategories(bn, nn) for nn in nodes)
-    parents = map(nn => parents(bn, nn), nodes)
-    children = map(nn => children(bn, nn), nodes)
-    factors = map(nn => Factor(bn, nn), nodes)
+    parents_lut = map(nn -> parents(bn, nn), nodes)
+    children_lut = map(nn -> children(bn, nn), nodes)
+    factors = map(nn -> Factor(bn, nn), nodes)
 
     # evidence node messages to their selves
-    evidence_lambdas = [nn => _evidence_lambda(nn, evidence, ncat_lut[nn])
-            for nn in evidence_nodes]
+    evidence_lambdas = (nn -> _evidence_lambda(nn, evidence, ncat_lut[nn]),
+            evidence_nodes)
     # the index of each node in evidence (lambda) or zero otherwise
     evidence_index = indexin(nodes, evidence_nodes)
 
     # the messages being passed from node to node (parents or children)
     # each node has a vector containing the messages from its children
     #  each message is about it, so all have the same length
-    lambdas = Dict{(NodeName, NodeName), Vector{Int}}()
+    lambdas = Dict{Tuple{NodeName, NodeName}, Vector{Float64}}()
     # each node has a vector containing the messages from its parents
     #  each message is about the parent, so they may have different lengths
-    pis = Dict{(NodeName, NodeName), Vector{Int}}()
+    pis = similar(lambdas)
 
     # init first messages
     # instead of calculating the first pi^t and lambda^t messages per node
@@ -56,13 +60,13 @@ function loopy_belief(inf, nsamples::Int=500;
     # I am most unsure about this...
     for (i, cpd) in enumerate(bn.cpds)
         nn = name(cpd)
-        nn_ncat = ncat[nn]
-        nn_parents = parents[i]
-        nn_children = children[i]
+        nn_ncat = ncat_lut[nn]
+        nn_parents = parents_lut[i]
+        nn_children = children_lut[i]
 
         for ch in nn_children
             # lambda from child to parents (nn)
-            lambdas[(ch, nn)] = fill(1/nn_ncat, nn_cat)
+            lambdas[(ch, nn)] = fill(1/nn_ncat, nn_ncat)
 
             # pi from parent (nn) to children
             #  if evidence node, set to evidence_lambda to avoid recomputing
@@ -71,6 +75,12 @@ function loopy_belief(inf, nsamples::Int=500;
                 evidence_lambdas[ev_i]
         end
     end
+
+    # messages are passed in parallel, so need a "new" set
+    new_lambdas = similar(lambdas)
+    # pi messages for evidence nodes won't be (re-)computed, so
+    # just copy over *all* initial pi messages
+    new_pis = deepcopy(pis)
 
     # begin iterating
     # use a circular buffer to keep track of the maximum change
@@ -83,9 +93,10 @@ function loopy_belief(inf, nsamples::Int=500;
 
         for (i, cpd) in enumerate(bn.cpds)
             nn = name(cpd)
+            nn_ncat = ncat_lut[nn]
             ft = factors[i]
-            nn_parents = parents[i]
-            nn_children = children[i]
+            nn_parents = parents_lut[i]
+            nn_children = children_lut[i]
 
             # build current lambda and pi at time t (from messages @ time t-1)
 
@@ -93,12 +104,13 @@ function loopy_belief(inf, nsamples::Int=500;
             #  about each instance of itself
             # nn's index in the evidence
             ev_i = evidence_index[i]
-            if ev_i == 0 
+            if ev_i != 0
                 # if it is evidence, then just one value will be non-zero
                 # normalization will kick in and do magic ...
                 lambda = evidence_lambdas[ev_i]
             else
-                lambda = reduce(.*, (lambdas[(ch, nn)] for ch in nn_children))
+                 lambda = isempty(nn_children) ? ones(nn_ncat) :
+                    reduce(.*, (lambdas[(ch, nn)] for ch in nn_children))
             end
 
             # pi is the cpd of the node weighted by the pi message that each
@@ -108,17 +120,19 @@ function loopy_belief(inf, nsamples::Int=500;
             else
                 # multiply each probability with the pi messages from parents
                 #  for that particular instantiation of the parents
-                ft_temp = broadcast!(ft_temp, nn_parents,
+                ft_temp = broadcast(*, ft, nn_parents,
                         [pis[(pa, nn)] for pa in nn_parents])
                 pi = sum!(ft_temp, nn_parents).potential
             end
 
             # build lambda messages to parents
-            for pa in enumerate(nn_parents)
+            for pa in nn_parents
                 # same as above:
                 # multiply each p(x|parents) by pi of all parents but one
                 other_pa = setdiff(nn_parents, [pa])
-                lx = broadcast(ft, other_pa, [pis[(p, nn)] for p in other_pa])
+                lx = isempty(other_pa) ? deepcopy(ft) :
+                        broadcast(*, ft, other_pa,
+                                [pis[(p, nn)] for p in other_pa])
                 # sum out the other parents
                 sum!(lx, other_pa)
                 # weight by its current evidence lambda
@@ -127,33 +141,41 @@ function loopy_belief(inf, nsamples::Int=500;
                 sum!(lx, nn)
                 normalize!(lx)
 
-                # change in the message
-                delta = norm(lx.potential - lambdas(nn, pa))
+                new_lambdas[(nn, pa)] = lx.potential
+
+                # find change in the message
+                delta = norm(lx.potential - lambdas[(nn, pa)])
                 if delta > max_change
                     max_change = delta
                 end
-
-                lambdas(nn, pa) = lx.potential
             end
 
             # build pi messages to children
-            if ev_i != 0
+            if ev_i == 0
                 # if an evidence node, pi will stay [0 ... 0 1 0... 0 ]
                 for ch in nn_children
                     other_ch = setdiff(nn_children, [ch])
-                    px = pi .* reduce(.*, (lambdas[(c, nn)] for c in other_ch))
+                    px = pi
+                    # reduce freaks out with empty arrays
+                    isempty(other_ch) ||
+                        (px .*= reduce(.*,
+                                    (lambdas[(c, nn)] for c in other_ch)))
                     normalize!(px, 1)
 
-                    # change in the message
-                    delta = norm(px.potential - pis[(nn, ch)], Inf)
+                    new_pis[(nn, ch)] = px
+
+                    # find change in the message
+                    delta = norm(px - pis[(nn, ch)], Inf)
                     if delta > max_change
                         max_change = delta
                     end
-
-                    new_pis[(nn, ch)] = p_xc
                 end
             end
         end
+
+        # swap 'em
+        new_pis, pis = pis, new_pis
+        new_lambdas, lambdas, = lambdas, new_lambdas
 
         change_per_iter[i] = max_change
         # a % b is in [0, b), so add 1
@@ -165,22 +187,26 @@ function loopy_belief(inf, nsamples::Int=500;
     end
 
     # compute belief P(x|e)
+    qi = findfirst(nodes, query)
     # lambda and pi one last time
-    ft = Factor(bn, query)
+    ft = factors[qi]
+    nn_children = children_lut[qi]
+    nn_parents = parents_lut[qi]
 
-    lambda = reduce(.*, (lambdas[(ch, nn)] for ch in nn_children))
+    lambda = isempty(nn_children) ? ones(nn_ncat) :
+            reduce(.*, (lambdas[(ch, query)] for ch in nn_children))
+
     if isempty(nn_parents)
         pi = ft.potential
     else
-        ft_temp = broadcast!(ft_temp, nn_parents,
-                [pis[(pa, nn)] for pa in nn_parents])
-        pi = sum!(ft_temp, nn_parents).potential
+        broadcast!(*, ft, nn_parents,
+                [pis[(pa, query)] for pa in nn_parents])
+        pi = sum!(ft, nn_parents).potential
     end
 
-    ft = Factor([query], ncat_lut[query])
-    ft.potential = lambda .* pi
-    normalize!(ft)
+    ftr = Factor([query], lambda .* pi)
+    normalize!(ftr)
 
-    return ft
+    return ftr
 end
 

@@ -3,6 +3,8 @@
 #
 
 # TODO sub2ind for assignments
+# TODO broadcast fallback for empty arrays
+# TODO broadcast_reduce tag-team
 
 include("errors.jl")
 include("auxiliary.jl")
