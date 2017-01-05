@@ -40,7 +40,7 @@ immutable GibbsInferenceState <: AbstractInferenceState
 
         # check if any queries are also evidence
         inds = indexin(query, collect(keys(evidence)))
-        nonzero_loc = find(inds .> 0)
+        nonzero_loc = findfirst(inds .> 0)
         if nonzero_loc != 0
             throw(ArgumentError("Query $(query[nonzero_loc]) is part "
                         * "of the evidence"))
@@ -165,29 +165,29 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
     # a sample is samples after sampling just one node
     while !finished
         for (i, n) in enumerate(non_evidence)
-            num_iters += 1
-
             # potential of each instance of n
             wv = eval_mb_cpd(n, n_cats[n], x, mb_cpds[n])
             # sample x_n ~ P(X_n|mb(X))
             x[n] = sample(wv)
 
-            # start collecting after the burn in and on the `thin`-th iteration
-            if after_burn && ( ((num_iters - burn_in) % thin) == 0 )
-                num_smpls += 1
+            # changing one variable at a time, so can just update that node
+            qi = q_loc[i]
+            # if it is a query variable, update the index
+            qi != 0 && (q_ind[qi] = x[n])
 
-                # changing one variable at a time, so can just update that node
-                qi = q_loc[i]
-                # if it is a query variable, update the index
-                qi != 0 && (q_ind[qi] = x[n])
-
-                # sample
-                @inbounds ft.potential[q_ind...] += 1
-            end
+            num_iters += 1
 
             # kick in the afterburners
             if !after_burn && num_iters > burn_in
                 after_burn = true
+            end
+
+            # start collecting after the burn in and on the `thin`-th iteration
+            if after_burn && ( ((num_iters - burn_in) % thin) == 0 )
+                num_smpls += 1
+
+                # sample
+                @inbounds ft.potential[q_ind...] += 1
             end
 
             # doubly nested loops!! yay!!
@@ -243,8 +243,6 @@ function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
     num_iters = 0
 
     while !finished
-        num_iters += 1
-
         # generate a new sample
         for (i, n) in enumerate(non_evidence)
             # potential of each instance of n
@@ -257,15 +255,17 @@ function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
             qi != 0 && (q_ind[qi] = x[n])
         end
 
-        # start collecting after the burn in and on the `thin`-th iteration
-        if after_burn && ( ((num_iters - burn_in) % thin) == 0 )
-            num_smpls += 1
-            @inbounds ft.potential[q_ind...] += 1
-        end
+        num_iters += 1
 
         # kick in the afterburners
         if !after_burn && num_iters > burn_in
             after_burn = true
+        end
+
+        # start collecting after the burn in and on the `thin`-th iteration
+        if after_burn && ( ((num_iters - burn_in) % thin) == 0 )
+            num_smpls += 1
+            @inbounds ft.potential[q_ind...] += 1
         end
 
         if num_smpls >= total_num_samples

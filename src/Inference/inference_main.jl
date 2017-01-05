@@ -37,7 +37,7 @@ immutable InferenceState <: AbstractInferenceState
 
         # check if any queries are also evidence
         inds = indexin(query, collect(keys(evidence)))
-        nonzero_loc = find(inds .> 0)
+        nonzero_loc = findfirst(inds .> 0)
         if nonzero_loc != 0
             throw(ArgumentError("Query $(query[nonzero_loc]) is part "
                         * "of the evidence"))

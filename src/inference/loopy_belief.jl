@@ -24,14 +24,14 @@ iterations.
 """
 function loopy_belief(inf, nsamples::Int=500;
         tol::Float64=1e-8, iters_for_convergence::Int=6)
+    length(inf.query) == 1 ||
+            throw(ArgumentError("Can only be one query variable"))
+
     bn = inf.bn
     nodes = names(inf)
     query = first(inf.query)
     evidence = inf.evidence
     evidence_nodes = collect(keys(evidence))
-
-    length(query) == 1 ||
-            throw(ArgumentError("Can only be one query variable"))
 
     ncat_lut = Dict(nn => ncategories(bn, nn) for nn in nodes)
     parents_lut = map(nn -> parents(bn, nn), nodes)
@@ -39,7 +39,7 @@ function loopy_belief(inf, nsamples::Int=500;
     factors = map(nn -> Factor(bn, nn), nodes)
 
     # evidence node messages to their selves
-    evidence_lambdas = (nn -> _evidence_lambda(nn, evidence, ncat_lut[nn]),
+    evidence_lambdas = map(nn -> _evidence_lambda(nn, evidence, ncat_lut[nn]),
             evidence_nodes)
     # the index of each node in evidence (lambda) or zero otherwise
     evidence_index = indexin(nodes, evidence_nodes)
@@ -88,7 +88,7 @@ function loopy_belief(inf, nsamples::Int=500;
     change_index = 1
     change_per_iter = fill(Inf, iters_for_convergence)
 
-    for iter in 1:N
+    for iter in 1:nsamples
         max_change = -Inf
 
         for (i, cpd) in enumerate(bn.cpds)
@@ -136,7 +136,7 @@ function loopy_belief(inf, nsamples::Int=500;
                 # sum out the other parents
                 sum!(lx, other_pa)
                 # weight by its current evidence lambda
-                broadcast!(lx, nn, lambda)
+                broadcast!(*, lx, nn, lambda)
                 # sum out the current node
                 sum!(lx, nn)
                 normalize!(lx)
@@ -177,9 +177,9 @@ function loopy_belief(inf, nsamples::Int=500;
         new_pis, pis = pis, new_pis
         new_lambdas, lambdas, = lambdas, new_lambdas
 
-        change_per_iter[i] = max_change
+        change_per_iter[change_index] = max_change
         # a % b is in [0, b), so add 1
-        i = i % iters_for_convergence + 1
+        change_index = change_index % iters_for_convergence + 1
 
         if maximum(change_per_iter) <= tol
             break
@@ -190,6 +190,7 @@ function loopy_belief(inf, nsamples::Int=500;
     qi = findfirst(nodes, query)
     # lambda and pi one last time
     ft = factors[qi]
+    nn_ncat = ncat_lut[query]
     nn_children = children_lut[qi]
     nn_parents = parents_lut[qi]
 
