@@ -1,3 +1,8 @@
+type GibbsInference <: InferenceMethod
+end # TODO
+
+
+
 """ A random sample of all nodes in network, except for evidence nodes
 
 Not uniform, not sure how to randomly sample over domain of distribution

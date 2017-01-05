@@ -1,3 +1,14 @@
+"""
+Loopy belief propogation for a network.
+
+Early stopping if change is messages < `tol` for `iters_for_convergence'
+iterations. For no stopping, use tol < 0.
+"""
+@with_kw type LoopyBelief <: InferenceMethod
+    N::Int = 500
+    tol::Float64 = 1e-8
+    iters_for_convergence::Int = 6
+end
 function _gen_evidence_lambda(nn, evidence, ncat)
     if haskey(evidence, nn)
         z = zeros(ncat)
@@ -8,19 +19,9 @@ function _gen_evidence_lambda(nn, evidence, ncat)
 
     return z
 end
+function infer(im::LoopyBelief, bn::DiscreteBayesNet, query::Vector{NodeName}; evidence::Assignment=Assignment())
 
-"""
-Loopy belief propogation for a network.
-
-Early stopping if change is messages < `tol` for `iters_for_convergence'
-iterations. For no stopping, use tol < 0.
-"""
-function loopy_belief(bn::BayesNet, query::NodeName;
-    evidence::Assignment=Assignment(),
-    N=500,
-    tol::Float64=1e-8,
-    iters_for_convergence::Int=6
-    )
+    N, tol, iters_for_convergence = im.N, im.tol, im.iters_for_convergence
 
     bn_names = names(bn)
 
@@ -199,7 +200,7 @@ function loopy_belief(bn::BayesNet, query::NodeName;
 
     d = DataFrame()
     d[query] = 1:ncat_lut[query]
-    d[:probability] = normalize(lambda .* pi, 1)
+    d[:p] = normalize(lambda .* pi, 1)
     return d
 end
 

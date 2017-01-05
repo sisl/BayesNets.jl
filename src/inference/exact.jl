@@ -1,10 +1,10 @@
 """
 Exact inference using factors and variable eliminations
-
-Returns P(query | evidence)
 """
-function exact_inference(bn::BayesNet, query::Vector{Symbol};
-         evidence::Assignment=Assignment())
+type ExactInference <: InferenceMethod
+end
+function infer(::ExactInference, bn::DiscreteBayesNet, query::Vector{NodeName}; evidence::Assignment=Assignment())
+
     nodes = names(bn)
     hidden = setdiff(nodes, vcat(query, collect(keys(evidence))))
     factors = map(n -> table(bn, n, evidence), nodes)
@@ -26,10 +26,5 @@ function exact_inference(bn::BayesNet, query::Vector{Symbol};
     f = foldl((*), factors)
     f = normalize(by(f, query, df -> DataFrame(p = sum(df[:p]))))
     return f
-end
-
-function exact_inference(bn::BayesNet, query::Symbol;
-        evidence::Assignment=Assignment())
-    return exact_inference(bn, [query]; evidence=evidence)
 end
 

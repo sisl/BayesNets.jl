@@ -4,6 +4,7 @@ module BayesNets
 
 using Compat
 using Reexport
+using Parameters
 
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
@@ -12,6 +13,7 @@ import LightGraphs: DiGraph, add_edge!, rem_edge!, add_vertex!, rem_vertex!, has
 import TikzGraphs: plot
 import Iterators: subsets, product
 import Base.Collections: PriorityQueue, peek
+import Base: normalize
 
 export
     BayesNet,
@@ -42,14 +44,18 @@ export
     BayesNetSampler,
     DirectSampler,
     RejectionSampler,
-    WeightedSampler,
+    LikelihoodWeightedSampler,
 
-    exact_inference,
-    likelihood_weighting,
-    likelihood_weighting_grow,
-    gibbs_sampling,
-    gibbs_sampling_full_iter,
-    loopy_belief,
+    get_weighted_dataframe,
+    sample_weighted_dataframe!,
+    sample_weighted_dataframe,
+
+    InferenceMethod,
+    ExactInference,
+    LikelihoodWeightingInference,
+    LoopyBelief,
+
+    infer,
 
     random_discrete_bn,
     bn_inference_init,
@@ -97,6 +103,7 @@ include(joinpath("DiscreteBayesNet", "greedy_hill_climbing.jl"))
 include(joinpath("DiscreteBayesNet", "scan_greedy_hill_climbing.jl"))
 
 include("gen_bayes_nets.jl")
+include(joinpath("inference", "inference.jl"))
 include(joinpath("inference", "exact.jl"))
 include(joinpath("inference", "gibbs.jl"))
 include(joinpath("inference", "likelihood.jl"))
