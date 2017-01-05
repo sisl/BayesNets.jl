@@ -9,6 +9,18 @@
 # and a constructor that accepts just those three arguments in that order
 abstract AbstractInferenceState
 
+# make sure query nodes are in the bn and not in the evidence
+@inline function _ckq(qs::Vector{NodeName}, nodes::Vector{NodeName},
+        ev::Assignment)
+    isempty(qs) && return
+
+    q = first(qs)
+    (q in nodes) || throw(ArgumentError("Query $q is not in the bayes net"))
+    haskey(ev, q) && throw(ArgumentError("Query $q is part of the evidence"))
+
+    return _ckq(qs[2:end], nodes, ev)
+end
+
 immutable InferenceState <: AbstractInferenceState
     bn::DiscreteBayesNet
     query::Vector{NodeName}
@@ -21,27 +33,8 @@ immutable InferenceState <: AbstractInferenceState
     """
     function InferenceState(bn::DiscreteBayesNet, query::NodeNames,
             evidence::Assignment=Assignment())
-        if isa(query, NodeName)
-            query = [query]
-        else
-            query = unique(query)
-        end
-
-        # check if any queries aren't in the network
-        inds = indexin(query, names(bn))
-        zero_loc = findnext(inds, 0, 1)
-        if zero_loc != 0
-            throw(ArgumentError("Query $(query[zero_loc]) is not "
-                        * "in the bayes net"))
-        end
-
-        # check if any queries are also evidence
-        inds = indexin(query, collect(keys(evidence)))
-        nonzero_loc = findfirst(inds .> 0)
-        if nonzero_loc != 0
-            throw(ArgumentError("Query $(query[nonzero_loc]) is part "
-                        * "of the evidence"))
-        end
+        query = _sandims(query)
+        _ckq(query, names(bn), evidence)
 
         return new(bn, query, evidence)
     end

@@ -24,27 +24,9 @@ immutable GibbsInferenceState <: AbstractInferenceState
 
     function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNames,
             evidence::Assignment, state::Assignment)
-        if isa(query, NodeName)
-            query = [query]
-        else
-            query = unique(query)
-        end
+        query = _sandims(query)
+        _ckq(query, names(bn), evidence)
 
-        # check if any queries aren't in the network
-        inds = indexin(query, names(bn))
-        zero_loc = findnext(inds, 0, 1)
-        if zero_loc != 0
-            throw(ArgumentError("Query $(query[zero_loc]) is not "
-                        * "in the bayes net"))
-        end
-
-        # check if any queries are also evidence
-        inds = indexin(query, collect(keys(evidence)))
-        nonzero_loc = findfirst(inds .> 0)
-        if nonzero_loc != 0
-            throw(ArgumentError("Query $(query[nonzero_loc]) is part "
-                        * "of the evidence"))
-        end
 
         return new(bn, query, evidence, state)
     end

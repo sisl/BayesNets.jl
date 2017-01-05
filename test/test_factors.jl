@@ -63,6 +63,20 @@ ft = Factor([:l1, :l2], [2, 3])
 end
 
 ###############################################################################
+#                   normalize
+let
+ft = Factor([:a, :b], Float64[1 2; 3 4])
+ft2 = normalize(ft, 1)
+
+@test elementwise_isapprox(ft2.potential, [0.25 1/3; 0.75 2/3])
+@test elementwise_isapprox(ft.potential, Float64[1 2; 3 4])
+
+normalize!(ft, p=2)
+
+@test elementwise_isapprox(ft.potential, [1/30 2/30; 1/10 4/30])
+end
+
+###############################################################################
 #                   broadcast
 let
 ft = Factor([:X, :Y], Float64[1 2; 3 4; 5 6])
@@ -70,10 +84,16 @@ ft = Factor([:X, :Y], Float64[1 2; 3 4; 5 6])
 @test elementwise_isapprox(
         broadcast(*, ft, [:Y, :X], [[10, 0.1], 100]).potential,
         Float64[1000 20; 3000 40; 5000 60])
+
+ft2 = broadcast(*, ft, [:X, :Z], [[10, 1, 0.1], [1, 2, 3]])
+ft3 = broadcast(*, ft, [:Z, :X, :A], [2, [10, 1, 0.1], [1, 2, 3]])
+
+@test elementwise_isapprox(ft2.potential, ft3.potential)
+@test elementwise_isapprox(ft2.potential,
+        broadcast(*, ft, :X, [10, 1, 0.1]).potential)
+
+@test_throws DimensionMismatch broadcast(*, ft, :X, [2016, 58.0])
 end
-
-
-# TODO test DimensionMismatch case
 
 ###############################################################################
 #                   reduce dims

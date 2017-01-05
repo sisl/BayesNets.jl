@@ -4,19 +4,25 @@
 # Dimension specific things, like broadcast, reduce, sum, etc.
 # Functions (should) leave ft the same if dim ∉ ft
 
+
 """
-    normalize(ft, dims, p=1)
-    normalize(ft, p=1)
+    normalize!(ft, dims; p=1)
+    normalize!(ft; p=1)
+
+Return a normalized copy of the factor so all instances of dims have
+(or the entire factors has) p-norm of 1
+"""
+LinAlg.normalize(ft::Factor, x...; k...) = normalize!(deepcopy(ft), x...; k...)
+
+"""
+    normalize!(ft, dims; p=1)
+    normalize!(ft; p=1)
 
 Normalize the factor so all instances of dims have (or the entire factors has)
 p-norm of 1
 """
 function LinAlg.normalize!(ft::Factor, dims::NodeNames; p::Int=1)
-    if isa(dims, NodeName)
-        dims = [dims]
-    else
-        dims = unique(dims)
-    end
+    dims = _sandims(dims)
 
     inds = indexin(dims, ft)
     inds = inds[inds .!= 0]
@@ -50,6 +56,12 @@ function LinAlg.normalize!(ft::Factor; p::Int=1)
     return ft
 end
 
+# reduce the dimension and then squeeze them out
+_reddim(op, ft::Factor, inds::Tuple, ::Void) =
+            squeeze(reducedim(op, ft.potential, inds), inds)
+_reddim(op, ft::Factor, inds::Tuple, v0) =
+            squeeze(reducedim(op, ft.potential, inds, v0), inds)
+
 """
     reducedim(op, ft, dims, [v0])
 
@@ -59,11 +71,7 @@ See Base.reducedim for more details
 function Base.reducedim(op, ft::Factor,
         dims::NodeNames, v0=nothing)
     # a (possibly?) more efficient version than reducedim!(deepcopy(ft))
-    if isa(dims, NodeName)
-        dims = [dims]
-    else
-        dims = unique(dims)
-    end
+    dims = _sandims(dims)
 
     inds = indexin(dims, ft)
     # get rid of dimensions not in ft
@@ -76,12 +84,7 @@ function Base.reducedim(op, ft::Factor,
         dims_new = deepcopy(ft.dimensions)
         deleteat!(dims_new, inds)
 
-        if v0 != nothing
-            v_new = squeeze(reducedim(op, ft.potential, inds, v0), inds)
-        else
-            v_new = squeeze(reducedim(op, ft.potential, inds), inds)
-        end
-
+        v_new = _reddim(op, ft, inds, v0)
         ft = Factor(dims_new, v_new)
     else
         ft = deepcopy(ft)
@@ -92,11 +95,7 @@ end
 
 function reducedim!(op, ft::Factor, dims::NodeNames,
         v0=nothing)
-    if isa(dims, NodeName)
-        dims = [dims]
-    else
-        dims = unique(dims)
-    end
+    dims = _sandims(dims)
 
     inds = indexin(dims, ft)
     # get rid of dimensions not in ft
@@ -106,13 +105,8 @@ function reducedim!(op, ft::Factor, dims::NodeNames,
         # needs to be a tuple for squeeze
         inds = (inds...)
 
-        if v0 != nothing
-            v_new = squeeze(reducedim(op, ft.potential, inds, v0), inds)
-        else
-            v_new = squeeze(reducedim(op, ft.potential, inds), inds)
-        end
-
         deleteat!(ft.dimensions, inds)
+        v_new = _reddim(op, ft, inds, v0)
         ft.potential = v_new
     end
 
@@ -166,9 +160,9 @@ function Base.broadcast!(f, ft::Factor, dims::NodeNames, values)
 
     inds = indexin(dims, ft)
     # get rid of dimensions not in ft
-    inds = inds[inds .!= 0]
     dims = dims[inds .!= 0]
     values = values[inds .!= 0]
+    inds = inds[inds .!= 0]
 
     # check that either each vector matches the length of that dimension,
     # or that vector is a scalar
@@ -178,15 +172,26 @@ function Base.broadcast!(f, ft::Factor, dims::NodeNames, values)
                     "lengths of broadcast values"))
     end
 
-    # actually broadcast stuff
+    reshape_dims = ones(Int, ndims(ft))
+    new_values = Vector{Array{Float64}}(length(values))
+
     for (i, val) in enumerate(values)
-        if isa(val, Array)
+        if isa(val, Vector{Float64})
             # reshape to the proper dimension, which needs a tuple
-            reshape_dims = (vcat(ones(Int, inds[i]-1), length(val))...)
-            val = reshape(val, reshape_dims)
+            dim_loc = inds[i]
+            @inbounds reshape_dims[dim_loc] = length(val)
+            new_values[i] = reshape(val, reshape_dims...)
+            @inbounds reshape_dims[dim_loc] = 1
+        elseif isa(val, Float64)
+            new_values[i] = [val]
+        else
+            throw(TypeError(:broadcast!, "Invalid broadcast value",
+                        Union{Float64, Vector{Float64}}, val))
         end
-        broadcast!(f, ft.potential, ft.potential, val)
     end
+
+    # actually broadcast stuff
+    broadcast!(f, ft.potential, ft.potential, new_values...)
 
     return ft
 end

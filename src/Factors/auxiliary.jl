@@ -3,6 +3,10 @@
 #
 # Not exactly related, but not exactly not
 
+# sanitize dims
+_sandims(dim::NodeName) = [dim]
+_sandims(dims::Vector{NodeName}) = unique(dims)
+
 """
     duplicate(A, dims)
 
