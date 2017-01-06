@@ -24,7 +24,7 @@ immutable GibbsInferenceState <: AbstractInferenceState
 
     function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNames,
             evidence::Assignment, state::Assignment)
-        query = _sandims(query)
+        query = unique(_ckdimtype(query))
         _ckq(query, names(bn), evidence)
 
 

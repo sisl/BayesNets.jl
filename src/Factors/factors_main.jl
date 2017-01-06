@@ -5,52 +5,50 @@
 # THE MOST BASIC ASSUMPTION IS THAT ALL VARIABLES ARE CATEGORICAL AND THEREFORE
 # Base.OneTo WORTHY. IF THAT IS VIOLATED, NOTHING WILL WORK
 
+"""
+    Factor(dims, potential)
+
+Create a Factor corresponding to the potential.
+"""
 type Factor
     dimensions::Vector{NodeName}
     # in some (most?) cases, this will be a probability, but since that may
     #  not always be the case, I will use this random word that may apply ...
     potential::Array{Float64}
 
-    function Factor(dims::Vector{NodeName}, potential::Array{Float64})
-        if length(dims) != ndims(potential)
+    function Factor(dims::NodeNames, potential::Array{Float64})
+        dims = _ckdimtype(dims)
+        _ckdimunq(dims)
+
+        (length(dims) != ndims(potential)) &&
             throw(DimensionMismatch("`potential` must have as many " *
                         "dimensions as dims"))
-        end
 
-        if !allunique(dims)
-            non_unique_dims_error()
-        end
-
-        if :potential in dims
+        (:potential in dims) &&
             warn("Having a dimension called `potential` will cause problems")
-        end
 
         return new(dims, potential)
     end
 end
 
-function Factor(dim::NodeName, length::Int,
-        fill_value::Union{Float64, Void}=0.0)
-    return Factor([dim], [length], fill_value)
-end
-
 """
-    Factor(dims, lengths, fill=0)
+    Factor(dims, lengths, fill_value=0)
 
 Create a factor with dimensions `dims`, each with lengths corresponding to
-`lengths`. `fill` will fill the potential array with that value.
-To keep uninitialized, use nothing.
+`lengths`. `fill_value` will fill the potential array with that value.
+To keep uninitialized, use `fill_value=nothing`.
 """
-function Factor(dims::Vector{NodeName}, lengths::Vector{Int},
-        fill_value::Union{Float64, Void}=0.0)
-    if fill_value == nothing
-        p = Array{Float64}(lengths...)
-    else
-        p = fill(Float64(fill_value), lengths...)
-    end
+Factor(dims::Vector{NodeName}, lengths::Vector{Int}, ::Void) =
+    Factor(dims, Array{Float64}(lengths...))
 
-    return Factor(dims, p)
-end
+Factor(dims::Vector{NodeName}, lengths::Vector{Int}, fill_value::Number=0) =
+    Factor(dims, fill(Float64(fill_value), lengths...))
+
+Factor(dim::NodeName, length::Int, ::Void) =
+    Factor([dims], Array{Float64}(length))
+
+Factor(dim::NodeName, length::Int, fill_value::Number=0) =
+    Factor(dims, fill(Float64(fill_value), length))
 
 """
     Factor(bn, name, evidence=Assignment())
@@ -103,7 +101,7 @@ Base.size{N}(ft::Factor, dims::Vararg{NodeName, N}) =
     ntuple(k -> size(ft, dims[k]), Val{N})
 
 """
-Total number of elements total
+Total number of elements in Factor (potential)
 """
 Base.length(ft::Factor) = length(ft.potential)
 

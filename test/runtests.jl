@@ -40,6 +40,7 @@ include(joinpath(testdir, "test_io.jl"))
 include(joinpath(testdir, "test_ndgrid.jl"))
 
 include(joinpath(testdir, "test_discrete_bayes_nets.jl"))
+include(joinpath(testdir, "test_genbn.jl"))
 
 # inference methods
 include(joinpath(testdir, "test_factors.jl"))

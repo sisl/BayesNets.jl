@@ -3,9 +3,23 @@
 #
 # Not exactly related, but not exactly not
 
-# sanitize dims
-_sandims(dim::NodeName) = [dim]
-_sandims(dims::Vector{NodeName}) = unique(dims)
+# check type of NodeNames
+_ckdimtype(dim::NodeName) = [dim]
+_ckdimtype(dims::Vector{NodeName}) = dims
+
+# make sure all dims are valid (in the Factor)
+@inline function _ckdimvalid(dims::Vector{NodeName}, ft::Factor)
+    isempty(dims) && return
+
+    dim = first(dims)
+    (dim in ft) || not_in_factor_error(dim)
+
+    return _ckdimvalid(dims[2:end], ft)
+end
+
+# dims are unique
+_ckdimunq(dims::Vector{NodeName}) =
+    allunique(dims) || non_unique_dims_error()
 
 """
     duplicate(A, dims)

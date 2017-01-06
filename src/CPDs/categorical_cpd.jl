@@ -63,6 +63,14 @@ nparams(cpd::CategoricalCPD) = sum(d->paramcount(params(d)), cpd.distributions)
     end
 end
 
+"""
+    Distributions.ncategories(cpd::CategoricalCPD)
+
+Return the number of categories for a cpd.
+"""
+Distributions.ncategories(cpd::CategoricalCPD) =
+    ncategories(first(cpd.distributions))
+
 function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     data::DataFrame,
     target::NodeName,

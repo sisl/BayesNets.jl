@@ -33,7 +33,7 @@ immutable InferenceState <: AbstractInferenceState
     """
     function InferenceState(bn::DiscreteBayesNet, query::NodeNames,
             evidence::Assignment=Assignment())
-        query = _sandims(query)
+        query = unique(_ckdimtype(query))
         _ckq(query, names(bn), evidence)
 
         return new(bn, query, evidence)

@@ -22,10 +22,10 @@ Normalize the factor so all instances of dims have (or the entire factors has)
 p-norm of 1
 """
 function LinAlg.normalize!(ft::Factor, dims::NodeNames; p::Int=1)
-    dims = _sandims(dims)
+    dims = unique(_ckdimtype(dims))
+    _ckdimvalid(dims, ft)
 
     inds = indexin(dims, ft)
-    inds = inds[inds .!= 0]
 
     if !isempty(inds)
         if p == 1
@@ -71,44 +71,31 @@ See Base.reducedim for more details
 function Base.reducedim(op, ft::Factor,
         dims::NodeNames, v0=nothing)
     # a (possibly?) more efficient version than reducedim!(deepcopy(ft))
-    dims = _sandims(dims)
+    dims = _ckdimtype(dims)
+    _ckdimvalid(dims, ft)
 
-    inds = indexin(dims, ft)
-    # get rid of dimensions not in ft
-    inds = sort(inds[inds .!= 0])
+    # needs to be a tuple for squeeze
+    inds = (indexin(dims, ft)...)
 
-    if !isempty(inds)
-        # needs to be a tuple for squeeze
-        inds = (inds...)
+    dims_new = deepcopy(ft.dimensions)
+    deleteat!(dims_new, inds)
 
-        dims_new = deepcopy(ft.dimensions)
-        deleteat!(dims_new, inds)
-
-        v_new = _reddim(op, ft, inds, v0)
-        ft = Factor(dims_new, v_new)
-    else
-        ft = deepcopy(ft)
-    end
+    v_new = _reddim(op, ft, inds, v0)
+    ft = Factor(dims_new, v_new)
 
     return ft
 end
 
 function reducedim!(op, ft::Factor, dims::NodeNames,
         v0=nothing)
-    dims = _sandims(dims)
+    dims = _ckdimtype(dims)
+    _ckdimvalid(dims, ft)
 
-    inds = indexin(dims, ft)
-    # get rid of dimensions not in ft
-    inds = sort(inds[inds .!= 0])
+    # needs to be a tuple for squeeze
+    inds = (indexin(dims, ft)...)
 
-    if !isempty(dims)
-        # needs to be a tuple for squeeze
-        inds = (inds...)
-
-        deleteat!(ft.dimensions, inds)
-        v_new = _reddim(op, ft, inds, v0)
-        ft.potential = v_new
-    end
+    deleteat!(ft.dimensions, inds)
+    ft.potential = _reddim(op, ft, inds, v0)
 
     return ft
 end
@@ -131,7 +118,7 @@ in `dims`
 
 See Base.broadcast for more info.
 """
-Base.broadcast(f, ft::Factor, dims, values) =
+Base.broadcast(f, ft::Factor, dims::NodeNames, values) =
     broadcast!(f, deepcopy(ft), dims, values)
 
 """
@@ -147,37 +134,25 @@ function Base.broadcast!(f, ft::Factor, dims::NodeNames, values)
     if isa(dims, NodeName)
         dims = [dims]
         values = [values]
-    else
-        if !allunique(dims)
-            non_unique_dims_error()
-        end
-
-        if length(dims) != length(values)
-            throw(ArgumentError("Number of dimensions does not " *
-                        "match number of values to broadcast"))
-        end
     end
+
+    _ckdimunq(dims)
+    _ckdimvalid(dims, ft)
+
+    (length(dims) != length(values)) &&
+        throw(ArgumentError("Number of dimensions does not " *
+                    "match number of values to broadcast"))
+
+    # broadcast will check if the dimensions of each value are valid
 
     inds = indexin(dims, ft)
-    # get rid of dimensions not in ft
-    dims = dims[inds .!= 0]
-    values = values[inds .!= 0]
-    inds = inds[inds .!= 0]
-
-    # check that either each vector matches the length of that dimension,
-    # or that vector is a scalar
-    if any( ( [size(ft, dims...)...] .!= map(length, values)) &
-            (map(length, values) .!= 1) )
-        throw(DimensionMismatch("Length of dimensions don't match " *
-                    "lengths of broadcast values"))
-    end
 
     reshape_dims = ones(Int, ndims(ft))
     new_values = Vector{Array{Float64}}(length(values))
 
     for (i, val) in enumerate(values)
         if isa(val, Vector{Float64})
-            # reshape to the proper dimension, which needs a tuple
+            # reshape to the proper dimension
             dim_loc = inds[i]
             @inbounds reshape_dims[dim_loc] = length(val)
             new_values[i] = reshape(val, reshape_dims...)
@@ -190,7 +165,6 @@ function Base.broadcast!(f, ft::Factor, dims::NodeNames, values)
         end
     end
 
-    # actually broadcast stuff
     broadcast!(f, ft.potential, ft.potential, new_values...)
 
     return ft

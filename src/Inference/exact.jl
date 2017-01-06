@@ -57,7 +57,7 @@ function exact_inference(inf::AbstractInferenceState)
         end
     end
 
-    factor = normalize!(reduce((*), factors))
-    return factor
+    ft = normalize!(reduce((*), factors))
+    return ft
 end
 

@@ -1,7 +1,7 @@
 #
 # Errors
 #
-# All the errors that can be thrown
+# Reusable errors
 
 singleton_dimension_error(l) = throw(ArgumentError("Dimension is singleton" *
             " with length $(l)"))

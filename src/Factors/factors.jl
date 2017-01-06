@@ -6,9 +6,9 @@
 # TODO broadcast fallback for empty arrays
 # TODO broadcast_reduce tag-team
 
+include("factors_main.jl") # first because aux needs it
 include("errors.jl")
 include("auxiliary.jl")
-include("factors_main.jl")
 include("factors_dims.jl")
 include("factors_access.jl")
 include("factors_dataframes.jl")

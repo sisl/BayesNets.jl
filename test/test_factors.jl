@@ -66,10 +66,12 @@ end
 #                   normalize
 let
 ft = Factor([:a, :b], Float64[1 2; 3 4])
-ft2 = normalize(ft, 1)
+ft2 = normalize(ft, p=1)
 
-@test elementwise_isapprox(ft2.potential, [0.25 1/3; 0.75 2/3])
+@test elementwise_isapprox(ft2.potential, [0.1 0.2; 0.3 0.4])
 @test elementwise_isapprox(ft.potential, Float64[1 2; 3 4])
+
+@test_throws ArgumentError normalize(ft, :waldo)
 
 normalize!(ft, p=2)
 
@@ -82,17 +84,22 @@ let
 ft = Factor([:X, :Y], Float64[1 2; 3 4; 5 6])
 
 @test elementwise_isapprox(
-        broadcast(*, ft, [:Y, :X], [[10, 0.1], 100]).potential,
+        broadcast(*, ft, [:Y, :X], [[10, 0.1], 100.0]).potential,
         Float64[1000 20; 3000 40; 5000 60])
 
-ft2 = broadcast(*, ft, [:X, :Z], [[10, 1, 0.1], [1, 2, 3]])
-ft3 = broadcast(*, ft, [:Z, :X, :A], [2, [10, 1, 0.1], [1, 2, 3]])
+@test_throws ArgumentError broadcast(*, ft, [:X, :Z], [[10, 1, 0.1], [1, 2, 3]])
 
-@test elementwise_isapprox(ft2.potential, ft3.potential)
-@test elementwise_isapprox(ft2.potential,
-        broadcast(*, ft, :X, [10, 1, 0.1]).potential)
+@test_throws ArgumentError broadcast(*, ft, [:Z, :X, :A], [2, [10, 1, 0.1], [1, 2, 3]])
 
 @test_throws DimensionMismatch broadcast(*, ft, :X, [2016, 58.0])
+end
+
+let
+ft = Factor([:X, :Y, :Z], [3, 2, 2])
+ft.potential[:] = Float64[1, 2, 3, 2, 3, 4, 4, 6, 7, 8, 10, 16]
+
+@test DataFrame(broadcast(+, broadcast(+, ft, :Z, [10, 0.1]), :X, 10.0)) ==
+        DataFrame(broadcast(+, ft, [:X, :Z], [10.0, [10, 0.1]]))
 end
 
 ###############################################################################
@@ -103,31 +110,23 @@ ft.potential[:] = Float64[1, 2, 3, 2, 3, 4, 4, 6, 7, 8, 10, 16]
 
 df_original = DataFrame(ft)
 
-@test_throws MethodError reducedim!(*, ft, "waldo")
+@test_throws ArgumentError reducedim!(*, ft, :waldo)
 # make sure it didn't change ft
 @test DataFrame(ft) == df_original
 
-@test DataFrame(broadcast(+, broadcast(+, ft, :Z, [10, 0.1]), :X, 10)) ==
-        DataFrame(broadcast(+, ft, [:X, :Z], [10, [10, 0.1]])) 
-
 # squeeze does some weird stuff man ...
-@test sum(broadcast(*, ft, :Z, 0), names(ft)).potential == squeeze([0.0], 1)
+@test sum(broadcast(*, ft, :Z, 0.0), names(ft)).potential == squeeze([0.0], 1)
 
-    let
-    df = DataFrame(X = [1, 2, 3], potential = [123.0, 165.0, 237.0])
+df = DataFrame(X = [1, 2, 3], potential = [123.0, 165.0, 237.0])
 
-    ft2 = broadcast(*, ft, :Z, [1, 10])
-    sum!(ft2, [:Y, :Z])
+ft2 = broadcast(*, ft, :Z, [1, 10.0])
+sum!(ft2, [:Y, :Z])
 
-    # ft didn't change
-    @test DataFrame(ft2) != df_original
-    @test DataFrame(ft2) == df
-    end
+# ft didn't change
+@test DataFrame(ft2) != df_original
+@test DataFrame(ft2) == df
 
-    let
-    df = DataFrame(X = [1, 2, 3], potential = [15, 21, 30])
-    @test DataFrame(sum(ft, [:Y, :K, :Z, :waldo])) == df
-    end
+@test_throws ArgumentError sum(ft, [:Y, :K, :Z, :waldo])
 end
 
 ###############################################################################
