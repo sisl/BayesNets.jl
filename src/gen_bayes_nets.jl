@@ -13,7 +13,7 @@
 Generate a random DiscreteBayesNet.
 
 Creates DiscreteBayesNet with `num_nodes` nodes, with each node having
-a random number of states and parents, up to `max_num_parents` and 
+a random number of states and parents, up to `max_num_parents` and
 `max_num_parents`, respectively.
 If `connected`, each node (except the first) will be guaranteed at least one
 parent, making the graph connected.
@@ -43,7 +43,7 @@ function rand_discrete_bn(num_nodes::Int=16,
         while true
             # how many parents we can possibly add
             n_par = rand(0:min(length(bn), max_num_parents))
-            parents = sample(names(bn), 
+            parents = sample(names(bn),
                     min(length(bn), max(min_parents, n_par)); replace=false)
 
             # add the new random cpd with random parents to the network
@@ -63,7 +63,7 @@ end
 """
     rand_bn_inference(bn, num_query=2, num_evidence=3)
 
-Generate a random inference state for a Bayesian Network with an evidence 
+Generate a random inference state for a Bayesian Network with an evidence
 assignment sample uniformly over the chosen nodes' domain.
 """
 function rand_bn_inference(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)

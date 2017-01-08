@@ -8,7 +8,7 @@ While a StaticCPD can have parents, their assignments will not affect the distri
 """
 type StaticCPD{D} <: CPD{D}
     target::NodeName
-    parents::Vector{NodeName}
+    parents::NodeNames
     d::D
 end
 StaticCPD(target::NodeName, d::Distribution) = StaticCPD(target, NodeName[], d)
@@ -21,7 +21,7 @@ parents(cpd::StaticCPD) = cpd.parents
 function Distributions.fit{D<:Distribution}(::Type{StaticCPD{D}},
     data::DataFrame,
     target::NodeName,
-    parents::Vector{NodeName}=NodeName[],
+    parents::NodeNames=NodeName[],
     )
 
     d = fit(D, data[target])

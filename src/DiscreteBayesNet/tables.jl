@@ -33,7 +33,7 @@ end
 
 Table marginalization
 """
-function sumout(f::Table, v::NodeNames)
+function sumout(f::Table, v::NodeNameUnion)
     # vcat works for single values and vectors alike (magic?)
     remainingvars = setdiff(names(f), vcat(v, :p))
 

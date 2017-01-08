@@ -284,7 +284,7 @@ If null use a random order for every sample (this is different from updating the
 Otherwise should be a list containing all the variables in the order they should be updated.
 
 initial_sample:  The inital assignment to variables to use.  If null, the initial sample is chosen by
-briefly running rand(bn, WeightedSampler).
+briefly running rand(bn, get_weighted_dataframe).
 """
 function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
         thinning::Integer=0,
@@ -326,9 +326,9 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     gss = GibbsSamplerState(bn, max_cache_size)
 
     # Burn in
-    # for burn_in_initial_sample use WeightedSampler, should be consistent with the varibale consistent_with
+    # for burn_in_initial_sample use get_weighted_dataframe, should be consistent with the varibale consistent_with
     if isnull(initial_sample)
-        rand_samples = rand(bn, WeightedSampler(consistent_with), 50)
+        rand_samples = get_weighted_dataframe(bn, 50, consistent_with)
     	if reduce(|, isnan(convert(Array{AbstractFloat}, rand_samples[:p])))
     		error("Gibbs Sampler was unable to find an inital sample with non-zero probability, please supply an inital sample")
     	end
@@ -405,7 +405,7 @@ If null use a random order for every sample (this is different from updating the
 Otherwise should be a list containing all the variables in the order they should be updated.
 
 initial_sample:  The inital assignment to variables to use.  If null, the initial sample is chosen by
-briefly using a WeightedSampler.
+briefly using a LikelihoodWeightedSampler.
 """
 type GibbsSampler <: BayesNetSampler
 
@@ -448,7 +448,6 @@ function Base.rand(bn::BayesNet, sampler::GibbsSampler, nsamples::Integer)
 		consistent_with=sampler.evidence, variable_order=sampler.variable_order,
 		time_limit=sampler.time_limit, error_if_time_out=sampler.error_if_time_out,
 		initial_sample=sampler.initial_sample, max_cache_size=sampler.max_cache_size)
-
 end
 
 """

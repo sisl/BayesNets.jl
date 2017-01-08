@@ -4,26 +4,24 @@
 
 # An implementation of an AbstractInferenceState has:
 #  bn::DiscreteBayesNet
-#  query::Vector{NodeName}
+#  query::NodeNames
 #  evidence::Assignment
 # and a constructor that accepts just those three arguments in that order
 abstract AbstractInferenceState
 
-# make sure query nodes are in the bn and not in the evidence
-@inline function _ckq(qs::Vector{NodeName}, nodes::Vector{NodeName},
-        ev::Assignment)
+@inline function _ensure_query_nodes_in_bn_and_not_in_evidence(qs::NodeNames, nodes::NodeNames, ev::Assignment)
     isempty(qs) && return
 
     q = first(qs)
     (q in nodes) || throw(ArgumentError("Query $q is not in the bayes net"))
     haskey(ev, q) && throw(ArgumentError("Query $q is part of the evidence"))
 
-    return _ckq(qs[2:end], nodes, ev)
+    return _ensure_query_nodes_in_bn_and_not_in_evidence(qs[2:end], nodes, ev)
 end
 
 immutable InferenceState <: AbstractInferenceState
     bn::DiscreteBayesNet
-    query::Vector{NodeName}
+    query::NodeNames
     evidence::Assignment
 
     """
@@ -31,10 +29,9 @@ immutable InferenceState <: AbstractInferenceState
 
     Generates an inference state to be used for inference.
     """
-    function InferenceState(bn::DiscreteBayesNet, query::NodeNames,
-            evidence::Assignment=Assignment())
-        query = unique(_ckdimtype(query))
-        _ckq(query, names(bn), evidence)
+    function InferenceState(bn::DiscreteBayesNet, query::NodeNameUnion, evidence::Assignment=Assignment())
+        query = unique(convert(NodeNames, query))
+        _ensure_query_nodes_in_bn_and_not_in_evidence(query, names(bn), evidence)
 
         return new(bn, query, evidence)
     end
@@ -49,4 +46,19 @@ function Base.show(io::IO, inf::AbstractInferenceState)
         println(io, "  $k => $v")
     end
 end
+
+###############################
+
+"""
+Abstract type for probability inference
+"""
+abstract InferenceMethod
+
+"""
+Infer p(query|evidence)
+ - inference on a DiscreteBayesNet will always return a DataFrame factor over the evidence variables
+"""
+infer(im::InferenceMethod, inf::AbstractInferenceState) = error("infer not implemented for $(typeof(im)) and $(typeof(inf))")
+infer(im::InferenceMethod, bn::BayesNet, query::NodeNameUnion; evidence::Assignment=Assignment()) = infer(im, InferenceState(bn, query, evidence))
+
 

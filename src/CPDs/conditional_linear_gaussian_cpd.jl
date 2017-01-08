@@ -11,9 +11,9 @@ A conditional linear Gaussian CPD, always returns a Normal{Float64}
 """
 type ConditionalLinearGaussianCPD <: CPD{Normal}
     target::NodeName
-    parents::Vector{NodeName} # list of all parents
+    parents::NodeNames # list of all parents
 
-    parents_disc::Vector{NodeName} # list of discrete parents
+    parents_disc::NodeNames # list of discrete parents
     parental_ncategories::Vector{Int} # list of instantiation counts for each discrete parent
     linear_gaussians::Vector{LinearGaussianCPD} # set of linear gaussian CPDs over the continuous parents
 end
@@ -58,7 +58,7 @@ end
 function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
     data::DataFrame,
     target::NodeName,
-    parents::Vector{NodeName};
+    parents::NodeNames;
     min_stdev::Float64=0.0, # an optional minimum on the standard deviation
     )
 

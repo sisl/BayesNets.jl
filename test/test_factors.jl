@@ -9,43 +9,43 @@ let
 end
 
 let
-ft = Factor([:X, :Y], [3, 3], 16)
-@test all(ft.potential .== 16)
+ϕ = Factor([:X, :Y], [3, 3], 16)
+@test all(ϕ.potential .== 16)
 end
 
 let
 # doesn't freak out
-ft = Factor([:X, :Y], [4, 3], nothing)
-rand!(ft)
+ϕ = Factor([:X, :Y], [4, 3], nothing)
+rand!(ϕ)
 end
 
 let
-ft = Factor([:X, :Y, :Z], [2, 3, 4])
+ϕ = Factor([:X, :Y, :Z], [2, 3, 4])
 
-@test eltype(ft) == Float64
-@test ndims(ft) == 3
-@test size(ft, :X) == 2
-@test size(ft) == (2, 3, 4)
-@test size(ft, :Y, :X) == (3, 2)
+@test eltype(ϕ) == Float64
+@test ndims(ϕ) == 3
+@test size(ϕ, :X) == 2
+@test size(ϕ) == (2, 3, 4)
+@test size(ϕ, :Y, :X) == (3, 2)
 
-push!(ft, :A, 5)
+push!(ϕ, :A, 5)
 
-@test ndims(ft) == 4
-@test size(ft) == (2, 3, 4, 5)
-@test size(ft, :A, :X) == (5, 2)
+@test ndims(ϕ) == 4
+@test size(ϕ) == (2, 3, 4, 5)
+@test size(ϕ, :A, :X) == (5, 2)
 
-permutedims!(ft, [4, 3, 1, 2])
+permutedims!(ϕ, [4, 3, 1, 2])
 
-@test names(ft) == [:A, :Z, :X, :Y]
-@test size(ft) == (5, 4, 2, 3)
+@test names(ϕ) == [:A, :Z, :X, :Y]
+@test size(ϕ) == (5, 4, 2, 3)
 end
 
 let
 bn = rand_discrete_bn(10, 4)
 name = :N5
 
-ft = Factor(bn, name)
-df = join(DataFrame(ft), table(bn, name), on=names(ft))
+ϕ = Factor(bn, name)
+df = join(DataFrame(ϕ), table(bn, name), on=names(ϕ))
 diff = abs(df[:p] - df[:potential])
 
 @test all(diff .< 1E-13)
@@ -54,101 +54,101 @@ end
 ###############################################################################
 #                   patterns
 let
-ft = Factor([:l1, :l2], [2, 3])
+ϕ = Factor([:l1, :l2], [2, 3])
 
-@test pattern(ft, :l1) == [1 2 1 2 1 2]'
-@test ft[:l2] == [1 1 2 2 3 3]'
-@test pattern(ft, [:l1, :l2]) == pattern(ft)
-@test pattern(ft) == [1 1; 2 1; 1 2; 2 2; 1 3; 2 3]
+@test pattern(ϕ, :l1) == [1 2 1 2 1 2]'
+@test ϕ[:l2] == [1 1 2 2 3 3]'
+@test pattern(ϕ, [:l1, :l2]) == pattern(ϕ)
+@test pattern(ϕ) == [1 1; 2 1; 1 2; 2 2; 1 3; 2 3]
 end
 
 ###############################################################################
 #                   normalize
 let
-ft = Factor([:a, :b], Float64[1 2; 3 4])
-ft2 = normalize(ft, p=1)
+ϕ = Factor([:a, :b], Float64[1 2; 3 4])
+ϕ2 = normalize(ϕ, p=1)
 
-@test elementwise_isapprox(ft2.potential, [0.1 0.2; 0.3 0.4])
-@test elementwise_isapprox(ft.potential, Float64[1 2; 3 4])
+@test elementwise_isapprox(ϕ2.potential, [0.1 0.2; 0.3 0.4])
+@test elementwise_isapprox(ϕ.potential, Float64[1 2; 3 4])
 
-@test_throws ArgumentError normalize(ft, :waldo)
+@test_throws ArgumentError normalize(ϕ, :waldo)
 
-normalize!(ft, p=2)
+normalize!(ϕ, p=2)
 
-@test elementwise_isapprox(ft.potential, [1/30 2/30; 1/10 4/30])
+@test elementwise_isapprox(ϕ.potential, [1/30 2/30; 1/10 4/30])
 end
 
 ###############################################################################
 #                   broadcast
 let
-ft = Factor([:X, :Y], Float64[1 2; 3 4; 5 6])
+ϕ = Factor([:X, :Y], Float64[1 2; 3 4; 5 6])
 
 @test elementwise_isapprox(
-        broadcast(*, ft, [:Y, :X], [[10, 0.1], 100.0]).potential,
+        broadcast(*, ϕ, [:Y, :X], [[10, 0.1], 100.0]).potential,
         Float64[1000 20; 3000 40; 5000 60])
 
-@test_throws ArgumentError broadcast(*, ft, [:X, :Z], [[10, 1, 0.1], [1, 2, 3]])
+@test_throws ArgumentError broadcast(*, ϕ, [:X, :Z], [[10, 1, 0.1], [1, 2, 3]])
 
-@test_throws ArgumentError broadcast(*, ft, [:Z, :X, :A], [2, [10, 1, 0.1], [1, 2, 3]])
+@test_throws ArgumentError broadcast(*, ϕ, [:Z, :X, :A], [2, [10, 1, 0.1], [1, 2, 3]])
 
-@test_throws DimensionMismatch broadcast(*, ft, :X, [2016, 58.0])
+@test_throws DimensionMismatch broadcast(*, ϕ, :X, [2016, 58.0])
 end
 
 let
-ft = Factor([:X, :Y, :Z], [3, 2, 2])
-ft.potential[:] = Float64[1, 2, 3, 2, 3, 4, 4, 6, 7, 8, 10, 16]
+ϕ = Factor([:X, :Y, :Z], [3, 2, 2])
+ϕ.potential[:] = Float64[1, 2, 3, 2, 3, 4, 4, 6, 7, 8, 10, 16]
 
-@test DataFrame(broadcast(+, broadcast(+, ft, :Z, [10, 0.1]), :X, 10.0)) ==
-        DataFrame(broadcast(+, ft, [:X, :Z], [10.0, [10, 0.1]]))
+@test DataFrame(broadcast(+, broadcast(+, ϕ, :Z, [10, 0.1]), :X, 10.0)) ==
+        DataFrame(broadcast(+, ϕ, [:X, :Z], [10.0, [10, 0.1]]))
 end
 
 ###############################################################################
 #                   reduce dims
 let
-ft = Factor([:X, :Y, :Z], [3, 2, 2])
-ft.potential[:] = Float64[1, 2, 3, 2, 3, 4, 4, 6, 7, 8, 10, 16]
+ϕ = Factor([:X, :Y, :Z], [3, 2, 2])
+ϕ.potential[:] = Float64[1, 2, 3, 2, 3, 4, 4, 6, 7, 8, 10, 16]
 
-df_original = DataFrame(ft)
+df_original = DataFrame(ϕ)
 
-@test_throws ArgumentError reducedim!(*, ft, :waldo)
-# make sure it didn't change ft
-@test DataFrame(ft) == df_original
+@test_throws ArgumentError reducedim!(*, ϕ, :waldo)
+# make sure it didn't change ϕ
+@test DataFrame(ϕ) == df_original
 
 # squeeze does some weird stuff man ...
-@test sum(broadcast(*, ft, :Z, 0.0), names(ft)).potential == squeeze([0.0], 1)
+@test sum(broadcast(*, ϕ, :Z, 0.0), names(ϕ)).potential == squeeze([0.0], 1)
 
 df = DataFrame(X = [1, 2, 3], potential = [123.0, 165.0, 237.0])
 
-ft2 = broadcast(*, ft, :Z, [1, 10.0])
-sum!(ft2, [:Y, :Z])
+ϕ2 = broadcast(*, ϕ, :Z, [1, 10.0])
+sum!(ϕ2, [:Y, :Z])
 
-# ft didn't change
-@test DataFrame(ft2) != df_original
-@test DataFrame(ft2) == df
+# ϕ didn't change
+@test DataFrame(ϕ2) != df_original
+@test DataFrame(ϕ2) == df
 
-@test_throws ArgumentError sum(ft, [:Y, :K, :Z, :waldo])
+@test_throws ArgumentError sum(ϕ, [:Y, :K, :Z, :waldo])
 end
 
 ###############################################################################
 #                   indexing
 let
-ft = Factor([:X, :Y, :Z], [3, 2, 2])
-ft.potential[:] = [1, 2, 3, 2, 3, 4, 4, 6, 7, 8, 10, 16]
+ϕ = Factor([:X, :Y, :Z], [3, 2, 2])
+ϕ.potential[:] = [1, 2, 3, 2, 3, 4, 4, 6, 7, 8, 10, 16]
 
-df = DataFrame(ft)
+df = DataFrame(ϕ)
 
-@test_throws TypeError ft[Assignment(:Y => "waldo")]
-@test_throws BoundsError ft[Assignment(:Y => 16)]
+@test_throws TypeError ϕ[Assignment(:Y => "waldo")]
+@test_throws BoundsError ϕ[Assignment(:Y => 16)]
 
 a = Assignment(:Y=> 2, :K => 16, :Z => 1)
-ft[a].potential  == Float64[2, 3, 4]
+ϕ[a].potential  == Float64[2, 3, 4]
 
-ft[Assignment(:X => 2, :Y => 1, :Z => 2)] = 1600.0
-@test ft.potential[2, 1, 2] == 1600.0
-@test DataFrame(ft)[sub2ind(ft, 2, 1, 2), :potential] == 1600.0
+ϕ[Assignment(:X => 2, :Y => 1, :Z => 2)] = 1600.0
+@test ϕ.potential[2, 1, 2] == 1600.0
+@test DataFrame(ϕ)[sub2ind(ϕ, 2, 1, 2), :potential] == 1600.0
 
-ft[Assignment(:X => 1, :Y => 2)] = 2016
-@test ft.potential[1, 2, :] == Float64[2016, 2016]
+ϕ[Assignment(:X => 1, :Y => 2)] = 2016
+@test ϕ.potential[1, 2, :] == Float64[2016, 2016]
 end
 
 ###############################################################################
@@ -156,10 +156,10 @@ end
 # definitely more tests needed
 
 let
-ft1 = Factor([:X, :C, :Y, :A, :Z], [3, 2, 3, 2, 3])
-ft2 = Factor([:A, :B, :C], [2, 3, 2])
-ft1.potential[:] = collect(1.0:length(ft1))
-ft2.potential[:] = collect(1.0:length(ft2))
+ϕ1 = Factor([:X, :C, :Y, :A, :Z], [3, 2, 3, 2, 3])
+ϕ2 = Factor([:A, :B, :C], [2, 3, 2])
+ϕ1.potential[:] = collect(1.0:length(ϕ1))
+ϕ2.potential[:] = collect(1.0:length(ϕ2))
 
 # why did I do this?
 true_pot = [1.0,2.0,3.0,28.0,35.0,42.0,7.0,8.0,9.0,70.0,77.0,84.0,13.0,14.0,
@@ -192,15 +192,15 @@ true_pot = [1.0,2.0,3.0,28.0,35.0,42.0,7.0,8.0,9.0,70.0,77.0,84.0,13.0,14.0,
          1152.0,582.0,588.0,594.0,1200.0,1212.0,1224.0,618.0,624.0,630.0,
          1272.0,1284.0,1296.0]
 
-ft12 = ft1 * ft2
-@test ft12.potential[:] == true_pot
+ϕ12 = ϕ1 * ϕ2
+@test ϕ12.potential[:] == true_pot
 end
 
 let
 # dimensions don't have the same lengths
-ft1 = Factor([:X, :Y, :Z], [3, 3, 3])
-ft2 = Factor([:A, :X, :Y], [2, 31, 3])
+ϕ1 = Factor([:X, :Y, :Z], [3, 3, 3])
+ϕ2 = Factor([:A, :X, :Y], [2, 31, 3])
 
-@test_throws DimensionMismatch ft1 * ft2
+@test_throws DimensionMismatch ϕ1 * ϕ2
 end
 

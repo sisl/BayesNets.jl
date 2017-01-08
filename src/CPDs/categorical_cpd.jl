@@ -26,14 +26,14 @@ X,Y,Z
 """
 type CategoricalCPD{D} <: CPD{D}
     target::NodeName
-    parents::Vector{NodeName}
+    parents::NodeNames
     # list of instantiation counts for each parent, in same order as parents
     parental_ncategories::Vector{Int}
     # instead of a vector, we can use an array where each axis corresponds to
     # a parent and is as long as that parent has instantiations.
     distributions::Array{D}
 
-    function CategoricalCPD{D}(target::NodeName, parents::Vector{NodeName},
+    function CategoricalCPD{D}(target::NodeName, parents::NodeNames,
             parental_ncategories::Vector{Int}, distributions::Vector{D})
         # this works because Julia is column-major and thus treats the first
         # index in x[i, ...] as dimension 1
@@ -43,7 +43,7 @@ type CategoricalCPD{D} <: CPD{D}
     end
 end
 
-CategoricalCPD{D<:Distribution}(target::NodeName, parents::Vector{NodeName},
+CategoricalCPD{D<:Distribution}(target::NodeName, parents::NodeNames,
             parental_ncategories::Vector{Int}, distributions::Vector{D}) =
     CategoricalCPD{D}(target, parents, parental_ncategories, distributions)
 CategoricalCPD{D<:Distribution}(target::NodeName, d::D) = CategoricalCPD(target, NodeName[], Int[], D[d])
@@ -84,7 +84,7 @@ end
 function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     data::DataFrame,
     target::NodeName,
-    parents::Vector{NodeName},
+    parents::NodeNames,
     )
 
     # with parents
@@ -134,7 +134,7 @@ end
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
     target::NodeName,
-    parents::Vector{NodeName};
+    parents::NodeNames;
     parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[p]), Array(Int, length(parents)), parents),
     target_ncategories::Int = infer_number_of_instantiations(data[target]),
     )

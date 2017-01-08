@@ -10,7 +10,7 @@ srand(0)
 A simple variant of isapprox that is true if the isapprox comparison works
 elementwise in the vector
 """
-function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F}, 
+function elementwise_isapprox{F<:AbstractFloat}(x::AbstractArray{F},
         y::AbstractArray{F},
         rtol::F=sqrt(eps(F)),
         atol::F=zero(F))
@@ -32,6 +32,7 @@ testdir = joinpath(dirname(@__DIR__), "test")
 include(joinpath(testdir, "test_utils.jl"))
 include(joinpath(testdir, "test_cpds.jl"))
 include(joinpath(testdir, "test_tables.jl"))
+include(joinpath(testdir, "test_factors.jl"))
 include(joinpath(testdir, "test_bayesnets.jl"))
 include(joinpath(testdir, "test_gibbs.jl"))
 include(joinpath(testdir, "test_sampling.jl"))
@@ -43,9 +44,8 @@ include(joinpath(testdir, "test_discrete_bayes_nets.jl"))
 include(joinpath(testdir, "test_genbn.jl"))
 
 # inference methods
-include(joinpath(testdir, "test_factors.jl"))
 include(joinpath(testdir, "test_inference.jl"))
-include(joinpath(testdir, "test_inference_gibbs.jl"))
+# include(joinpath(testdir, "test_inference_gibbs.jl"))
 
-include(joinpath(testdir, "test_docs.jl"))
+# include(joinpath(testdir, "test_docs.jl"))
 

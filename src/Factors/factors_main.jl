@@ -11,14 +11,13 @@
 Create a Factor corresponding to the potential.
 """
 type Factor
-    dimensions::Vector{NodeName}
-    # in some (most?) cases, this will be a probability, but since that may
-    #  not always be the case, I will use this random word that may apply ...
-    potential::Array{Float64}
+    dimensions::NodeNames
+    potential::Array{Float64} # Unnormalized probability
+                              # In most cases this will be a probability
 
-    function Factor(dims::NodeNames, potential::Array{Float64})
-        dims = _ckdimtype(dims)
-        _ckdimunq(dims)
+    function Factor(dims::NodeNameUnion, potential::Array{Float64})
+        dims = convert(NodeNames, dims)
+        _ckeck_dims_unique(dims)
 
         (length(dims) != ndims(potential)) &&
             throw(DimensionMismatch("`potential` must have as many " *
@@ -38,10 +37,10 @@ Create a factor with dimensions `dims`, each with lengths corresponding to
 `lengths`. `fill_value` will fill the potential array with that value.
 To keep uninitialized, use `fill_value=nothing`.
 """
-Factor(dims::Vector{NodeName}, lengths::Vector{Int}, ::Void) =
+Factor(dims::NodeNames, lengths::Vector{Int}, ::Void) =
     Factor(dims, Array{Float64}(lengths...))
 
-Factor(dims::Vector{NodeName}, lengths::Vector{Int}, fill_value::Number=0) =
+Factor(dims::NodeNames, lengths::Vector{Int}, fill_value::Number=0) =
     Factor(dims, fill(Float64(fill_value), lengths...))
 
 Factor(dim::NodeName, length::Int, ::Void) =
@@ -55,128 +54,127 @@ Factor(dim::NodeName, length::Int, fill_value::Number=0) =
 
 Create a factor for a node, given some evidence.
 """
-function Factor(bn::DiscreteBayesNet, name::NodeName,
-        evidence::Assignment=Assignment())
+function Factor(bn::DiscreteBayesNet, name::NodeName, evidence::Assignment=Assignment())
     cpd = get(bn, name)
     dims = vcat(name, parents(bn, name))
     lengths = ntuple(i -> ncategories(bn, dims[i]), length(dims))
 
     p = Array{Float64}(lengths)
     p[:] = vcat([d.p for d in cpd.distributions]...)
-    ft = Factor(dims, p)
+    ϕ = Factor(dims, p)
 
-    return ft[evidence]
+    return ϕ[evidence]
 end
 
 ###############################################################################
 #                   Methods
 
 """
-    similar(ft)
+    similar(ϕ)
 
-Return a factor similar to `ft` with unitialized values
+Return a factor similar to `ϕ` with unitialized values
 """
-Base.similar(ft::Factor) = Factor(ft.dimensions, similar(ft.potential))
+Base.similar(ϕ::Factor) = Factor(ϕ.dimensions, similar(ϕ.potential))
 
 """
 Returns Float64
 """
-Base.eltype(ft::Factor) = Float64
+Base.eltype(ϕ::Factor) = Float64
 
 """
 Names of each dimension
 """
-Base.names(ft::Factor) = ft.dimensions
+Base.names(ϕ::Factor) = ϕ.dimensions
 
-Base.ndims(ft::Factor) = ndims(ft.potential)
+Base.ndims(ϕ::Factor) = ndims(ϕ.potential)
 
 """
-    size(ft, [dims...])
+    size(ϕ, [dims...])
 
-Returns a tuple of the dimensions of `ft`
+Returns a tuple of the dimensions of `ϕ`
 """
-Base.size(ft::Factor) = size(ft.potential)
-Base.size(ft::Factor, dim::NodeName) = size(ft.potential, indexin(dim, ft))
-Base.size{N}(ft::Factor, dims::Vararg{NodeName, N}) =
-    ntuple(k -> size(ft, dims[k]), Val{N})
+Base.size(ϕ::Factor) = size(ϕ.potential)
+Base.size(ϕ::Factor, dim::NodeName) = size(ϕ.potential, indexin(dim, ϕ))
+Base.size{N}(ϕ::Factor, dims::Vararg{NodeName, N}) =
+    ntuple(k -> size(ϕ, dims[k]), Val{N})
 
 """
 Total number of elements in Factor (potential)
 """
-Base.length(ft::Factor) = length(ft.potential)
+Base.length(ϕ::Factor) = length(ϕ.potential)
 
 """
-    in(dim, ft) -> Bool
+    in(dim, ϕ) -> Bool
 
-Return true if `dim` is in the Factor `ft`
+Return true if `dim` is in the Factor `ϕ`
 """
-Base.in(dim::NodeName, ft::Factor) = dim in names(ft)
-
-"""
-    indexin(dims, ft)
-
-Return the index of dimension `dim` in `ft`, or 0 if not in `ft`.
-"""
-Base.indexin(dim::NodeName, ft::Factor) = findnext(ft.dimensions, dim, 1)
-Base.indexin(dims::Vector{NodeName}, ft::Factor) = indexin(dims, names(ft))
-
+Base.in(dim::NodeName, ϕ::Factor) = dim in names(ϕ)
 
 """
-    rand!(ft)
+    indexin(dims, ϕ)
+
+Return the index of dimension `dim` in `ϕ`, or 0 if not in `ϕ`.
+"""
+Base.indexin(dim::NodeName, ϕ::Factor) = findnext(ϕ.dimensions, dim, 1)
+Base.indexin(dims::NodeNames, ϕ::Factor) = indexin(dims, names(ϕ))
+
+
+"""
+    rand!(ϕ)
 
 Fill with random values
 """
-Base.rand!(ft) = rand!(ft.potential)
+Base.rand!(ϕ) = rand!(ϕ.potential)
 
 """
 Appends a new dimension to a Factor
 """
-@inline function Base.push!(ft::Factor, dim::NodeName, length::Int)
-    if dim in names(ft)
+@inline function Base.push!(ϕ::Factor, dim::NodeName, length::Int)
+    if dim in names(ϕ)
         error("Dimension $(dim) already exists")
     end
 
-    p = duplicate(ft.potential, (length, ))
-    ft.dimensions = push!(ft.dimensions, dim)
-    ft.potential = p
+    p = duplicate(ϕ.potential, (length, ))
+    ϕ.dimensions = push!(ϕ.dimensions, dim)
+    ϕ.potential = p
 
-    return ft
+    return ϕ
 end
 
-@inline function Base.permutedims!(ft::Factor, perm)
-    ft.potential = permutedims(ft.potential, perm)
-    ft.dimensions = ft.dimensions[perm]
-    return ft
+@inline function Base.permutedims!(ϕ::Factor, perm)
+    ϕ.potential = permutedims(ϕ.potential, perm)
+    ϕ.dimensions = ϕ.dimensions[perm]
+    return ϕ
 end
 
-Base.permutedims(ft::Factor, perm) = permutedims!(deepcopy(ft), perm)
+Base.permutedims(ϕ::Factor, perm) = permutedims!(deepcopy(ϕ), perm)
 
 """
-    pattern(ft, [dims])
+    pattern(ϕ, [dims])
 
 Return an array with the pattern of each dimension's state for all possible
 instances
 """
-function pattern(ft::Factor, dims)
-    inds = indexin(dims, ft)
+function pattern(ϕ::Factor, dims)
+    inds = indexin(dims, ϕ)
 
     zero_loc = findfirst(inds, 0)
     zero_loc == 0 || not_in_factor_error(dims[zero_loc])
 
-    lens = [size(ft)...]
+    lens = [size(ϕ)...]
 
     inners = vcat(1, cumprod(lens[1:(end-1)]))
-    outers = Int[(length(ft) ./ lens[inds] ./ inners[inds])...]
+    outers = Int[(length(ϕ) ./ lens[inds] ./ inners[inds])...]
 
     hcat([repeat(collect(1:l), inner=i, outer=o) for (l, i, o) in
         zip(lens[inds], inners[inds], outers)]...)
 end
 
-function pattern(ft::Factor)
-    lens = [size(ft)...]
+function pattern(ϕ::Factor)
+    lens = [size(ϕ)...]
 
     inners = vcat(1, cumprod(lens[1:(end-1)]))
-    outers = Int[(length(ft) ./ lens ./ inners)...]
+    outers = Int[(length(ϕ) ./ lens ./ inners)...]
 
     hcat([repeat(collect(1:l), inner=i, outer=o) for (l, i, o) in
             zip(lens, inners, outers)]...)

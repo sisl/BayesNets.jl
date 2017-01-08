@@ -13,5 +13,5 @@ not_in_factor_error(name) = throw(ArgumentError("$(name) is not " *
             "a valid dimension"))
 
 invalid_dims_error(func, got) = throw(TypeError(func, "type of dimensions",
-        Union{NodeName, Vector{NodeName}}, got))
+        NodeNameUnion, got))
 

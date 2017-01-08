@@ -4,12 +4,13 @@ module BayesNets
 
 using Compat
 using Reexport
+using Parameters
 
 # exports using Distributions and DataFrames
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
-import Base: *, /, +, - # for Factors overloading
+import Base: *, /, +, -, normalize
 import Base.Collections: PriorityQueue, peek
 import Iterators: subsets, product
 import StatsBase: sample, WeightVec
@@ -63,20 +64,26 @@ export
     BayesNetSampler,
     DirectSampler,
     RejectionSampler,
-    WeightedSampler,
+    LikelihoodWeightedSampler,
 
     # inference objects
     AbstractInferenceState,
     InferenceState,
-    GibbsInferenceState,
-    # inference methods
-    exact_inference,
-    exact_inference_old, #TODO remove
-    weighted_built_in,
-    likelihood_weighting,
-    gibbs_sampling,
-    gibbs_sampling_full,
-    loopy_belief,
+    # GibbsInferenceState,
+    
+    # gibbs_sampling,
+    # gibbs_sampling_full,
+    # loopy_belief,
+    get_weighted_dataframe,
+    sample_weighted_dataframe!,
+    sample_weighted_dataframe,
+
+    InferenceMethod,
+    ExactInference,
+    LikelihoodWeightingInference,
+    LoopyBelief,
+
+    infer,
 
     DirichletPrior,
     UniformPrior,
@@ -120,6 +127,13 @@ include(joinpath("DiscreteBayesNet", "scan_greedy_hill_climbing.jl"))
 
 include(joinpath("Factors", "factors.jl"))
 include(joinpath("Inference", "inference.jl"))
+
+# include("gen_bayes_nets.jl")
+# include(joinpath("inference", "inference.jl"))
+# include(joinpath("inference", "exact.jl"))
+# include(joinpath("inference", "gibbs.jl"))
+# include(joinpath("inference", "likelihood.jl"))
+# include(joinpath("inference", "loopy_belief.jl"))
 
 end # module
 

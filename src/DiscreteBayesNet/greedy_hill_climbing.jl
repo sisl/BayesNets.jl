@@ -31,7 +31,7 @@ end
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
     target::NodeName,
-    parents::Vector{NodeName},
+    parents::NodeNames,
     prior::DirichletPrior;
     parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[p]), Array(Int, length(parents)), parents),
     target_ncategories::Int = infer_number_of_instantiations(data[target]),

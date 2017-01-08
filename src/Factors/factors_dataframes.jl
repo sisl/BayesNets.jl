@@ -6,10 +6,10 @@
 """
 Convert a Factor to a DataFrame
 """
-function Base.convert(::Type{DataFrame}, ft::Factor)
-    df = DataFrames.DataFrame(pattern(ft))
-    DataFrames.rename!(df, names(df), names(ft))
-    df[:potential] = ft.potential[:]
+function Base.convert(::Type{DataFrame}, ϕ::Factor)
+    df = DataFrames.DataFrame(pattern(ϕ))
+    DataFrames.rename!(df, names(df), names(ϕ))
+    df[:potential] = ϕ.potential[:]
 
     return df
 end

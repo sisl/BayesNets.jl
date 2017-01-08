@@ -3,23 +3,18 @@
 #
 # Not exactly related, but not exactly not
 
-# check type of NodeNames
-_ckdimtype(dim::NodeName) = [dim]
-_ckdimtype(dims::Vector{NodeName}) = dims
-
 # make sure all dims are valid (in the Factor)
-@inline function _ckdimvalid(dims::Vector{NodeName}, ft::Factor)
+@inline function _check_dims_valid(dims::NodeNames, ϕ::Factor)
     isempty(dims) && return
 
     dim = first(dims)
-    (dim in ft) || not_in_factor_error(dim)
+    (dim in ϕ) || not_in_factor_error(dim)
 
-    return _ckdimvalid(dims[2:end], ft)
+    return _check_dims_valid(dims[2:end], ϕ)
 end
 
 # dims are unique
-_ckdimunq(dims::Vector{NodeName}) =
-    allunique(dims) || non_unique_dims_error()
+_ckeck_dims_unique(dims::NodeNames) = allunique(dims) || non_unique_dims_error()
 
 """
     duplicate(A, dims)

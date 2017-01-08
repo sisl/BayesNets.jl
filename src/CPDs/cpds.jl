@@ -20,8 +20,9 @@ export
 
     Assignment,                    # variable assignment type, complete or partial, for a Bayesian Network
     NodeName,                      # variable name type
-    # either a single variable name or a vector of names
-    NodeNames,
+    NodeNames,                     # vector of names
+    NodeNameUnion,                 # either a NodeName or NodeNames
+
 
     StaticCPD,                     # static distribution (never uses parental information)
     FunctionalCPD,                 # for implementing quick and easy custom CPDs
@@ -48,8 +49,11 @@ export
 #############################################
 
 typealias NodeName Symbol
-typealias NodeNames Union{NodeName, AbstractVector{NodeName}}
+typealias NodeNames AbstractVector{NodeName}
+typealias NodeNameUnion Union{NodeName, NodeNames}
 typealias Assignment Dict{Symbol, Any}
+
+Base.convert(::Type{NodeNames}, name::NodeName) = [name]
 
 Base.names(a::Assignment) = collect(keys(a))
 
@@ -79,10 +83,10 @@ macro define_call(cpd_type)
 end
 
 """
-    fit(::Type{CPD}, data::DataFrame, target::NodeName, parents::Vector{NodeName})
+    fit(::Type{CPD}, data::DataFrame, target::NodeName, parents::NodeNames)
 Construct a CPD for target by fitting it to the provided data
 """
-@required_func Distributions.fit(cpdtype::Type{CPD}, data::DataFrame, target::NodeName, parents::Vector{NodeName})
+@required_func Distributions.fit(cpdtype::Type{CPD}, data::DataFrame, target::NodeName, parents::NodeNames)
 @required_func Distributions.fit(cpdtype::Type{CPD}, data::DataFrame, target::NodeName)
 
 """

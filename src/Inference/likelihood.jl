@@ -1,50 +1,37 @@
-#
-# Likelihood Weighted Inference
-#
-
 """
-    weighted_built_in(inf, nsamples=500)
-
-Likelihood weighted sampling using weighted sampling
+Approximates p(query|evidence) with N weighted samples using likelihood
+weighted sampling
 """
-function weighted_built_in(inf::AbstractInferenceState, nsamples::Int=500)
-    bn = inf.bn
-    nodes = names(inf)
-    query = inf.query
-    evidence = inf.evidence
-
-    samples = rand(bn, WeightedSampler(evidence), nsamples)
-    return by(samples, query, df -> DataFrame(potential = sum(df[:p])))
+@with_kw type LikelihoodWeightingInference <: InferenceMethod
+    nsamples::Int = 500
 end
 
 """
-    likelihood_weighting(inf, nsamples=500)
-
 Approximates p(query|evidence) with `nsamples` likelihood weighted samples.
 
 Since this uses a Factor, it is only efficient if the number of samples
 is (signifcantly) greater than the number of possible instantiations for the
 query variables
 """
-function likelihood_weighting(inf::AbstractInferenceState, nsamples::Int=500)
+function infer(im::LikelihoodWeightingInference, inf::AbstractInferenceState)
     bn = inf.bn
     nodes = names(inf)
     query = inf.query
     evidence = inf.evidence
 
-    factor = Factor(query, map(n -> ncategories(bn, n), query))
+    ϕ = Factor(query, map(n -> ncategories(bn, n), query))
 
     # if nodes are evidence
-    evidence_mask = reduce(|, map(s -> nodes .== s, keys(evidence)))
+    evidence_mask = [haskey(evidence, s) for s in nodes]
 
     sample = Assignment()
     # add the evidence to the sample
     merge!(sample, evidence)
 
-    # manual index into factor.potential since categorical implies Base.OneTo
+    # manual index into ϕ.potential since categorical implies Base.OneTo
     q_ind = similar(query, Int)
 
-    for i = 1:nsamples
+    for i in 1:im.nsamples
         w = 1.0
 
         for (cpd, is_ev) in zip(bn.cpds, evidence_mask)
@@ -63,10 +50,10 @@ function likelihood_weighting(inf::AbstractInferenceState, nsamples::Int=500)
             q_ind[i] = sample[q]
         end
 
-        factor.potential[q_ind...] += w
+        ϕ.potential[q_ind...] += w
     end
 
-    normalize!(factor)
-    return factor
+    normalize!(ϕ)
+    return ϕ
 end
 

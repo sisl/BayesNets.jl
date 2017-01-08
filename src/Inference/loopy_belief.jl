@@ -55,7 +55,7 @@ function loopy_belief(inf, nsamples::Int=500;
     # init first messages
     # instead of calculating the first pi^t and lambda^t messages per node
     #  set all of them to 1's
-    # this gets rid of the edge condition for accumulating pi and lambda for 
+    # this gets rid of the edge condition for accumulating pi and lambda for
     #  first iteration
     # I am most unsure about this...
     for (i, cpd) in enumerate(bn.cpds)
@@ -94,7 +94,7 @@ function loopy_belief(inf, nsamples::Int=500;
         for (i, cpd) in enumerate(bn.cpds)
             nn = name(cpd)
             nn_ncat = ncat_lut[nn]
-            ft = factors[i]
+            ϕ = factors[i]
             nn_parents = parents_lut[i]
             nn_children = children_lut[i]
 
@@ -116,11 +116,11 @@ function loopy_belief(inf, nsamples::Int=500;
             # pi is the cpd of the node weighted by the pi message that each
             #  parent sent about itself
             if isempty(nn_parents)
-                pi = ft.potential
+                pi = ϕ.potential
             else
                 # multiply each probability with the pi messages from parents
                 #  for that particular instantiation of the parents
-                ft_temp = broadcast(*, ft, nn_parents,
+                ft_temp = broadcast(*, ϕ, nn_parents,
                         [pis[(pa, nn)] for pa in nn_parents])
                 pi = sum!(ft_temp, nn_parents).potential
             end
@@ -130,8 +130,8 @@ function loopy_belief(inf, nsamples::Int=500;
                 # same as above:
                 # multiply each p(x|parents) by pi of all parents but one
                 other_pa = setdiff(nn_parents, [pa])
-                lx = isempty(other_pa) ? deepcopy(ft) :
-                        broadcast(*, ft, other_pa,
+                lx = isempty(other_pa) ? deepcopy(ϕ) :
+                        broadcast(*, ϕ, other_pa,
                                 [pis[(p, nn)] for p in other_pa])
                 # sum out the other parents
                 sum!(lx, other_pa)
@@ -189,7 +189,7 @@ function loopy_belief(inf, nsamples::Int=500;
     # compute belief P(x|e)
     qi = findfirst(nodes, query)
     # lambda and pi one last time
-    ft = factors[qi]
+    ϕ = factors[qi]
     nn_ncat = ncat_lut[query]
     nn_children = children_lut[qi]
     nn_parents = parents_lut[qi]
@@ -198,11 +198,11 @@ function loopy_belief(inf, nsamples::Int=500;
             reduce(.*, (lambdas[(ch, query)] for ch in nn_children))
 
     if isempty(nn_parents)
-        pi = ft.potential
+        pi = ϕ.potential
     else
-        broadcast!(*, ft, nn_parents,
+        broadcast!(*, ϕ, nn_parents,
                 [pis[(pa, query)] for pa in nn_parents])
-        pi = sum!(ft, nn_parents).potential
+        pi = sum!(ϕ, nn_parents).potential
     end
 
     ftr = Factor([query], lambda .* pi)

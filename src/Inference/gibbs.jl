@@ -11,21 +11,20 @@ Holds the state for successive Gibbs Sampling
 """
 immutable GibbsInferenceState <: AbstractInferenceState
     bn::DiscreteBayesNet
-    query::Vector{NodeName}
+    query::NodeNames
     evidence::Assignment
     state::Assignment
 
-    function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNames,
-            evidence::Assignment=Assignment())
+    function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNameUnion, evidence::Assignment=Assignment())
+        query = unique(convert(NodeNames, query))
         state = _init_gibbs_sample(bn, evidence)
 
         return GibbsInferenceState(bn, query, evidence, state)
     end
 
-    function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNames,
-            evidence::Assignment, state::Assignment)
-        query = unique(_ckdimtype(query))
-        _ckq(query, names(bn), evidence)
+    function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNameUnion, evidence::Assignment, state::Assignment)
+        query = unique(convert(NodeNames, query))
+        _ensure_query_nodes_in_bn_and_not_in_evidence(query, names(bn), evidence)
 
 
         return new(bn, query, evidence, state)
@@ -132,7 +131,7 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
     # the current state
     x = inf.state
 
-    ft = Factor(query, [n_cats[q] for q in query])
+    ϕ = Factor(query, [n_cats[q] for q in query])
     # manual index into factor.potential
     q_ind = [x[q] for q in query]
 
@@ -169,7 +168,7 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
                 num_smpls += 1
 
                 # sample
-                @inbounds ft.potential[q_ind...] += 1
+                @inbounds ϕ.potential[q_ind...] += 1
             end
 
             # doubly nested loops!! yay!!
@@ -180,8 +179,8 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
         end
     end
 
-    normalize!(ft)
-    return ft
+    normalize!(ϕ)
+    return ϕ
 end
 
 """
@@ -212,7 +211,7 @@ function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
     # the current state
     x = inf.state
 
-    ft = Factor(query, [n_cats[q] for q in query])
+    ϕ = Factor(query, [n_cats[q] for q in query])
     # manual index into factor.potential
     q_ind = [x[q] for q in query]
 
@@ -247,7 +246,7 @@ function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
         # start collecting after the burn in and on the `thin`-th iteration
         if after_burn && ( ((num_iters - burn_in) % thin) == 0 )
             num_smpls += 1
-            @inbounds ft.potential[q_ind...] += 1
+            @inbounds ϕ.potential[q_ind...] += 1
         end
 
         if num_smpls >= total_num_samples
@@ -255,7 +254,7 @@ function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
         end
     end
 
-    normalize!(ft)
-    return ft
+    normalize!(ϕ)
+    return ϕ
 end
 
