@@ -1,5 +1,5 @@
 """
-A categorical distribution, P(x|parents(x)) where all parents are discrete integers 1:Nᵢ
+A categorical distribution, P(x|parents(x)) where all parents are discrete integers 1:N.
 
 The ordering of `distributions` array follows the convention in Decision Making Under Uncertainty.
 Suppose a variable has three discrete parents. The first parental instantiation
@@ -11,45 +11,65 @@ to their last bins.
 This is equivalent to:
 
 X,Y,Z
+
 1,1,1
+
 2,1,1
+
 1,2,1
+
 2,2,1
+
 1,1,2
+
 ...
 """
 type CategoricalCPD{D} <: CPD{D}
-
     target::NodeName
-    parents::Vector{NodeName}
+    parents::NodeNames
+    # list of instantiation counts for each parent, in same order as parents
+    parental_ncategories::Vector{Int}
+    # instead of a vector, we can use an array where each axis corresponds to
+    # a parent and is as long as that parent has instantiations.
+    distributions::Array{D}
 
-    parental_ncategories::Vector{Int} # list of instantiation counts for each parent, in same order as parents
-    distributions::Vector{D}
+    function CategoricalCPD{D}(target::NodeName, parents::NodeNames,
+            parental_ncategories::Vector{Int}, distributions::Vector{D})
+        # this works because Julia is column-major and thus treats the first
+        # index in x[i, ...] as dimension 1
+        distributions = reshape(distributions, (parental_ncategories...))
+
+        return new(target, parents, parental_ncategories, distributions)
+    end
 end
+
+CategoricalCPD{D<:Distribution}(target::NodeName, parents::NodeNames,
+            parental_ncategories::Vector{Int}, distributions::Vector{D}) =
+    CategoricalCPD{D}(target, parents, parental_ncategories, distributions)
 CategoricalCPD{D<:Distribution}(target::NodeName, d::D) = CategoricalCPD(target, NodeName[], Int[], D[d])
 
 name(cpd::CategoricalCPD) = cpd.target
 parents(cpd::CategoricalCPD) = cpd.parents
 nparams(cpd::CategoricalCPD) = sum(d->paramcount(params(d)), cpd.distributions)
 
-@define_call CategoricalCPD
-@compat function (cpd::CategoricalCPD)(a::Assignment)
+(cpd::CategoricalCPD)(pair::Pair{NodeName}...) = cpd(Assignment(pair))
 
-    idx = 1
-    if !isempty(cpd.parents)
-
-        # get the index in cpd.distributions
-
-        N = length(cpd.parents)
-        idx = a[cpd.parents[N]] - 1
-        for i in N-1:-1:1
-            idx = (a[cpd.parents[i]] - 1 + cpd.parental_ncategories[i]*idx)
-        end
-        idx += 1
+@inline function (cpd::CategoricalCPD)(a::Assignment=Assignment())
+    if isempty(cpd.parents)
+        return first(cpd.distributions)
+    else
+        ind = [a[p] for p in cpd.parents]
+        return cpd.distributions[ind...]
     end
-
-    cpd.distributions[idx]
 end
+
+"""
+    Distributions.ncategories(cpd::CategoricalCPD)
+
+Return the number of categories for a cpd.
+"""
+Distributions.ncategories(cpd::CategoricalCPD) =
+    ncategories(first(cpd.distributions))
 
 function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     data::DataFrame,
@@ -64,7 +84,7 @@ end
 function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     data::DataFrame,
     target::NodeName,
-    parents::Vector{NodeName},
+    parents::NodeNames,
     )
 
     # with parents
@@ -114,7 +134,7 @@ end
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
     target::NodeName,
-    parents::Vector{NodeName};
+    parents::NodeNames;
     parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[p]), Array(Int, length(parents)), parents),
     target_ncategories::Int = infer_number_of_instantiations(data[target]),
     )
@@ -145,3 +165,4 @@ function Distributions.fit(::Type{DiscreteCPD},
 
     CategoricalCPD(target, parents, parental_ncategories, distributions)
 end
+

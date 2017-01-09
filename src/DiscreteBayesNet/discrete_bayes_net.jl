@@ -11,7 +11,7 @@ example in _Probabilistic Graphical Models_ by Koller and Friedman
 typealias DiscreteBayesNet BayesNet{DiscreteCPD}
 DiscreteBayesNet() = BayesNet(DiscreteCPD)
 
-function _get_parental_ncategories(bn::DiscreteBayesNet, parents::Vector{NodeName})
+function _get_parental_ncategories(bn::DiscreteBayesNet, parents::NodeNames)
     parental_ncategories = Array(Int, length(parents))
     for (i,p) in enumerate(parents)
         parent_cpd = get(bn, p)::CategoricalCPD
@@ -25,10 +25,10 @@ function _get_parental_ncategories(bn::DiscreteBayesNet, parents::Vector{NodeNam
 end
 
 """
-    rand_cpd(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, parents::Vector{NodeName}=NodeName[])
+    rand_cpd(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, parents::NodeNames=NodeName[])
 Return a CategoricalCPD with the given number of categories with random categorical distributions
 """
-function rand_cpd(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, parents::Vector{NodeName}=NodeName[];
+function rand_cpd(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, parents::NodeNames=NodeName[];
     uniform_dirichlet_prior::Float64 = 1.0
     )
 
@@ -89,12 +89,11 @@ table(bn::DiscreteBayesNet, name::NodeName, pair::Pair{NodeName}...) = table(bn,
 
 """
     Distributions.ncategories(bn::DiscreteBayesNet, node::Symbol)
-Gets the number of categories for a node in the network. This assumes that the
-node has the same number of catagories for all possible parental 
-instantiations, which may be violated.
+
+Return the number of categories for a node in the network.
 """
-function Distributions.ncategories(bn::DiscreteBayesNet, node::Symbol)
-    return Distributions.ncategories(get(bn, node).distributions[1])
+function Distributions.ncategories(bn::DiscreteBayesNet, node::NodeName)
+    return ncategories(get(bn, node).distributions[1])
 end
 
 """
@@ -257,3 +256,4 @@ function statistics(bn::DiscreteBayesNet, target::NodeName, data::DataFrame)
 
     statistics(targetind, parents, ncategories, datamat)
 end
+

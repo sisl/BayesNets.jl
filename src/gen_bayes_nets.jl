@@ -1,21 +1,34 @@
-# Built in (?) BayesNets
-
-#Also, Bernoulli does not count as a Categoical RV, so they can' be used in
+#
+# Generate BayesNets
+#
+# Create (random) Bayesian Networks
+#
+# Also, Bernoulli does not count as a Categoical RV, so they can't be used in
 # a DiscreteBayesNet
 
 """
-Generates a random DiscreteBayesNet
+    rand_discrete_bn(num_nodes16, max_num_parents=3,
+            max_num_states=5, connected=true)
 
-Creates DiscreteBayesNet with num_nodes nodes, each with random values (up to)
-max_num_parents and max_num_parents for the number of parents and states
-(respectively)
+Generate a random DiscreteBayesNet.
+
+Creates DiscreteBayesNet with `num_nodes` nodes, with each node having
+a random number of states and parents, up to `max_num_parents` and
+`max_num_parents`, respectively.
+If `connected`, each node (except the first) will be guaranteed at least one
+parent, making the graph connected.
 """
 function rand_discrete_bn(num_nodes::Int=16,
         max_num_parents::Int=3,
-        max_num_states::Int=5)
-    @assert(num_nodes > 0)
-    @assert(max_num_parents > 0)
-    @assert(max_num_states > 1)
+        max_num_states::Int=5,
+        connected::Bool=true)
+    num_nodes > 0 || throw(ArgumentError("`num_nodes` must be greater than 0"))
+    max_num_parents > 0 || throw(ArgumentError("`max_num_parents` must be " *
+                "greater than 0"))
+    max_num_states > 1  || throw(ArgumentError("`max_num_states` must be " *
+                "greater than 1"))
+
+    min_parents = connected ? 1 : 0
 
     bn = DiscreteBayesNet();
 
@@ -29,8 +42,9 @@ function rand_discrete_bn(num_nodes::Int=16,
         #  algorithm but ...
         while true
             # how many parents we can possibly add
-            n_par = rand(0:min(length(bn),max_num_parents))
-            parents = sample(names(bn), n_par; replace=false)
+            n_par = rand(0:min(length(bn), max_num_parents))
+            parents = sample(names(bn),
+                    min(length(bn), max(min_parents, n_par)); replace=false)
 
             # add the new random cpd with random parents to the network
             push!(bn, rand_cpd(bn, n_states, s, parents))
@@ -47,10 +61,16 @@ function rand_discrete_bn(num_nodes::Int=16,
 end
 
 """
-Given a Bayesian network, randomly generate valid query and evidence assignment
+    rand_bn_inference(bn, num_query=2, num_evidence=3)
+
+Generate a random inference state for a Bayesian Network with an evidence
+assignment sample uniformly over the chosen nodes' domain.
 """
-function bn_inference_init(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)
-    @assert (num_query + num_evidence) <= length(names(bn))
+function rand_bn_inference(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)
+    (num_query + num_evidence) <= length(bn) ||
+        throw(ArgumentError("Number of qurey and evidence nodes " *
+                    "($(num_query + num_evidence)) is greater than number " *
+                    "of nodes ($(length(bn)))"))
 
     # yay for convoluted
     non_hidden = sample(names(bn), num_query + num_evidence; replace=false)
@@ -63,7 +83,7 @@ function bn_inference_init(bn::BayesNet, num_query::Int=2, num_evidence::Int=3)
         evidence[ev] = sample(1:ncat)
     end
 
-    return (query, evidence)
+    return InferenceState(bn, query, evidence)
 end
 
 """

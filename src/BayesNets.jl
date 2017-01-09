@@ -6,14 +6,20 @@ using Compat
 using Reexport
 using Parameters
 
+# exports using Distributions and DataFrames
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
-import LightGraphs: DiGraph, add_edge!, rem_edge!, add_vertex!, rem_vertex!, has_edge, edges, topological_sort_by_dfs, in_neighbors, out_neighbors, neighbors, is_cyclic, nv, ne, outdegree, badj, bfs_tree
-import TikzGraphs: plot
-import Iterators: subsets, product
+import Base: *, /, +, -, normalize
 import Base.Collections: PriorityQueue, peek
-import Base: normalize
+import Iterators: subsets, product
+import StatsBase: sample, WeightVec
+import TikzGraphs: plot
+import LightGraphs: DiGraph, add_edge!, rem_edge!,
+       add_vertex!, rem_vertex!, has_edge,
+       edges, topological_sort_by_dfs, in_neighbors,
+       out_neighbors, neighbors, is_cyclic, nv, ne,
+       outdegree, badj, bfs_tree
 
 export
     BayesNet,
@@ -35,12 +41,26 @@ export
     gibbs_sample,
     GibbsSampler,
 
+    # tables, formerly known as factors
     table,
     sumout,
     normalize,
     estimate_convergence,
     readxdsl,
 
+    # generate BNs
+    rand_discrete_bn,
+    rand_bn_inference,
+    get_sprinkler_bn,
+    get_sat_fail_bn,
+    get_asia_bn,
+
+    # Factors
+    Factor,
+    pattern,
+    reducedim!,
+
+    # Sampling
     BayesNetSampler,
     DirectSampler,
     RejectionSampler,
@@ -50,18 +70,16 @@ export
     sample_weighted_dataframe!,
     sample_weighted_dataframe,
 
+    # Inference
+    InferenceState,
     InferenceMethod,
     ExactInference,
     LikelihoodWeightingInference,
     LoopyBelief,
+    GibbsSamplingNodewise,
+    GibbsSamplingFull,
 
     infer,
-
-    random_discrete_bn,
-    bn_inference_init,
-    get_sprinkler_bn,
-    get_sat_fail_bn,
-    get_asia_bn,
 
     DirichletPrior,
     UniformPrior,
@@ -91,23 +109,27 @@ export
 include("bayes_nets.jl")
 include("io.jl")
 include("sampling.jl")
-include("learning.jl")
 include("gibbs.jl")
+include("learning.jl")
+include("gen_bayes_nets.jl")
 
 include(joinpath("DiscreteBayesNet", "ndgrid.jl"))
-include(joinpath("DiscreteBayesNet", "factors.jl"))
+include(joinpath("DiscreteBayesNet", "tables.jl"))
 include(joinpath("DiscreteBayesNet", "dirichlet_priors.jl"))
 include(joinpath("DiscreteBayesNet", "discrete_bayes_net.jl"))
 include(joinpath("DiscreteBayesNet", "structure_scoring.jl"))
 include(joinpath("DiscreteBayesNet", "greedy_hill_climbing.jl"))
 include(joinpath("DiscreteBayesNet", "scan_greedy_hill_climbing.jl"))
 
-include("gen_bayes_nets.jl")
-include(joinpath("inference", "inference.jl"))
-include(joinpath("inference", "exact.jl"))
-include(joinpath("inference", "gibbs.jl"))
-include(joinpath("inference", "likelihood.jl"))
-include(joinpath("inference", "loopy_belief.jl"))
+include(joinpath("Factors", "factors.jl"))
+include(joinpath("Inference", "inference.jl"))
+
+# include("gen_bayes_nets.jl")
+# include(joinpath("inference", "inference.jl"))
+# include(joinpath("inference", "exact.jl"))
+# include(joinpath("inference", "gibbs.jl"))
+# include(joinpath("inference", "likelihood.jl"))
+# include(joinpath("inference", "loopy_belief.jl"))
 
 end # module
 

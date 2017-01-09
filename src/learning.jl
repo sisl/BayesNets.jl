@@ -108,7 +108,7 @@ score_component(a::ScoringFunction, cpd::CPD, data::DataFrame) = error("score_co
 As score_component(ScoringFunction, cpd, data), but returns pre-computed values from the cache
 if they exist, and populates the cache if they don't
 """
-function _get_parent_indeces(parents::Vector{NodeName}, data::DataFrame)
+function _get_parent_indeces(parents::NodeNames, data::DataFrame)
     varnames = names(data)
     retval = Array(Int, length(parents))
     for (i,p) in enumerate(parents)
@@ -199,13 +199,13 @@ Takes polynomial time to find the optimal structure assuming
 a topological variable ordering.
 """
 type K2GraphSearch <: GraphSearchStrategy
-    order::Vector{NodeName}     # topological ordering of variables
+    order::NodeNames            # topological ordering of variables
     cpd_types::Vector{DataType} # cpd types, in same order as `order`
     max_n_parents::Int          # maximum number of parents per CPD
     metric::ScoringFunction     # metric we are trying to maximize
 
     function K2GraphSearch(
-        order::Vector{NodeName},
+        order::NodeNames,
         cpd_types::Vector{DataType};
         max_n_parents::Int=3,
         metric::ScoringFunction=NegativeBayesianInformationCriterion(),
@@ -214,7 +214,7 @@ type K2GraphSearch <: GraphSearchStrategy
         new(order, cpd_types, max_n_parents, metric)
     end
     function K2GraphSearch{C<:CPD}(
-        order::Vector{NodeName},
+        order::NodeNames,
         cpdtype::Type{C};
         max_n_parents::Int=3,
         metric::ScoringFunction=NegativeBayesianInformationCriterion(),
@@ -224,7 +224,7 @@ type K2GraphSearch <: GraphSearchStrategy
         new(order, cpd_types, max_n_parents, metric)
     end
     function K2GraphSearch(
-        order::Vector{NodeName},
+        order::NodeNames,
         cpdtype::Type{CategoricalCPD};
         max_n_parents::Int=3,
         metric::ScoringFunction=NegativeBayesianInformationCriterion(),
@@ -233,7 +233,7 @@ type K2GraphSearch <: GraphSearchStrategy
         error("Cannot construct K2GraphSearch with only CategoricalCPD. You must specify the child distribution, CategoricalCPD{D}. For example, CategoricalCPD{Categorical}, aka DiscreteCPD.")
     end
     function K2GraphSearch(
-        order::Vector{NodeName},
+        order::NodeNames,
         cpdtype::Type{StaticCPD};
         max_n_parents::Int=3,
         metric::ScoringFunction=NegativeBayesianInformationCriterion(),

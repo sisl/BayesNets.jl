@@ -8,12 +8,12 @@ https://en.wikipedia.org/wiki/Factor_graph
 These can be obtained using the table() function
 =#
 
-typealias Factor DataFrame
+typealias Table DataFrame
 
 """
-Factor multiplication
+Table multiplication
 """
-@compat function Base.:*(f1::Factor, f2::Factor)
+@compat function Base.:*(f1::Table, f2::Table)
     onnames = setdiff(intersect(names(f1), names(f2)), [:p])
     finalnames = vcat(setdiff(union(names(f1), names(f2)), [:p]), :p)
 
@@ -23,50 +23,46 @@ Factor multiplication
         j = join(f1, f2, on=onnames, kind=:outer)
     end
 
-    for k in 1 : length(j[:p])
-        j[k,:p] *= j[k,:p_1]
-    end
-    return j[:,finalnames]
+    j[:p] = j[:p] .* j[:p_1]
+
+    return j[finalnames]
 end
 
-# TODO: implement factoring out final value in factor table,
-#       or throwing an error in that case
-# Works for non-binary variables and possibly fixes the above todo
 """
-Factor marginalization
+    sumout(f, v)
+
+Table marginalization
 """
-function sumout(f::Factor, v::Union{Symbol, AbstractVector{Symbol}})
+function sumout(f::Table, v::NodeNameUnion)
     # vcat works for single values and vectors alike (magic?)
     remainingvars = setdiff(names(f), vcat(v, :p))
 
     if isempty(remainingvars)
         # they want to remove all variables except for prob column
-        # uh ...
-        return f
+        # uh ... 'singleton' table?
+        return DataFrame(p = sum(f[:p]))
     else
-        # note that this will fail miserablely if f is too large (~1E4 maybe?)
+        # note that this will fail miserably if f is too large (~1E4 maybe?)
         #  nothing I can do :'(  github issue about it
-        return by(f, remainingvars, df -> Factor(p = sum(df[:p])))
+        return by(f, remainingvars, df -> Table(p = sum(df[:p])))
     end
 end
 
-# Should normalize be normalize! since it modifies the table?
-
 """
-Factor normalization
+Table normalization
 Ensures that the :p column sums to one
 """
-function normalize(f::Factor)
+function LinAlg.normalize!(f::Table)
     f[:p] /= sum(f[:p])
 
     return f
 end
 
 """
-Given a Factor,
+Given a Table,
 extract the rows which match the given assignment
 """
-function Base.select(f::Factor, a::Assignment)
+function Base.select(f::Table, a::Assignment)
     commonNames = intersect(names(f), keys(a))
     mask = trues(size(f,1))
     for s in commonNames
@@ -123,3 +119,4 @@ function estimate_convergence(f::DataFrame, a::Assignment)
     end
     p
 end
+

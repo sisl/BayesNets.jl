@@ -7,7 +7,7 @@ A linear Gaussian CPD, always returns a Normal
 """
 type LinearGaussianCPD <: CPD{Normal}
     target::NodeName
-    parents::Vector{NodeName}
+    parents::NodeNames
 
 	a::Vector{Float64}
 	b::Float64
@@ -50,7 +50,7 @@ end
 function Distributions.fit(::Type{LinearGaussianCPD},
     data::DataFrame,
     target::NodeName,
-    parents::Vector{NodeName};
+    parents::NodeNames;
     min_stdev::Float64=0.0, # an optional minimum on the standard deviation
     )
 
