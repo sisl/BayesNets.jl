@@ -36,6 +36,7 @@ include(joinpath(testdir, "test_factors.jl"))
 include(joinpath(testdir, "test_bayesnets.jl"))
 include(joinpath(testdir, "test_gibbs.jl"))
 include(joinpath(testdir, "test_sampling.jl"))
+include(joinpath(testdir, "test_inference.jl"))
 include(joinpath(testdir, "test_learning.jl"))
 include(joinpath(testdir, "test_io.jl"))
 include(joinpath(testdir, "test_ndgrid.jl"))
@@ -43,9 +44,5 @@ include(joinpath(testdir, "test_ndgrid.jl"))
 include(joinpath(testdir, "test_discrete_bayes_nets.jl"))
 include(joinpath(testdir, "test_genbn.jl"))
 
-# inference methods
-include(joinpath(testdir, "test_inference.jl"))
-# include(joinpath(testdir, "test_inference_gibbs.jl"))
-
-# include(joinpath(testdir, "test_docs.jl"))
+include(joinpath(testdir, "test_docs.jl"))
 

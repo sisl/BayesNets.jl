@@ -132,7 +132,6 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Sc
 
     # compute the greedy solution
     parent_list = greedy_parents
-    println("Scan solution score: ", best)
 
     # construct the BayesNet
     cpds = Array(DiscreteCPD, n)

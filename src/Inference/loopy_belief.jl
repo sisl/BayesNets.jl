@@ -1,7 +1,14 @@
-#
-# Loopy Belief Propagation
-#
-# LBP and associated functions
+"""
+Loopy belief propogation for a network.
+
+Early stopping if change is messages < `tol` for `iters_for_convergence'
+iterations. For no stopping, use tol < 0.
+"""
+@with_kw type LoopyBelief <: InferenceMethod
+    nsamples::Int = 500
+    tol::Float64 = 1e-8
+    iters_for_convergence::Int = 6
+end
 
 """
 Get the lambda-message to itself for an evidence node.
@@ -14,18 +21,11 @@ If it isn't an evidence node, this will break
     return z
 end
 
-"""
-    loopy_belief(inf, nsamples=500; tol=1e-8, iters_for_convergence=6)
+function infer(im::LoopyBelief, inf::InferenceState)
 
-Loopy belief propogation for a network.
+    length(inf.query) == 1 || throw(ArgumentError("There can only be one query variable"))
 
-Stops early if change in messages < `tol` for `iters_for_convergence'
-iterations.
-"""
-function loopy_belief(inf, nsamples::Int=500;
-        tol::Float64=1e-8, iters_for_convergence::Int=6)
-    length(inf.query) == 1 ||
-            throw(ArgumentError("Can only be one query variable"))
+    nsamples, tol, iters_for_convergence = im.nsamples, im.tol, im.iters_for_convergence
 
     bn = inf.bn
     nodes = names(inf)

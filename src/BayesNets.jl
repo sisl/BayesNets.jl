@@ -60,28 +60,24 @@ export
     pattern,
     reducedim!,
 
-    # Sampler interface
+    # Sampling
     BayesNetSampler,
     DirectSampler,
     RejectionSampler,
     LikelihoodWeightedSampler,
 
-    # inference objects
-    AbstractInferenceState,
-    InferenceState,
-    # GibbsInferenceState,
-    
-    # gibbs_sampling,
-    # gibbs_sampling_full,
-    # loopy_belief,
     get_weighted_dataframe,
     sample_weighted_dataframe!,
     sample_weighted_dataframe,
 
+    # Inference
+    InferenceState,
     InferenceMethod,
     ExactInference,
     LikelihoodWeightingInference,
     LoopyBelief,
+    GibbsSamplingNodewise,
+    GibbsSamplingFull,
 
     infer,
 

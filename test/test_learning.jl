@@ -1,6 +1,7 @@
 type FakeScoringFunction <: ScoringFunction end
 type FakeGraphSearchStrategy <: GraphSearchStrategy end
 
+srand(0)
 let
 	function test_disc_bn(bn::DiscreteBayesNet)
 		#=

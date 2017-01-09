@@ -1,61 +1,9 @@
-#
-# Gibbs Sampling code
-#
-# Gibbs sampling, inference state, and helper functions
-
-"""
-    GibbsInferenceState(bn, query, evidence=Assignment())
-    GibbsInferenceState(bn, query, evidence, state)
-
-Holds the state for successive Gibbs Sampling
-"""
-immutable GibbsInferenceState <: AbstractInferenceState
-    bn::DiscreteBayesNet
-    query::NodeNames
-    evidence::Assignment
-    state::Assignment
-
-    function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNameUnion, evidence::Assignment=Assignment())
-        query = unique(convert(NodeNames, query))
-        state = _init_gibbs_sample(bn, evidence)
-
-        return GibbsInferenceState(bn, query, evidence, state)
-    end
-
-    function GibbsInferenceState(bn::DiscreteBayesNet, query::NodeNameUnion, evidence::Assignment, state::Assignment)
-        query = unique(convert(NodeNames, query))
-        _ensure_query_nodes_in_bn_and_not_in_evidence(query, names(bn), evidence)
-
-
-        return new(bn, query, evidence, state)
-    end
-end
-
-Base.convert{I<:AbstractInferenceState}(::Type{I}, inf::GibbsInferenceState) =
-    I(inf.bn, inf.query, inf.evidence)
-
-Base.convert(::Type{GibbsInferenceState}, inf::AbstractInferenceState) =
-    GibbsInferenceState(inf.bn, inf.query, inf.evidence)
-
-function Base.show(io::IO, inf::GibbsInferenceState)
-    println(io, "Query: $(inf.query)")
-    println(io, "Evidence:")
-    for (k, v) in inf.evidence
-        println(io, "  $k => $v")
-    end
-    println(io, "State:")
-    for (k, v) in inf.state
-        println(io, "  $k => $v")
-    end
-end
-
 """
     _init_gibbs_sample(bn, evidence)
 
 A random sample of non-evidence nodes uniformly over their domain
 """
-@inline function _init_gibbs_sample(bn::BayesNet,
-        evidence::Assignment=Assignment())
+@inline function _init_gibbs_sample(bn::BayesNet, evidence::Assignment=Assignment())
     sample = Assignment()
 
     for cpd in bn.cpds
@@ -72,8 +20,7 @@ A random sample of non-evidence nodes uniformly over their domain
 end
 
 """Get the cpd's of a node and its children"""
-get_mb_cpds(bn::BayesNet, node::Symbol) =
-        [get(bn, n) for n in vcat(children(bn, node), node)]
+get_mb_cpds(bn::BayesNet, node::Symbol) = [get(bn, n) for n in vcat(children(bn, node), node)]
 
 """
     eval_mb_cpd(node, ncategories, assignment, mb_cpds)
@@ -103,15 +50,23 @@ variable itself.
 end
 
 """
-    gibbs_sampling(inf, nsamples=2000; burnin=500, thin=3)
+    infer(GibbsSampling, state::Assignment, InferenceState)
 
 Run Gibbs sampling for `N` iterations. Each iteration changes one node.
 
 Discareds first `burn_in` samples and keeps only the `thin`-th sample.
 Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
-function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
-        burn_in::Int=500, thin::Int=3)
+@with_kw type GibbsSamplingNodewise <: InferenceMethod
+    nsamples::Int=2E3
+    burn_in::Int=500
+    thin::Int=3
+    state::Assignment = Assignment()
+end
+function infer(im::GibbsSamplingNodewise, inf::InferenceState)
+
+    nsamples, burn_in, thin, x = im.nsamples, im.burn_in, im.thin, im.state
+
     burn_in < nsamples || throw(ArgumentError("Burn in ($burn_in) " *
                 "must be less than number of samples ($nsamples)"))
 
@@ -124,12 +79,17 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
     evidence = inf.evidence
     non_evidence = setdiff(nodes, keys(evidence))
 
+    # the current state
+    if isempty(im.state)
+        im.state = _init_gibbs_sample(inf.bn, inf.evidence)
+    else
+        _ensure_query_nodes_in_bn_and_not_in_evidence(query, names(bn), evidence)
+    end
+    x = im.state
+
     n_cats = Dict(n => ncategories(bn, n) for n in non_evidence)
     # if each non-evidence node is a query variable, and its order as a query
     q_loc = indexin(non_evidence, query)
-
-    # the current state
-    x = inf.state
 
     ϕ = Factor(query, [n_cats[q] for q in query])
     # manual index into factor.potential
@@ -184,14 +144,23 @@ function gibbs_sampling(inf::GibbsInferenceState, nsamples::Int=2E3;
 end
 
 """
-    gibbs_sampling_full(inf, nsamples=2000; burnin=500, thin=3)
+    infer(im, inf)
 
-Run Gibbs sampling for `N` iterations. Each iteration changes all nodes.
+Run Gibbs sampling for `N` iterations. Each iteration changes all
+nodes.
 Discareds first `burn_in` samples and keeps only the `thin`-th sample.
 Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
-function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
-        burn_in::Int=500, thin::Int=3)
+@with_kw type GibbsSamplingFull <: InferenceMethod
+    nsamples::Int=2E3
+    burn_in::Int=500
+    thin::Int=3
+    state::Assignment=Assignment()
+end
+function infer(im::GibbsSamplingFull, inf::InferenceState)
+
+    nsamples, burn_in, thin = im.nsamples, im.burn_in, im.thin
+
     burn_in < nsamples || throw(ArgumentError("Burn in ($burn_in) " *
                 "must be less than number of samples ($nsamples)"))
 
@@ -209,7 +178,12 @@ function gibbs_sampling_full(inf::GibbsInferenceState, nsamples::Int=2E3;
     q_loc = indexin(non_evidence, query)
 
     # the current state
-    x = inf.state
+    if isempty(im.state)
+        im.state = _init_gibbs_sample(inf.bn, inf.evidence)
+    else
+        _ensure_query_nodes_in_bn_and_not_in_evidence(query, names(bn), evidence)
+    end
+    x = im.state
 
     ϕ = Factor(query, [n_cats[q] for q in query])
     # manual index into factor.potential

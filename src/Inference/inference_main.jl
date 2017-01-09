@@ -2,13 +2,6 @@
 # Main code and big ideas for inference
 #
 
-# An implementation of an AbstractInferenceState has:
-#  bn::DiscreteBayesNet
-#  query::NodeNames
-#  evidence::Assignment
-# and a constructor that accepts just those three arguments in that order
-abstract AbstractInferenceState
-
 @inline function _ensure_query_nodes_in_bn_and_not_in_evidence(qs::NodeNames, nodes::NodeNames, ev::Assignment)
     isempty(qs) && return
 
@@ -19,7 +12,7 @@ abstract AbstractInferenceState
     return _ensure_query_nodes_in_bn_and_not_in_evidence(qs[2:end], nodes, ev)
 end
 
-immutable InferenceState <: AbstractInferenceState
+immutable InferenceState
     bn::DiscreteBayesNet
     query::NodeNames
     evidence::Assignment
@@ -37,9 +30,9 @@ immutable InferenceState <: AbstractInferenceState
     end
 end
 
-Base.names(inf::AbstractInferenceState) = names(inf.bn)
+Base.names(inf::InferenceState) = names(inf.bn)
 
-function Base.show(io::IO, inf::AbstractInferenceState)
+function Base.show(io::IO, inf::InferenceState)
     println(io, "Query: $(inf.query)")
     println(io, "Evidence:")
     for (k, v) in inf.evidence
@@ -58,7 +51,7 @@ abstract InferenceMethod
 Infer p(query|evidence)
  - inference on a DiscreteBayesNet will always return a DataFrame factor over the evidence variables
 """
-infer(im::InferenceMethod, inf::AbstractInferenceState) = error("infer not implemented for $(typeof(im)) and $(typeof(inf))")
+infer(im::InferenceMethod, inf::InferenceState) = error("infer not implemented for $(typeof(im)) and $(typeof(inf))")
 infer(im::InferenceMethod, bn::BayesNet, query::NodeNameUnion; evidence::Assignment=Assignment()) = infer(im, InferenceState(bn, query, evidence))
 
 

@@ -43,7 +43,7 @@ let
                                                 Categorical([0.4,0.6]),
                                                 ]))
 
-    for im in [ExactInference(), LikelihoodWeightingInference(), ] # LoopyBelief()
+    for im in [ExactInference(), LikelihoodWeightingInference(), LoopyBelief(), GibbsSamplingNodewise(), GibbsSamplingFull()]
         srand(0)
         ϕ = infer(im, bn, :a)::Factor
         @test length(ϕ) == 2
@@ -56,7 +56,7 @@ let
         @test isapprox(f.potential[1], 0.0, atol=0.02)
     end
 
-    for im in [ExactInference(), LikelihoodWeightingInference(), ] # LoopyBelief()
+    for im in [ExactInference(), LikelihoodWeightingInference(), LoopyBelief(), GibbsSamplingNodewise(), GibbsSamplingFull()]
         srand(0)
         ϕ = infer(im, bn, :c)::Factor
         @test length(ϕ) == 2
@@ -64,7 +64,7 @@ let
         @test isapprox(ϕ[:c=>2].potential[1], 0.0, atol=0.02)
     end
 
-    for im in [ExactInference(), LikelihoodWeightingInference(), ] # LoopyBelief(),
+    for im in [ExactInference(), LikelihoodWeightingInference(), GibbsSamplingNodewise(), GibbsSamplingFull()] # LoopyBelief(),
         srand(0)
         ϕ = infer(im, bn, [:b, :c])
         @test size(ϕ) == (2,2)
@@ -92,7 +92,7 @@ let
                                          ]))
 
     # P(D) = [0.6, 0.4]
-    for im in [ExactInference(), LikelihoodWeightingInference(), ] # LoopyBelief()
+    for im in [ExactInference(), LikelihoodWeightingInference(), LoopyBelief(), GibbsSamplingNodewise(), GibbsSamplingFull()]
         srand(0)
         ϕ = infer(im, bn, :D)
         @test size(ϕ) == (2,)
@@ -101,7 +101,7 @@ let
     end
 
     # P(G|d₁, i₁) = [0.3, 0.4, 0.3]
-    for im in [ExactInference(), LikelihoodWeightingInference(), ] # LoopyBelief()
+    for im in [ExactInference(), LikelihoodWeightingInference(), LoopyBelief(), GibbsSamplingNodewise(), GibbsSamplingFull()]
         srand(0)
         ϕ = infer(im, bn, :G, evidence=Assignment(:D=>1, :I=>1))
         @test size(ϕ) == (3,)
