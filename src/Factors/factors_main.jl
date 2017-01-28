@@ -50,19 +50,30 @@ Factor(dim::NodeName, length::Int, fill_value::Number=0) =
     Factor(dims, fill(Float64(fill_value), length))
 
 """
+    convert(DiscreteCPD, cpd)
+
+Construct a Factor from a DiscreteCPD.
+"""
+function Base.convert(::Type{Factor}, cpd::DiscreteCPD)
+    dims = vcat(name(cpd), parents(cpd))
+    lengths = tuple(ncategories(cpd), cpd.parental_ncategories...)
+    p = Array{Float64}(lengths)
+    p[:] = vcat([d.p for d in cpd.distributions]...)
+    return Factor(dims, p)
+end
+Base.mimewritable(::MIME"text/html", ϕ::DiscreteCPD) = true
+Base.show(io::IO, cpd::DiscreteCPD) = show(io, convert(Factor, cpd))
+Base.show(io::IO, a::MIME"text/html", cpd::DiscreteCPD) = show(io, a, convert(DataFrame, convert(Factor, cpd)))
+
+
+"""
     Factor(bn, name, evidence=Assignment())
 
 Create a factor for a node, given some evidence.
 """
 function Factor(bn::DiscreteBayesNet, name::NodeName, evidence::Assignment=Assignment())
     cpd = get(bn, name)
-    dims = vcat(name, parents(bn, name))
-    lengths = ntuple(i -> ncategories(bn, dims[i]), length(dims))
-
-    p = Array{Float64}(lengths)
-    p[:] = vcat([d.p for d in cpd.distributions]...)
-    ϕ = Factor(dims, p)
-
+    ϕ = convert(Factor, cpd)
     return ϕ[evidence]
 end
 
