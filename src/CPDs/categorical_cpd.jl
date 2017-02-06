@@ -11,17 +11,11 @@ to their last bins.
 This is equivalent to:
 
 X,Y,Z
-
 1,1,1
-
 2,1,1
-
 1,2,1
-
 2,2,1
-
 1,1,2
-
 ...
 """
 type CategoricalCPD{D} <: CPD{D}
@@ -37,7 +31,10 @@ type CategoricalCPD{D} <: CPD{D}
             parental_ncategories::Vector{Int}, distributions::Vector{D})
         # this works because Julia is column-major and thus treats the first
         # index in x[i, ...] as dimension 1
-        distributions = reshape(distributions, (parental_ncategories...))
+
+        if !isempty(parental_ncategories)
+            distributions = reshape(distributions, (parental_ncategories...))
+        end
 
         return new(target, parents, parental_ncategories, distributions)
     end
