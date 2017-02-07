@@ -1,4 +1,4 @@
-Base.mimewritable(::MIME"image/svg+xml", bn::BayesNet) = true
+Base.mimewritable(::MIME"image/svg+xml", bn::BayesNet) = success(`lualatex -v`)
 Base.mimewritable(::MIME"text/html", dfs::Vector{DataFrame}) = true
 
 function plot(bn::BayesNet)
