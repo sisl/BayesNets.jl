@@ -1,7 +1,7 @@
 
 """
 Baysian Structure learning seeks to maximize P(G|D)
-In the Bayesian fassion, we can provide a prior over the parameters in our learning network.
+In the Bayesian fashion, we can provide a prior over the parameters in our learning network.
 This is described using a Dirichlet Prior.
 """
 abstract DirichletPrior
