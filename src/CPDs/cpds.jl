@@ -26,6 +26,7 @@ export
 
     StaticCPD,                     # static distribution (never uses parental information)
     FunctionalCPD,                 # for implementing quick and easy custom CPDs
+    ParentFunctionalCPD,           # for implementing quick and easy custom CPDs that only use the parents
     CategoricalCPD,                # a table lookup based on discrete parental assignment
     LinearGaussianCPD,             # Normal with linear mean
     ConditionalLinearGaussianCPD,  # a LinearGaussianCPD lookup based on discrete parental assignment
@@ -169,6 +170,7 @@ include("named_categorical.jl")
 
 include("static_cpd.jl")
 include("functional_cpd.jl")
+include("parent_functional_cpd.jl")
 include("categorical_cpd.jl")
 include("linear_gaussian_cpd.jl")
 include("conditional_linear_gaussian_cpd.jl")
