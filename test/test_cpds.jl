@@ -188,3 +188,20 @@ let
     @test isempty(parents(fcpd))
     @test fcpd(Assignment()) == Normal(0.0, 1.0)
 end
+
+# ParentFunctionalCPD
+let
+a = StaticCPD(:a, Bernoulli(0.5))
+b = StaticCPD(:b, Bernoulli(0.6))
+p = [:a,:b]
+c = ParentFunctionalCPD{Bernoulli}(:c, p, (seq,par)->begin
+        Bernoulli(mean(seq[k] for k in par))
+        end
+    )
+bn = BayesNet()
+push!(bn, a)
+push!(bn, b)
+push!(bn, c)
+@test mean(rand(bn, 20,:a=>0)[:c]) <= 0.6
+@test mean(rand(bn, 20, :a=>1, :b=>1)[:c]) == 1;
+end
