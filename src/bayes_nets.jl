@@ -101,7 +101,7 @@ function children(bn::BayesNet, target::NodeName)
 end
 
 """
-Returns all descendants as a list of NodeNames.
+Returns all neighbors as a list of NodeNames.
 """
 function neighbors(bn::BayesNet, target::NodeName)
 	i = bn.name_to_index[target]
