@@ -180,17 +180,10 @@ end
 ##########################
 
 """
-    GraphSearchStrategy
-An abstract type which defines a graph search strategy for learning Bayesian network structures
-These allow: fit(::Type{BayesNet}, data, GraphSearchStrategy)
-"""
-abstract GraphSearchStrategy
-
-"""
-    Distributions.fit{C<:CPD}(::Type{BayesNet{C}}, ::DataFrame, ::GraphSearchStrategy)
+    fit{C<:CPD}(::Type{BayesNet{C}}, ::DataFrame, ::GraphSearchStrategy)
 Run the graph search algorithm defined by GraphSearchStrategy
 """
-Distributions.fit{C<:CPD}(::Type{BayesNet{C}}, data::DataFrame, params::GraphSearchStrategy) = error("fit not defined for GraphSearchStrategy $params")
+ProbabilisticGraphicalModels.fit{C<:CPD}(::Type{BayesNet{C}}, data::DataFrame, params::GraphSearchStrategy) = error("fit not defined for GraphSearchStrategy $params")
 
 """
     K2GraphSearch

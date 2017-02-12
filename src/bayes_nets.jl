@@ -72,8 +72,6 @@ end
 
 Base.get(bn::BayesNet, i::Int) = bn.cpds[i]
 Base.get(bn::BayesNet, name::NodeName) = bn.cpds[bn.name_to_index[name]]
-Base.get(bn::BayesNet, names::AbstractVector{NodeName}) = [get(bn, name) for name in names]
-Base.get(bn::BayesNet, names::Base.AbstractSet{NodeName}) = get(bn, collect(names))
 Base.length(bn::BayesNet) = length(bn.cpds)
 
 """
@@ -168,7 +166,7 @@ end
 """
 Returns whether the set of node names `x` is d-separated from the set `y` given the set `given`
 """
-function is_independent(bn::BayesNet, x::AbstractVector{NodeName}, y::AbstractVector{NodeName}, given::AbstractVector{NodeName})
+function is_independent(bn::BayesNet, x::NodeNames, y::NodeNames, given::NodeNames)
 
 	start_node = x[1]
 	finish_node = y[1]
@@ -316,7 +314,6 @@ function CPDs.pdf(bn::BayesNet, assignment::Assignment)
 	end
  	retval
 end
-CPDs.pdf(bn::BayesNet, pair::Pair{NodeName}...) = pdf(bn, Assignment(pair))
 
 """
 The logpdf of a given assignment after conditioning on the values
@@ -328,30 +325,6 @@ function CPDs.logpdf(bn::BayesNet, assignment::Assignment)
 	end
  	retval
 end
-CPDs.logpdf(bn::BayesNet, pair::Pair{NodeName}...) = logpdf(bn, Assignment(pair))
 
-"""
-The logpdf of a set of assignment after conditioning on the values
-"""
-function CPDs.logpdf(bn::BayesNet, df::DataFrame)
 
-	logl = 0.0
 
-	a = Assignment()
-	varnames = names(bn)
-	for i in 1 : nrow(df)
-
-		for name in varnames
-			a[name] = df[i, name]
-		end
-
-		logl += logpdf(bn, a)
-	end
-
-	logl
-end
-
-"""
-The pdf of a set of assignment after conditioning on the values
-"""
-CPDs.pdf(bn::BayesNet, df::DataFrame) = exp(logpdf(bn, df))

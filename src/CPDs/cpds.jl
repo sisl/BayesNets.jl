@@ -8,21 +8,13 @@ and contains the CPD relating that var to its parents, P(x | parents(x))
 module CPDs
 
 using Compat
-using Reexport
 using Discretizers
-@reexport using Distributions
-@reexport using DataFrames
+using ProbabilisticGraphicalModels
 
 import Iterators: product
 
 export
     CPD,                           # the abstract CPD type
-
-    Assignment,                    # variable assignment type, complete or partial, for a Bayesian Network
-    NodeName,                      # variable name type
-    NodeNames,                     # vector of names
-    NodeNameUnion,                 # either a NodeName or NodeNames
-
 
     StaticCPD,                     # static distribution (never uses parental information)
     FunctionalCPD,                 # for implementing quick and easy custom CPDs
@@ -47,15 +39,6 @@ export
     consistent
 
 #############################################
-
-typealias NodeName Symbol
-typealias NodeNames AbstractVector{NodeName}
-typealias NodeNameUnion Union{NodeName, NodeNames}
-typealias Assignment Dict{Symbol, Any}
-
-Base.convert(::Type{NodeNames}, name::NodeName) = [name]
-
-Base.names(a::Assignment) = collect(keys(a))
 
 include("utils.jl")
 
