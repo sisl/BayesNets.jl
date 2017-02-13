@@ -65,21 +65,6 @@ function infer_number_of_instantiations{I<:Int}(arr::AbstractVector{I})
     hi
 end
 
-"""
-    consistent(a::Assignment, b::Assignment)
-True if all common keys between the two assignments have the same value
-"""
-function consistent(a::Assignment, b::Assignment)
-
-    for key in keys(a)
-        if haskey(b,key) && b[key] != a[key]
-            return false
-        end
-    end
-
-    true
-end
-
 paramcount(::Bool) = 1
 paramcount(::Real) = 1
 paramcount(::Symbol) = 1

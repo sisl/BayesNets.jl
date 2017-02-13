@@ -1,4 +1,4 @@
-VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
+__precompile__(true)
 
 module BayesNets
 
@@ -6,12 +6,14 @@ using Compat
 using Reexport
 using Parameters
 
-# exports using Distributions and DataFrames
+@reexport using ProbabilisticGraphicalModels
+
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
 import Base: *, /, +, -, normalize
 import Base.Collections: PriorityQueue, peek
+import ProbabilisticGraphicalModels: markov_blanket, is_independent
 import Iterators: subsets, product
 import StatsBase: sample, WeightVec
 import TikzGraphs: plot
@@ -29,7 +31,6 @@ export
     children,
     neighbors,
     descendants,
-    markov_blanket,
     has_edge,
     enforce_topological_order!,
 
@@ -100,7 +101,6 @@ export
     statistics,
     index_data,
     adding_edge_preserves_acyclicity,
-    is_independent,
     bayesian_score_component,
     bayesian_score_components,
     bayesian_score
