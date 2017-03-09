@@ -13,7 +13,7 @@ include(joinpath("CPDs", "cpds.jl"))
 
 import Base: *, /, +, -, normalize
 import Base.Collections: PriorityQueue, peek
-import ProbabilisticGraphicalModels: markov_blanket, is_independent
+import ProbabilisticGraphicalModels: markov_blanket, is_independent, infer
 import Iterators: subsets, product
 import StatsBase: sample, WeightVec
 import TikzGraphs: plot

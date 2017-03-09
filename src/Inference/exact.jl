@@ -3,8 +3,9 @@ Exact inference using factors and variable eliminations
 """
 type ExactInference <: InferenceMethod
 end
-function infer(::ExactInference, inf::InferenceState)
-    bn = inf.bn
+function infer{BN<:DiscreteBayesNet}(im::ExactInference, inf::InferenceState{BN})
+
+    bn = inf.pgm
     nodes = names(inf)
     query = inf.query
     evidence = inf.evidence
@@ -28,6 +29,6 @@ function infer(::ExactInference, inf::InferenceState)
     ϕ = normalize!(reduce((*), factors))
     return ϕ
 end
-infer(inf::InferenceState) = infer(ExactInference(), inf)
-infer(bn::BayesNet, query::NodeNameUnion; evidence::Assignment=Assignment()) = infer(ExactInference(), InferenceState(bn, query, evidence))
+infer{BN<:DiscreteBayesNet}(inf::InferenceState{BN}) = infer(ExactInference(), inf)
+infer{BN<:DiscreteBayesNet}(bn::BN, query::NodeNameUnion; evidence::Assignment=Assignment()) = infer(ExactInference(), InferenceState(bn, query, evidence))
 

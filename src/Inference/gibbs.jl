@@ -63,7 +63,7 @@ Ex, if `thin=3`, will discard the first two samples and keep the third.
     thin::Int=3
     state::Assignment = Assignment()
 end
-function infer(im::GibbsSamplingNodewise, inf::InferenceState)
+function infer{BN<:DiscreteBayesNet}(im::GibbsSamplingNodewise, inf::InferenceState{BN})
 
     nsamples, burn_in, thin, x = im.nsamples, im.burn_in, im.thin, im.state
 
@@ -157,7 +157,7 @@ Ex, if `thin=3`, will discard the first two samples and keep the third.
     thin::Int=3
     state::Assignment=Assignment()
 end
-function infer(im::GibbsSamplingFull, inf::InferenceState)
+function infer{BN<:DiscreteBayesNet}(im::GibbsSamplingFull, inf::InferenceState{BN})
 
     nsamples, burn_in, thin = im.nsamples, im.burn_in, im.thin
 
@@ -167,7 +167,7 @@ function infer(im::GibbsSamplingFull, inf::InferenceState)
     # if the math doesn't work out correctly, loop a couple more times ...
     total_num_samples = Int(ceil((nsamples-burn_in) / thin))
 
-    bn = inf.bn
+    bn = inf.pgm
     nodes = names(inf)
     query = inf.query
     evidence = inf.evidence

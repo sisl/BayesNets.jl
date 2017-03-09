@@ -6,8 +6,7 @@ let
     bn = rand_discrete_bn()
 
     @test_throws ArgumentError InferenceState(bn, [:waldo, :N3])
-    @test_throws ArgumentError InferenceState(bn, [:N2, :N3],
-            Assignment(:N1 => 1, :N3 => 3, :N7 => 2016))
+    @test_throws ArgumentError InferenceState(bn, [:N2, :N3], Assignment(:N1 => 1, :N3 => 3, :N7 => 2016))
 end
 
 let

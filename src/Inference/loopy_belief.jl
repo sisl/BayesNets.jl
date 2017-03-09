@@ -21,13 +21,13 @@ If it isn't an evidence node, this will break
     return z
 end
 
-function infer(im::LoopyBelief, inf::InferenceState)
+function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
 
     length(inf.query) == 1 || throw(ArgumentError("There can only be one query variable"))
 
     nsamples, tol, iters_for_convergence = im.nsamples, im.tol, im.iters_for_convergence
 
-    bn = inf.bn
+    bn = inf.pgm
     nodes = names(inf)
     query = first(inf.query)
     evidence = inf.evidence

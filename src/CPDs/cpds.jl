@@ -9,6 +9,8 @@ module CPDs
 
 using Compat
 using Discretizers
+using Distributions
+using DataFrames
 using ProbabilisticGraphicalModels
 
 import Iterators: product
@@ -36,8 +38,7 @@ export
     strip_arg,
     required_func,
     sub2ind_vec,
-    infer_number_of_instantiations,
-    consistent
+    infer_number_of_instantiations
 
 #############################################
 
