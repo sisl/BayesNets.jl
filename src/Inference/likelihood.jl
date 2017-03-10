@@ -15,7 +15,7 @@ query variables
 """
 function infer{BN<:DiscreteBayesNet}(im::LikelihoodWeightingInference, inf::InferenceState{BN})
     bn = inf.pgm
-    nodes = names(inf)
+    nodes = names(bn)
     query = inf.query
     evidence = inf.evidence
 

@@ -124,12 +124,5 @@ include(joinpath("DiscreteBayesNet", "scan_greedy_hill_climbing.jl"))
 include(joinpath("Factors", "factors.jl"))
 include(joinpath("Inference", "inference.jl"))
 
-# include("gen_bayes_nets.jl")
-# include(joinpath("inference", "inference.jl"))
-# include(joinpath("inference", "exact.jl"))
-# include(joinpath("inference", "gibbs.jl"))
-# include(joinpath("inference", "likelihood.jl"))
-# include(joinpath("inference", "loopy_belief.jl"))
-
 end # module
 

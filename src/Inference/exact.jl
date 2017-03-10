@@ -6,7 +6,7 @@ end
 function infer{BN<:DiscreteBayesNet}(im::ExactInference, inf::InferenceState{BN})
 
     bn = inf.pgm
-    nodes = names(inf)
+    nodes = names(bn)
     query = inf.query
     evidence = inf.evidence
     hidden = setdiff(nodes, vcat(query, names(evidence)))

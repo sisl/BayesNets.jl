@@ -73,15 +73,15 @@ function infer{BN<:DiscreteBayesNet}(im::GibbsSamplingNodewise, inf::InferenceSt
     # if the math doesn't work out correctly, loop a couple more times ...
     total_num_samples = Int(ceil((nsamples-burn_in) / thin))
 
-    bn = inf.bn
-    nodes = names(inf)
+    bn = inf.pgm
+    nodes = names(bn)
     query = inf.query
     evidence = inf.evidence
     non_evidence = setdiff(nodes, keys(evidence))
 
     # the current state
     if isempty(im.state)
-        im.state = _init_gibbs_sample(inf.bn, inf.evidence)
+        im.state = _init_gibbs_sample(bn, inf.evidence)
     else
         _ensure_query_nodes_in_bn_and_not_in_evidence(query, names(bn), evidence)
     end
@@ -168,7 +168,7 @@ function infer{BN<:DiscreteBayesNet}(im::GibbsSamplingFull, inf::InferenceState{
     total_num_samples = Int(ceil((nsamples-burn_in) / thin))
 
     bn = inf.pgm
-    nodes = names(inf)
+    nodes = names(bn)
     query = inf.query
     evidence = inf.evidence
     non_evidence = setdiff(nodes, keys(evidence))
@@ -179,7 +179,7 @@ function infer{BN<:DiscreteBayesNet}(im::GibbsSamplingFull, inf::InferenceState{
 
     # the current state
     if isempty(im.state)
-        im.state = _init_gibbs_sample(inf.bn, inf.evidence)
+        im.state = _init_gibbs_sample(bn, inf.evidence)
     else
         _ensure_query_nodes_in_bn_and_not_in_evidence(query, names(bn), evidence)
     end

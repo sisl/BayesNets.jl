@@ -28,7 +28,7 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
     nsamples, tol, iters_for_convergence = im.nsamples, im.tol, im.iters_for_convergence
 
     bn = inf.pgm
-    nodes = names(inf)
+    nodes = names(bn)
     query = first(inf.query)
     evidence = inf.evidence
     evidence_nodes = collect(keys(evidence))
@@ -39,26 +39,32 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
     factors = map(nn -> Factor(bn, nn), nodes)
 
     # evidence node messages to their selves
-    evidence_lambdas = map(nn -> _evidence_lambda(nn, evidence, ncat_lut[nn]),
-            evidence_nodes)
+    evidence_lambdas = map(nn -> _evidence_lambda(nn, evidence, ncat_lut[nn]), evidence_nodes)
+
     # the index of each node in evidence (lambda) or zero otherwise
     evidence_index = indexin(nodes, evidence_nodes)
 
-    # the messages being passed from node to node (parents or children)
-    # each node has a vector containing the messages from its children
-    #  each message is about it, so all have the same length
+    #=
+    The messages being passed from node to node (parents or children)
+        Each node has a vector containing the messages from its children
+        Each message is about it, so all have the same length
+    =#
     lambdas = Dict{Tuple{NodeName, NodeName}, Vector{Float64}}()
-    # each node has a vector containing the messages from its parents
-    #  each message is about the parent, so they may have different lengths
+
+    #=
+    Each node has a vector containing the messages from its parents
+    Each message is about the parent, so they may have different lengths
+    =#
     pis = similar(lambdas)
 
-    # init first messages
-    # instead of calculating the first pi^t and lambda^t messages per node
-    #  set all of them to 1's
-    # this gets rid of the edge condition for accumulating pi and lambda for
-    #  first iteration
-    # I am most unsure about this...
+    #=
+    Init first messages
+        Instead of calculating the first πᵗ and λᵗ messages per node set all of them to 1's
+        This gets rid of the edge condition for accumulating π and λ for first iteration
+        I am most unsure about this...
+    =#
     for (i, cpd) in enumerate(bn.cpds)
+
         nn = name(cpd)
         nn_ncat = ncat_lut[nn]
         nn_parents = parents_lut[i]
