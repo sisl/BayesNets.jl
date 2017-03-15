@@ -77,6 +77,27 @@ Base.rand(bn::BayesNet, nsamples::Integer, evidence::Assignment) = rand(bn, Reje
 Base.rand(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName}...) = rand(bn, nsamples, Assignment(pair))
 
 """
+Draw an assignment from the Bayesian network but set any variables in the evidence accordingly.
+Returns the assignment and the probability weighting associated with the evidence.
+"""
+function get_weighted_sample!(a::Assignment, bn::BayesNet, evidence::Assignment)
+    w = 1.0
+    for cpd in bn.cpds
+        varname = name(cpd)
+        if haskey(evidence, varname)
+            a[varname] = evidence[varname]
+            w *= pdf(cpd, a)
+        else
+            a[varname] = rand(cpd, a)
+        end
+    end
+    return (a, w)
+end
+get_weighted_sample!(a::Assignment, bn::BayesNet, pair::Pair{NodeName}...) = get_weighted_sample!(a, bn, Assignment(pair))
+get_weighted_sample(bn::BayesNet, evidence::Assignment) = get_weighted_sample!(Assignment(), bn, evidence)
+get_weighted_sample(bn::BayesNet, pair::Pair{NodeName}...) = get_weighted_sample(bn, Assignment(pair))
+
+"""
 A dataset of variable assignments is obtained with an additional column
 of weights in accordance with the likelihood of each assignment.
 """
@@ -91,16 +112,11 @@ function get_weighted_dataframe(bn::BayesNet, nsamples::Integer, evidence::Assig
     a = Assignment()
 
     for i in 1:nsamples
-        for cpd in bn.cpds
-            varname = name(cpd)
-            if haskey(evidence, varname)
-                a[varname] = evidence[varname]
-                w[i] *= pdf(cpd, a)
-            else
-                a[varname] = rand(cpd, a)
-            end
-            push!(t[varname], a[varname])
+        a, weight = get_weighted_sample!(a, bn, evidence)
+        for (varname, val) in a
+             push!(t[varname], val)
         end
+        w[i] = weight
     end
     t[:p] = w / sum(w)
 
@@ -128,6 +144,7 @@ function sample_weighted_dataframe!(a::Assignment, weighted_dataframe::DataFrame
     return a
 end
 sample_weighted_dataframe(weighted_dataframe::DataFrame) = sample_weighted_dataframe!(Assignment(), weighted_dataframe)
+
 
 """
 Likelihood Weighted Sampling in which:

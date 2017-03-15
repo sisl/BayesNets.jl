@@ -67,6 +67,8 @@ export
     RejectionSampler,
     LikelihoodWeightedSampler,
 
+    get_weighted_sample,
+    get_weighted_sample!,
     get_weighted_dataframe,
     sample_weighted_dataframe!,
     sample_weighted_dataframe,
