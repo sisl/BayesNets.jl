@@ -46,7 +46,7 @@ include("utils.jl")
 
 #############################################
 
-abstract CPD{D<:Distribution}
+@compat abstract type CPD{D<:Distribution} end
 
 """
     name(cpd::CPD)
@@ -62,8 +62,8 @@ Return the parents for this CPD as a vector of NodeName.
 
 macro define_call(cpd_type)
     return quote
-        @compat (cpd::$cpd_type)() = (cpd)(Assignment()) # cpd()
-        @compat (cpd::$cpd_type)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
+        # @compat (cpd::$cpd_type)() = (cpd)(Assignment()) # cpd()
+        # @compat (cpd::$cpd_type)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
     end
 end
 

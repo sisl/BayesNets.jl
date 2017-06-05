@@ -8,7 +8,7 @@ within 1:Nᵢ and every distribution is Categorical.
 This representation is very common, and allows for the use of factors, for
 example in _Probabilistic Graphical Models_ by Koller and Friedman
 """
-typealias DiscreteBayesNet BayesNet{DiscreteCPD}
+const DiscreteBayesNet = BayesNet{DiscreteCPD}
 DiscreteBayesNet() = BayesNet(DiscreteCPD)
 
 function _get_parental_ncategories(bn::DiscreteBayesNet, parents::NodeNames)

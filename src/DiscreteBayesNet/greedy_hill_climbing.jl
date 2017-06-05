@@ -1,5 +1,5 @@
 
-type GreedyHillClimbing <: GraphSearchStrategy
+struct GreedyHillClimbing <: GraphSearchStrategy
     cache::ScoreComponentCache
     max_n_parents::Int
     prior::DirichletPrior

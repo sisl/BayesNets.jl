@@ -3,7 +3,7 @@ Abstract type for sampling with Base.rand(BayesNet, BayesNetSampler, nsamples)
                                 Base.rand!(Assignemnt, BayesNet, BayesNetSampler)
                                 Base.rand(BayesNet, BayesNetSampler)
 """
-abstract BayesNetSampler
+@compat abstract type BayesNetSampler end
 
 """
 Overwrites assignment with a sample from bn using the sampler
@@ -43,7 +43,7 @@ end
 Straightforward sampling from a BayesNet.
 The default sampler.
 """
-type DirectSampler <: BayesNetSampler end
+struct DirectSampler <: BayesNetSampler end
 function Base.rand!(a::Assignment, bn::BayesNet, sampler::DirectSampler)
     for cpd in bn.cpds
         a[name(cpd)] = rand(cpd, a)
@@ -59,7 +59,7 @@ Base.rand(bn::BayesNet) = rand(bn, DirectSampler())
 Rejection Sampling in which the assignments are forced to be consistent with the provided values.
 Each sampler is attempted at most `max_nsamples` times before returning an empty assignment.
 """
-type RejectionSampler <: BayesNetSampler
+struct RejectionSampler <: BayesNetSampler
     evidence::Assignment
     max_nsamples::Int
 end
@@ -152,7 +152,7 @@ Likelihood Weighted Sampling in which:
 2 - each sample is weighted according to its likelihood
 3 - the final set of samples are sampled from the initial samples according to their weights
 """
-type LikelihoodWeightedSampler <: BayesNetSampler
+struct LikelihoodWeightedSampler <: BayesNetSampler
     weighted_dataframe::DataFrame
 end
 LikelihoodWeightedSampler(bn::BayesNet, nsamples::Integer, evidence::Assignment) = LikelihoodWeightedSampler(get_weighted_dataframe(bn, nsamples, evidence))

@@ -72,7 +72,7 @@ Used to store scores in a priority queue such that graph search algorithms know
 when a particular construction has already been made.
     cache[ⱼ](parentsⱼ, score) for the ith variable with parents parents
 """
-typealias ScoreComponentCache Vector{PriorityQueue{Vector{Int}, Float64}} # parent indeces -> score
+const ScoreComponentCache = Vector{PriorityQueue{Vector{Int}, Float64}} # parent indeces -> score
 
 """
     ScoreComponentCache(data::DataFrame)
@@ -94,7 +94,7 @@ An abstract type for which subtypes allow extracting CPD score components,
 which are to be maximized:
 score_component(::ScoringFunction, cpd::CPD, data::DataFrame)
 """
-abstract ScoringFunction
+@compat abstract type ScoringFunction end
 
 """
     score_component(a::ScoringFunction, cpd::CPD, data::DataFrame)
@@ -165,7 +165,7 @@ A ScoringFunction for the negative Bayesian information criterion.
        k - the number of free parameters to be estimated
        n - the sample size
 """
-type NegativeBayesianInformationCriterion <: ScoringFunction
+struct NegativeBayesianInformationCriterion <: ScoringFunction
 end
 function score_component(::NegativeBayesianInformationCriterion, cpd::CPD, data::DataFrame)
     L = logpdf(cpd, data)
@@ -191,7 +191,7 @@ A GraphSearchStrategy following the K2 algorithm.
 Takes polynomial time to find the optimal structure assuming
 a topological variable ordering.
 """
-type K2GraphSearch <: GraphSearchStrategy
+mutable struct K2GraphSearch <: GraphSearchStrategy
     order::NodeNames            # topological ordering of variables
     cpd_types::Vector{DataType} # cpd types, in same order as `order`
     max_n_parents::Int          # maximum number of parents per CPD

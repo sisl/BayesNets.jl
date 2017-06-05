@@ -6,7 +6,7 @@ A BN is defined by a directed acyclic graph in which each node is a variable
 and contains an associated conditional probability distribution P(xⱼ | parents(xⱼ))
 =#
 
-typealias DAG DiGraph
+const DAG = DiGraph
 
 function _build_dag_from_cpds{T<:CPD}(
 	cpds::AbstractVector{T},
@@ -47,7 +47,7 @@ function _enforce_topological_order{T<:CPD}(
 	(dag2, cpds2, name_to_index2)
 end
 
-type BayesNet{T<:CPD} <: ProbabilisticGraphicalModel
+struct BayesNet{T<:CPD} <: ProbabilisticGraphicalModel
 	dag::DAG # nodes are in topological order
 	cpds::Vector{T} # the CPDs associated with each node in the dag
 	name_to_index::Dict{NodeName,Int} # NodeName → index in dag and cpds

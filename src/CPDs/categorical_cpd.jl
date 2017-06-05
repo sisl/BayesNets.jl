@@ -18,7 +18,7 @@ X,Y,Z
 1,1,2
 ...
 """
-type CategoricalCPD{D} <: CPD{D}
+struct CategoricalCPD{D} <: CPD{D}
     target::NodeName
     parents::NodeNames
     # list of instantiation counts for each parent, in same order as parents
@@ -26,18 +26,21 @@ type CategoricalCPD{D} <: CPD{D}
     # instead of a vector, we can use an array where each axis corresponds to
     # a parent and is as long as that parent has instantiations.
     distributions::Array{D}
+end
+function CategoricalCPD{D}(
+    target::NodeName,
+    parents::NodeNames,
+    parental_ncategories::Vector{Int},
+    distributions::Vector{D},
+    ) where D <: Distribution
+    # this works because Julia is column-major and thus treats the first
+    # index in x[i, ...] as dimension 1
 
-    function CategoricalCPD{D}(target::NodeName, parents::NodeNames,
-            parental_ncategories::Vector{Int}, distributions::Vector{D})
-        # this works because Julia is column-major and thus treats the first
-        # index in x[i, ...] as dimension 1
-
-        if !isempty(parental_ncategories)
-            distributions = reshape(distributions, (parental_ncategories...))
-        end
-
-        return new(target, parents, parental_ncategories, distributions)
+    if !isempty(parental_ncategories)
+        distributions = reshape(distributions, (parental_ncategories...))
     end
+
+    return new(target, parents, parental_ncategories, distributions)
 end
 
 CategoricalCPD{D<:Distribution}(target::NodeName, parents::NodeNames,
@@ -115,7 +118,7 @@ end
 
 #####
 
-typealias DiscreteCPD CategoricalCPD{Categorical{Float64}}
+const DiscreteCPD = CategoricalCPD{Categorical{Float64}}
 
 DiscreteCPD{T<:Real}(target::NodeName, prob::AbstractVector{T}) = CategoricalCPD(target, Categorical(prob ./ sum(prob)))
 

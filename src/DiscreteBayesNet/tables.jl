@@ -8,7 +8,7 @@ https://en.wikipedia.org/wiki/Factor_graph
 These can be obtained using the table() function
 =#
 
-typealias Table DataFrame
+const Table = DataFrame
 
 """
 Table multiplication

@@ -6,7 +6,7 @@ A CPD for which the distribution never changes.
 
 While a StaticCPD can have parents, their assignments will not affect the distribution.
 """
-type StaticCPD{D} <: CPD{D}
+struct StaticCPD{D} <: CPD{D}
     target::NodeName
     parents::NodeNames
     d::D

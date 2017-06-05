@@ -4,7 +4,7 @@ Baysian Structure learning seeks to maximize P(G|D)
 In the Bayesian fashion, we can provide a prior over the parameters in our learning network.
 This is described using a Dirichlet Prior.
 """
-abstract DirichletPrior
+@compat abstract type DirichletPrior end
 
 """
 A uniform Dirichlet prior such that all α are the same
@@ -13,7 +13,7 @@ Defaults to the popular K2 prior, α = 1, which is similar to Laplace Smoothing
 
     https://en.wikipedia.org/wiki/Additive_smoothing
 """
-immutable UniformPrior <: DirichletPrior
+@compat mutable struct UniformPrior <: DirichletPrior
     α::Float64
     UniformPrior(α::Float64=1.0) = new(α)
 end
@@ -42,7 +42,7 @@ Assigns equal scores to Markov equivalent structures
 
 see DMU section 2.4.3
 """
-immutable BDeuPrior <: DirichletPrior
+@compat mutable struct BDeuPrior <: DirichletPrior
     x::Float64
     BDeuPrior(x::Float64=1.0) = new(x)
 end
