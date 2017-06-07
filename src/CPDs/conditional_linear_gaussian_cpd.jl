@@ -9,7 +9,7 @@ A conditional linear Gaussian CPD, always returns a Normal{Float64}
 	P(x|parents(x)) = { Normal(μ=a₂×continuous_parents(x) + b₂, σ₂) for discrete instantiation 2
                       { ...
 """
-struct ConditionalLinearGaussianCPD <: CPD{Normal}
+immutable ConditionalLinearGaussianCPD <: CPD{Normal}
     target::NodeName
     parents::NodeNames # list of all parents
 

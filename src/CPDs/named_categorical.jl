@@ -1,5 +1,5 @@
 const MapableTypes = Union{AbstractString, Symbol}
-@compat mutable struct NamedCategorical{N<:MapableTypes} <: DiscreteUnivariateDistribution
+immutable NamedCategorical{N<:MapableTypes} <: DiscreteUnivariateDistribution
     cat::Categorical
     map::CategoricalDiscretizer{N, Int}
 end
@@ -24,7 +24,7 @@ Distributions.pdf{N<:MapableTypes}(d::NamedCategorical{N}, x::N) = Distributions
 Distributions.logpdf{N<:MapableTypes}(d::NamedCategorical{N}, x::N) = Distributions.logpdf(d.cat, encode(d.map, x))
 Base.rand(d::NamedCategorical) = rand(sampler(d))
 
-@compat mutable struct MappedAliasTable <: Sampleable{Univariate,Discrete}
+immutable MappedAliasTable <: Sampleable{Univariate,Discrete}
    alias::Distributions.AliasTable
    map::CategoricalDiscretizer
 end

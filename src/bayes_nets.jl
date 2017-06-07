@@ -47,7 +47,7 @@ function _enforce_topological_order{T<:CPD}(
 	(dag2, cpds2, name_to_index2)
 end
 
-struct BayesNet{T<:CPD} <: ProbabilisticGraphicalModel
+immutable BayesNet{T<:CPD} <: ProbabilisticGraphicalModel
 	dag::DAG # nodes are in topological order
 	cpds::Vector{T} # the CPDs associated with each node in the dag
 	name_to_index::Dict{NodeName,Int} # NodeName → index in dag and cpds

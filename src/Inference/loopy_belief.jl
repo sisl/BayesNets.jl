@@ -4,7 +4,7 @@ Loopy belief propogation for a network.
 Early stopping if change is messages < `tol` for `iters_for_convergence'
 iterations. For no stopping, use tol < 0.
 """
-@with_kw struct LoopyBelief <: InferenceMethod
+@with_kw immutable LoopyBelief <: InferenceMethod
     nsamples::Int = 500
     tol::Float64 = 1e-8
     iters_for_convergence::Int = 6

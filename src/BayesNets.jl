@@ -6,10 +6,10 @@ using Compat
 using Reexport
 using Parameters
 
-@reexport using ProbabilisticGraphicalModels
-
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
+
+@reexport using ProbabilisticGraphicalModels
 
 import Base: *, /, +, -, normalize
 import DataStructures: PriorityQueue, peek

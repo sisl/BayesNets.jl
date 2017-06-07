@@ -18,7 +18,7 @@ X,Y,Z
 1,1,2
 ...
 """
-struct CategoricalCPD{D} <: CPD{D}
+immutable CategoricalCPD{D} <: CPD{D}
     target::NodeName
     parents::NodeNames
     # list of instantiation counts for each parent, in same order as parents
@@ -27,12 +27,12 @@ struct CategoricalCPD{D} <: CPD{D}
     # a parent and is as long as that parent has instantiations.
     distributions::Array{D}
 end
-function CategoricalCPD{D}(
+function CategoricalCPD{D <: Distribution}(
     target::NodeName,
     parents::NodeNames,
     parental_ncategories::Vector{Int},
     distributions::Vector{D},
-    ) where D <: Distribution
+    )
     # this works because Julia is column-major and thus treats the first
     # index in x[i, ...] as dimension 1
 
@@ -52,8 +52,6 @@ name(cpd::CategoricalCPD) = cpd.target
 parents(cpd::CategoricalCPD) = cpd.parents
 nparams(cpd::CategoricalCPD) = sum(d->paramcount(params(d)), cpd.distributions)
 
-(cpd::CategoricalCPD)(pair::Pair{NodeName}...) = cpd(Assignment(pair))
-
 @inline function (cpd::CategoricalCPD)(a::Assignment=Assignment())
     if isempty(cpd.parents)
         return first(cpd.distributions)
@@ -62,6 +60,7 @@ nparams(cpd::CategoricalCPD) = sum(d->paramcount(params(d)), cpd.distributions)
         return cpd.distributions[ind...]
     end
 end
+(cpd::CategoricalCPD)(pair::Pair{NodeName}...) = cpd(Assignment(pair))
 
 """
     Distributions.ncategories(cpd::CategoricalCPD)
@@ -112,6 +111,7 @@ function Distributions.fit{D}(::Type{CategoricalCPD{D}},
         end
         distributions[q] = fit(D, arr)
     end
+    println(distributions)
 
     CategoricalCPD(target, parents, parental_ncategories, distributions)
 end

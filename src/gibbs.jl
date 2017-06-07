@@ -1,7 +1,7 @@
 """
 Used to cache various things the Gibbs sampler needs
 """
-struct GibbsSamplerState
+type GibbsSamplerState
 
     bn::BayesNet
     key_constructor_name_order::Array{Symbol,1}
@@ -407,7 +407,7 @@ Otherwise should be a list containing all the variables in the order they should
 initial_sample:  The inital assignment to variables to use.  If null, the initial sample is chosen by
 briefly using a LikelihoodWeightedSampler.
 """
-struct GibbsSampler <: BayesNetSampler
+type GibbsSampler <: BayesNetSampler
 
     evidence::Assignment
     burn_in::Int

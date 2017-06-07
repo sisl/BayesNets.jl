@@ -1,5 +1,5 @@
 
-struct GreedyThickThinning <: GraphSearchStrategy
+type GreedyThickThinning <: GraphSearchStrategy
     cache::ScoreComponentCache
     max_n_parents::Int
     prior::DirichletPrior

@@ -10,7 +10,7 @@
 
 Create a Factor corresponding to the potential.
 """
-mutable struct Factor
+type Factor
     dimensions::NodeNames
     potential::Array{Float64} # Unnormalized probability
                               # In most cases this will be a probability

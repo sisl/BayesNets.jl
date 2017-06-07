@@ -1,7 +1,7 @@
 """
 Exact inference using factors and variable eliminations
 """
-struct ExactInference <: InferenceMethod
+immutable ExactInference <: InferenceMethod
 end
 function infer{BN<:DiscreteBayesNet}(im::ExactInference, inf::InferenceState{BN})
 

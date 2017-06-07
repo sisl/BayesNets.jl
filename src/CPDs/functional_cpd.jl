@@ -1,4 +1,4 @@
-struct FunctionalCPD{D} <: CPD{D}
+type FunctionalCPD{D} <: CPD{D}
     target::NodeName
     parents::NodeNames
     accessor::Function # calling this gives you the distribution from the assignment

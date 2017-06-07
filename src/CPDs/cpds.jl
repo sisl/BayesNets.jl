@@ -11,7 +11,9 @@ using Compat
 using Discretizers
 using Distributions
 using DataFrames
+include(joinpath("../ProbabilisticGraphicalModels", "ProbabilisticGraphicalModels.jl"))
 using ProbabilisticGraphicalModels
+# using ProbabilisticGraphicalModels
 
 import Iterators: product
 
@@ -62,8 +64,8 @@ Return the parents for this CPD as a vector of NodeName.
 
 macro define_call(cpd_type)
     return quote
-        # @compat (cpd::$cpd_type)() = (cpd)(Assignment()) # cpd()
-        # @compat (cpd::$cpd_type)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
+        @compat (cpd::$cpd_type)() = (cpd)(Assignment()) # cpd()
+        @compat (cpd::$cpd_type)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
     end
 end
 
