@@ -11,9 +11,10 @@ using Compat
 using Discretizers
 using Distributions
 using DataFrames
+using Reexport
+
 include(joinpath("../ProbabilisticGraphicalModels", "ProbabilisticGraphicalModels.jl"))
-using ProbabilisticGraphicalModels
-# using ProbabilisticGraphicalModels
+using BayesNets.CPDs.ProbabilisticGraphicalModels
 
 import Iterators: product
 

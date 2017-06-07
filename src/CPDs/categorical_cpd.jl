@@ -23,42 +23,26 @@ immutable CategoricalCPD{D} <: CPD{D}
     parents::NodeNames
     # list of instantiation counts for each parent, in same order as parents
     parental_ncategories::Vector{Int}
-    # instead of a vector, we can use an array where each axis corresponds to
-    # a parent and is as long as that parent has instantiations.
-    distributions::Array{D}
+    # a vector of distributions in DMU order
+    distributions::Vector{D}
 end
-function CategoricalCPD{D <: Distribution}(
-    target::NodeName,
-    parents::NodeNames,
-    parental_ncategories::Vector{Int},
-    distributions::Vector{D},
-    )
-    # this works because Julia is column-major and thus treats the first
-    # index in x[i, ...] as dimension 1
-
-    if !isempty(parental_ncategories)
-        distributions = reshape(distributions, (parental_ncategories...))
-    end
-
-    return new(target, parents, parental_ncategories, distributions)
-end
-
-CategoricalCPD{D<:Distribution}(target::NodeName, parents::NodeNames,
-            parental_ncategories::Vector{Int}, distributions::Vector{D}) =
-    CategoricalCPD{D}(target, parents, parental_ncategories, distributions)
 CategoricalCPD{D<:Distribution}(target::NodeName, d::D) = CategoricalCPD(target, NodeName[], Int[], D[d])
 
 name(cpd::CategoricalCPD) = cpd.target
 parents(cpd::CategoricalCPD) = cpd.parents
 nparams(cpd::CategoricalCPD) = sum(d->paramcount(params(d)), cpd.distributions)
 
-@inline function (cpd::CategoricalCPD)(a::Assignment=Assignment())
-    if isempty(cpd.parents)
-        return first(cpd.distributions)
-    else
-        ind = [a[p] for p in cpd.parents]
-        return cpd.distributions[ind...]
+@compat function (cpd::CategoricalCPD)(a::Assignment=Assignment())
+    q = 1
+    if !isempty(cpd.parents)
+        N = length(cpd.parents)
+        q = a[cpd.parents[N]] - 1
+        for i in N-1 : -1 : 1
+            q = (a[cpd.parents[i]] -1  + cpd.parental_ncategories[i]*q)
+        end
+        q += 1
     end
+    return cpd.distributions[q]
 end
 (cpd::CategoricalCPD)(pair::Pair{NodeName}...) = cpd(Assignment(pair))
 
@@ -111,7 +95,6 @@ function Distributions.fit{D}(::Type{CategoricalCPD{D}},
         end
         distributions[q] = fit(D, arr)
     end
-    println(distributions)
 
     CategoricalCPD(target, parents, parental_ncategories, distributions)
 end

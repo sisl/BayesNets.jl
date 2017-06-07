@@ -9,11 +9,11 @@ using Parameters
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
-@reexport using ProbabilisticGraphicalModels
+@reexport using BayesNets.CPDs.ProbabilisticGraphicalModels
 
 import Base: *, /, +, -, normalize
 import DataStructures: PriorityQueue, peek
-import ProbabilisticGraphicalModels: markov_blanket, is_independent, infer
+import BayesNets.CPDs.ProbabilisticGraphicalModels: markov_blanket, is_independent, infer
 import Iterators: subsets, product
 import StatsBase: sample, WeightVec
 import TikzGraphs: plot

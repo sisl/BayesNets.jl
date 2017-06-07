@@ -108,5 +108,5 @@ include("learning.jl")
 include("inference.jl")
 
 
-end # module
+end # module ProbabilisticGraphicalModels
 
