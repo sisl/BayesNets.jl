@@ -63,16 +63,16 @@ function bayesian_score_component_uniform{I<:Integer}(
     u = prior.α
     p = lgamma(u)
 
-    # Given a sparse N, we can be clever in our calculation and not waste time 
-    # computing the same lgamma values by exploiting the sparse structure. 
+    # Given a sparse N, we can be clever in our calculation and not waste time
+    # computing the same lgamma values by exploiting the sparse structure.
     sum0 = sum(lgamma(nonzeros(N) + u)) + p * (ncategories[i] * n - nnz(N))
     sum1 = n * ncategories[i] * p
     sum2 = n * lgamma(ncategories[i] * u)
     cc = ncategories[i] * u
 
-    @static if Base.VERSION.major == 0 && Base.VERSION.minor < 5 
+    @static if Base.VERSION.major == 0 && Base.VERSION.minor < 5
         sN = sparsevec(sum(N[1:ncategories[i],:], 1)) # Slower, but should be supported by Julia 0.4
-    else 
+    else
         sN = sum(N[i,:] for i=1:ncategories[i])
     end
     sum3 = sum(lgamma(nonzeros(sN) + cc)) + (size(N, 2) - nnz(sN)) * lgamma(cc)
@@ -179,21 +179,24 @@ function bayesian_score_components(bn::DiscreteBayesNet, data::DataFrame, prior:
 end
 
 """
-    bayesian_score(g::DAG, names::Vector{Symbol}, data::DataFrame[, ncategories::Vector{Int}[, prior::DirichletPrior]])
+    bayesian_score(G::DAG, names::Vector{Symbol}, data::DataFrame[, ncategories::Vector{Int}[, prior::DirichletPrior]])
 
 Compute the bayesian score for graph structure `g`, with the data in `data`. `names` containes a symbol corresponding to each vertex in `g` that is the name of a column in `data`. `ncategories` is a vector of the number of values that each variable in the Bayesian network can take.
 
 Note that every entry in data must be an integer greater than 0
 """
-function bayesian_score(g::DAG,
+function bayesian_score(G::DAG,
                         names::Vector{Symbol},
                         data::DataFrame,
                         ncategories::Vector{Int}=Int[infer_number_of_instantiations(convert(Vector{Int}, data[n])) for n in names],
                         prior::DirichletPrior=UniformPrior())
     datamat = Array(Int, ncol(data), nrow(data))
-    for i in 1:nv(g)
+    for i in 1:nv(G)
         datamat[i,:] = data[names[i]]
     end
 
-    return bayesian_score(badj(g), ncategories, datamat, prior)
+    # NOTE: this is badj(G) prior to v0.6 and in_neighbors(G) in v0.6
+    println(methods(in_neighbors))
+    backwards_adjacency = [in_neighbors(G, i) for i in 1 : nv(G)]
+    return bayesian_score(backwards_adjacency, ncategories, datamat, prior)
 end

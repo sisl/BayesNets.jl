@@ -21,7 +21,7 @@ import LightGraphs: DiGraph, add_edge!, rem_edge!,
        add_vertex!, rem_vertex!, has_edge,
        edges, topological_sort_by_dfs, in_neighbors,
        out_neighbors, neighbors, is_cyclic, nv, ne,
-       outdegree, badj, bfs_tree
+       outdegree, bfs_tree, dst
 
 export
     BayesNet,
