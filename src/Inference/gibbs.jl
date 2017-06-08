@@ -46,7 +46,7 @@ variable itself.
     end
 
     assignment[node] = old_value
-    return WeightVec(p)
+    return Weights(p)
 end
 
 """

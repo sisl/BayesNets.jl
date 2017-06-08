@@ -15,7 +15,7 @@ import Base: *, /, +, -, normalize
 import DataStructures: PriorityQueue, peek
 import BayesNets.CPDs.ProbabilisticGraphicalModels: markov_blanket, is_independent, infer
 import Iterators: subsets, product
-import StatsBase: sample, WeightVec
+import StatsBase: sample, Weights
 import TikzGraphs: plot
 import LightGraphs: DiGraph, add_edge!, rem_edge!,
        add_vertex!, rem_vertex!, has_edge,

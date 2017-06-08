@@ -63,13 +63,6 @@ Return the parents for this CPD as a vector of NodeName.
 """
 @required_func parents(cpd::CPD)
 
-macro define_call(cpd_type)
-    return quote
-        @compat (cpd::$cpd_type)() = (cpd)(Assignment()) # cpd()
-        @compat (cpd::$cpd_type)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
-    end
-end
-
 """
     fit(::Type{CPD}, data::DataFrame, target::NodeName, parents::NodeNames)
 Construct a CPD for target by fitting it to the provided data

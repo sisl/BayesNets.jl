@@ -21,7 +21,6 @@ end
 name(cpd::ConditionalLinearGaussianCPD) = cpd.target
 parents(cpd::ConditionalLinearGaussianCPD) = cpd.parents
 nparams(cpd::ConditionalLinearGaussianCPD) = sum(d->nparams(d), cpd.linear_gaussians)
-@define_call ConditionalLinearGaussianCPD
 @compat function (cpd::ConditionalLinearGaussianCPD)(a::Assignment)
 
     idx = 1
@@ -39,6 +38,8 @@ nparams(cpd::ConditionalLinearGaussianCPD) = sum(d->nparams(d), cpd.linear_gauss
     lingaussian = cpd.linear_gaussians[idx]
     lingaussian(a)
 end
+@compat (cpd::ConditionalLinearGaussianCPD)() = (cpd)(Assignment()) # cpd()
+@compat (cpd::ConditionalLinearGaussianCPD)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
 
 function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
     data::DataFrame,

@@ -44,7 +44,8 @@ nparams(cpd::CategoricalCPD) = sum(d->paramcount(params(d)), cpd.distributions)
     end
     return cpd.distributions[q]
 end
-(cpd::CategoricalCPD)(pair::Pair{NodeName}...) = cpd(Assignment(pair))
+@compat (cpd::CategoricalCPD)() = (cpd)(Assignment()) # cpd()
+@compat (cpd::CategoricalCPD)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
 
 """
     Distributions.ncategories(cpd::CategoricalCPD)

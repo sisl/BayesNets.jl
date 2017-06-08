@@ -10,5 +10,6 @@ end
 
 name(cpd::FunctionalCPD) = cpd.target
 parents(cpd::FunctionalCPD) = cpd.parents
-@define_call FunctionalCPD
 @compat (cpd::FunctionalCPD)(a::Assignment) = cpd.accessor(a)
+@compat (cpd::FunctionalCPD)() = (cpd)(Assignment()) # cpd()
+@compat (cpd::FunctionalCPD)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
