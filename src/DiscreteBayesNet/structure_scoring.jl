@@ -196,7 +196,6 @@ function bayesian_score(G::DAG,
     end
 
     # NOTE: this is badj(G) prior to v0.6 and in_neighbors(G) in v0.6
-    println(methods(in_neighbors))
     backwards_adjacency = [in_neighbors(G, i) for i in 1 : nv(G)]
     return bayesian_score(backwards_adjacency, ncategories, datamat, prior)
 end
