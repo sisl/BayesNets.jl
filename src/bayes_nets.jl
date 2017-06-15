@@ -47,7 +47,7 @@ function _enforce_topological_order{T<:CPD}(
 	(dag2, cpds2, name_to_index2)
 end
 
-struct BayesNet{T<:CPD} <: ProbabilisticGraphicalModel
+type BayesNet{T<:CPD} <: ProbabilisticGraphicalModel
 	dag::DAG # nodes are in topological order
 	cpds::Vector{T} # the CPDs associated with each node in the dag
 	name_to_index::Dict{NodeName,Int} # NodeName → index in dag and cpds
@@ -109,10 +109,11 @@ end
 """
 Returns all descendants as a list of NodeNames.
 """
+dst(edge::Pair{Int,Int}) = edge[2] # LightGraphs used to return a Pair, now it returns a SimpleEdge
 function descendants(bn::BayesNet, target::NodeName)
 	retval = Set{Int}()
 	for edge in edges(bfs_tree(bn.dag, bn.name_to_index[target]))
-		push!(retval, edge.second)
+		push!(retval, dst(edge))
 	end
 	NodeName[name(bn.cpds[i]) for i in sort!(collect(retval))]
 end

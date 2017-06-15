@@ -18,7 +18,6 @@ LinearGaussianCPD(target::NodeName, μ::Float64, σ::Float64) = LinearGaussianCP
 name(cpd::LinearGaussianCPD) = cpd.target
 parents(cpd::LinearGaussianCPD) = cpd.parents
 nparams(cpd::LinearGaussianCPD) = length(cpd.a) + 2
-@define_call LinearGaussianCPD
 @compat function (cpd::LinearGaussianCPD)(a::Assignment)
 
     # compute A⋅v + b
@@ -29,6 +28,8 @@ nparams(cpd::LinearGaussianCPD) = length(cpd.a) + 2
 
     Normal(μ, cpd.σ)
 end
+@compat (cpd::LinearGaussianCPD)() = (cpd)(Assignment()) # cpd()
+@compat (cpd::LinearGaussianCPD)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
 
 function Distributions.fit(::Type{LinearGaussianCPD},
     data::DataFrame,

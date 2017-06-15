@@ -165,7 +165,7 @@ A ScoringFunction for the negative Bayesian information criterion.
        k - the number of free parameters to be estimated
        n - the sample size
 """
-struct NegativeBayesianInformationCriterion <: ScoringFunction
+immutable NegativeBayesianInformationCriterion <: ScoringFunction
 end
 function score_component(::NegativeBayesianInformationCriterion, cpd::CPD, data::DataFrame)
     L = logpdf(cpd, data)
@@ -191,7 +191,7 @@ A GraphSearchStrategy following the K2 algorithm.
 Takes polynomial time to find the optimal structure assuming
 a topological variable ordering.
 """
-mutable struct K2GraphSearch <: GraphSearchStrategy
+type K2GraphSearch <: GraphSearchStrategy
     order::NodeNames            # topological ordering of variables
     cpd_types::Vector{DataType} # cpd types, in same order as `order`
     max_n_parents::Int          # maximum number of parents per CPD

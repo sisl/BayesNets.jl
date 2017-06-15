@@ -6,22 +6,22 @@ using Compat
 using Reexport
 using Parameters
 
-@reexport using ProbabilisticGraphicalModels
-
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 
+@reexport using BayesNets.CPDs.ProbabilisticGraphicalModels
+
 import Base: *, /, +, -, normalize
 import DataStructures: PriorityQueue, peek
-import ProbabilisticGraphicalModels: markov_blanket, is_independent, infer
+import BayesNets.CPDs.ProbabilisticGraphicalModels: markov_blanket, is_independent, infer
 import Iterators: subsets, product
-import StatsBase: sample, WeightVec
+import StatsBase: sample, Weights
 import TikzGraphs: plot
 import LightGraphs: DiGraph, add_edge!, rem_edge!,
        add_vertex!, rem_vertex!, has_edge,
        edges, topological_sort_by_dfs, in_neighbors,
        out_neighbors, neighbors, is_cyclic, nv, ne,
-       outdegree, badj, bfs_tree
+       outdegree, bfs_tree, dst
 
 export
     BayesNet,

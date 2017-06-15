@@ -13,7 +13,7 @@ Defaults to the popular K2 prior, α = 1, which is similar to Laplace Smoothing
 
     https://en.wikipedia.org/wiki/Additive_smoothing
 """
-@compat mutable struct UniformPrior <: DirichletPrior
+immutable UniformPrior <: DirichletPrior
     α::Float64
     UniformPrior(α::Float64=1.0) = new(α)
 end
@@ -42,7 +42,7 @@ Assigns equal scores to Markov equivalent structures
 
 see DMU section 2.4.3
 """
-@compat mutable struct BDeuPrior <: DirichletPrior
+immutable BDeuPrior <: DirichletPrior
     x::Float64
     BDeuPrior(x::Float64=1.0) = new(x)
 end

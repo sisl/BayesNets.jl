@@ -46,7 +46,7 @@ variable itself.
     end
 
     assignment[node] = old_value
-    return WeightVec(p)
+    return Weights(p)
 end
 
 """
@@ -57,7 +57,7 @@ Run Gibbs sampling for `N` iterations. Each iteration changes one node.
 Discareds first `burn_in` samples and keeps only the `thin`-th sample.
 Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
-@with_kw struct GibbsSamplingNodewise <: InferenceMethod
+@with_kw type GibbsSamplingNodewise <: InferenceMethod
     nsamples::Int=2E3
     burn_in::Int=500
     thin::Int=3
@@ -151,7 +151,7 @@ nodes.
 Discareds first `burn_in` samples and keeps only the `thin`-th sample.
 Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
-@with_kw struct GibbsSamplingFull <: InferenceMethod
+@with_kw type GibbsSamplingFull <: InferenceMethod
     nsamples::Int=2E3
     burn_in::Int=500
     thin::Int=3

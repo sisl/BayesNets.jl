@@ -1,4 +1,4 @@
-struct ScanGreedyHillClimbing <: GraphSearchStrategy
+type ScanGreedyHillClimbing <: GraphSearchStrategy
     cache::ScoreComponentCache
     max_n_parents::Int
     max_depth::Int

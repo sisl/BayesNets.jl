@@ -66,7 +66,11 @@ function Base.select(f::Table, a::Assignment)
     commonNames = intersect(names(f), keys(a))
     mask = trues(size(f,1))
     for s in commonNames
-        mask &= (f[s] .== a[s])
+        # mask &= (f[s] .== a[s])
+        vals = (f[s] .== a[s])
+        for (i,v) in enumerate(vals)
+            mask[i] = mask[i] & v
+        end
     end
     f[mask, :]
 end
