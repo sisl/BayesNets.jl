@@ -122,6 +122,7 @@ include(joinpath("DiscreteBayesNet", "discrete_bayes_net.jl"))
 include(joinpath("DiscreteBayesNet", "structure_scoring.jl"))
 include(joinpath("DiscreteBayesNet", "greedy_hill_climbing.jl"))
 include(joinpath("DiscreteBayesNet", "scan_greedy_hill_climbing.jl"))
+include(joinpath("DiscreteBayesNet", "io.jl"))
 
 include(joinpath("Factors", "factors.jl"))
 include(joinpath("Inference", "inference.jl"))
