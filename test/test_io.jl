@@ -28,12 +28,12 @@ let
     end
 
     lines = readlines(filename)
-    @test lines[1] == "Success Forecast Test\n"
-    @test lines[2] == "010\n"
-    @test lines[3] == "001\n"
-    @test lines[4] == "000\n"
-    @test lines[5] == "2 3 2\n"
-    @test lines[6] == "2 4 4 1 3 I 0 123457\n"
+    @test strip(lines[1]) == "Success Forecast Test"
+    @test strip(lines[2]) == "010"
+    @test strip(lines[3]) == "001"
+    @test strip(lines[4]) == "000"
+    @test strip(lines[5]) == "2 3 2"
+    @test strip(lines[6]) == "2 4 4 1 3 I 0 123457"
     @test length(lines) == 6
 
     bn2 = open(filename, "r") do io
