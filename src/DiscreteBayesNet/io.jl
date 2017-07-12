@@ -174,18 +174,28 @@ function Base.read(io::IO, mime::MIME"text/plain", ::Type{DiscreteBayesNet})
 
     # build DBN
     idx = 0
+
+    function pull_next_prob_vector(r)
+        probs = Array{Float64}(r)
+        for j in 1 : r-1
+            str = stats[idx += 1]
+            probs[j] = str == "I" ? 1.0 : parse(Float64, "0."*str)
+        end
+        probs[end] = 1.0 - sum(probs[1:end-1])
+        if probs[end] < 0.0
+            probs[end] = 0.0
+            probs ./= sum(probs)
+        end
+        return probs
+    end
+
     cpds = Array(DiscreteCPD, n)
     for i in 1 : n
         name = arr_names[i]
         r = rs[i]
         parents = find(adj[:,i])
         if isempty(parents)
-            probs = Array{Float64}(r)
-            for j in 1 : r-1
-                str = stats[idx += 1]
-                probs[j] = str == "I" ? 1.0 : parse(Float64, "0."*str)
-            end
-            probs[end] = 1.0 - sum(probs[1:end-1])
+            probs = pull_next_prob_vector(r)
             cpds[i] = DiscreteCPD(name, probs)
         else
             parent_names = arr_names[parents]
@@ -193,12 +203,7 @@ function Base.read(io::IO, mime::MIME"text/plain", ::Type{DiscreteBayesNet})
             Q = prod(parental_ncategories)
             distributions = Array{Categorical}(Q)
             for q in 1 : Q
-                probs = Array{Float64}(r)
-                for j in 1 : r-1
-                    str = stats[idx += 1]
-                    probs[j] = str == "I" ? 1.0 : parse(Float64, "0."*str)
-                end
-                probs[end] = 1.0 - sum(probs[1:end-1])
+                probs = pull_next_prob_vector(r)
                 distributions[q] = Categorical(probs)
             end
             cpds[i] = DiscreteCPD(name, parent_names, parental_ncategories, distributions)
