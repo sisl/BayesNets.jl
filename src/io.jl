@@ -9,11 +9,11 @@ function plot(bn::BayesNet)
 	end
 end
 
-@compat function Base.show(f::IO, a::MIME"image/svg+xml", bn::BayesNet)
+function Base.show(f::IO, a::MIME"image/svg+xml", bn::BayesNet)
  	show(f, a, plot(bn))
 end
 
-@compat function Base.show(io::IO, a::MIME"text/html", dfs::Vector{DataFrame})
+function Base.show(io::IO, a::MIME"text/html", dfs::Vector{DataFrame})
 	for df in dfs
 		writemime(io, a, df)
 	end
@@ -37,7 +37,7 @@ function readxdsl( filename::AbstractString )
 	ces   = LightXML.get_elements_by_tagname(xroot, "nodes")[1]
 	cpts  = collect(LightXML.child_elements(ces))
 
-	varnames = Array(Symbol, length(cpts))
+	varnames = Array{Symbol}(length(cpts))
 	for (i,e) in enumerate(cpts)
 		id = LightXML.attribute(e, "id")
 		varnames[i] = Symbol(id)
@@ -69,7 +69,7 @@ function readxdsl( filename::AbstractString )
             parental_ncategories = _get_parental_ncategories(bn, parents)
             k = length(states)
             Q = prod(parental_ncategories)
-            distributions = Array(Categorical, Q)
+            distributions = Array{Categorical}(Q)
             for q in 1:Q
                 hi = k*q
                 lo = hi - k + 1

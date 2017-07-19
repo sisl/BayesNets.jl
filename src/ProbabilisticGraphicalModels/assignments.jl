@@ -1,4 +1,4 @@
-typealias Assignment Dict{NodeName, Any}
+const Assignment = Dict{NodeName, Any}
 
 """
     names(a::Assignment)

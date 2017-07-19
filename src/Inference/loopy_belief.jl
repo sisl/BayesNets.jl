@@ -4,7 +4,7 @@ Loopy belief propogation for a network.
 Early stopping if change is messages < `tol` for `iters_for_convergence'
 iterations. For no stopping, use tol < 0.
 """
-@with_kw immutable LoopyBelief <: InferenceMethod
+@with_kw struct LoopyBelief <: InferenceMethod
     nsamples::Int = 500
     tol::Float64 = 1e-8
     iters_for_convergence::Int = 6
@@ -115,8 +115,8 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
                 # normalization will kick in and do magic ...
                 lambda = evidence_lambdas[ev_i]
             else
-                 lambda = isempty(nn_children) ? ones(nn_ncat) :
-                    reduce(.*, (lambdas[(ch, nn)] for ch in nn_children))
+                lambda = isempty(nn_children) ? ones(nn_ncat) :
+                    reduce((x,y) -> broadcast(*, x, y), (lambdas[(ch, nn)] for ch in nn_children))
             end
 
             # pi is the cpd of the node weighted by the pi message that each
@@ -164,7 +164,7 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
                     px = pi
                     # reduce freaks out with empty arrays
                     isempty(other_ch) ||
-                        (px .*= reduce(.*,
+                        (px .*= reduce((x,y) -> broadcast(*, x, y),
                                     (lambdas[(c, nn)] for c in other_ch)))
                     normalize!(px, 1)
 
@@ -201,7 +201,7 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
     nn_parents = parents_lut[qi]
 
     lambda = isempty(nn_children) ? ones(nn_ncat) :
-            reduce(.*, (lambdas[(ch, query)] for ch in nn_children))
+            reduce((x,y) -> broadcast(*, x, y), (lambdas[(ch, query)] for ch in nn_children))
 
     if isempty(nn_parents)
         pi = ϕ.potential
@@ -211,7 +211,7 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
         pi = sum!(ϕ, nn_parents).potential
     end
 
-    ftr = Factor([query], lambda .* pi)
+    ftr = Factor([query], broadcast(*, lambda, pi))
     normalize!(ftr)
 
     return ftr

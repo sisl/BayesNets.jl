@@ -12,7 +12,7 @@ const DiscreteBayesNet = BayesNet{DiscreteCPD}
 DiscreteBayesNet() = BayesNet(DiscreteCPD)
 
 function _get_parental_ncategories(bn::DiscreteBayesNet, parents::NodeNames)
-    parental_ncategories = Array(Int, length(parents))
+    parental_ncategories = Array{Int}(length(parents))
     for (i,p) in enumerate(parents)
         parent_cpd = get(bn, p)::CategoricalCPD
 
@@ -37,7 +37,7 @@ function rand_cpd(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, pare
     parental_ncategories = _get_parental_ncategories(bn, parents)
 
     Q = prod(parental_ncategories)
-    distributions = Array(Categorical{Float64}, Q)
+    distributions = Array{Categorical{Float64}}(Q)
     dir = Dirichlet(ncategories, uniform_dirichlet_prior) # draw random categoricals from a Dirichlet distribution
     for q in 1:Q
         distributions[q] = Categorical{Float64}(rand(dir))
@@ -227,7 +227,7 @@ function statistics(
     )
 
     n, m = size(data)
-    N = Array(Matrix{Int}, n)
+    N = Array{Matrix{Int}}(n)
     for i in 1 : n
         N[i] = statistics(i, parent_list[i], ncategories, data)
     end

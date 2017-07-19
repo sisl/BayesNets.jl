@@ -2,7 +2,7 @@
 Approximates p(query|evidence) with N weighted samples using likelihood
 weighted sampling
 """
-@with_kw immutable LikelihoodWeightingInference <: InferenceMethod
+@with_kw struct LikelihoodWeightingInference <: InferenceMethod
     nsamples::Int = 500
 end
 

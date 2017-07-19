@@ -1,5 +1,5 @@
-immutable FakeScoringFunction <: ScoringFunction end
-immutable FakeGraphSearchStrategy <: GraphSearchStrategy end
+struct FakeScoringFunction <: ScoringFunction end
+struct FakeGraphSearchStrategy <: GraphSearchStrategy end
 
 srand(0)
 let

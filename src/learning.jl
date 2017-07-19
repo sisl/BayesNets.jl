@@ -2,7 +2,7 @@ function Distributions.fit(::Type{BayesNet}, data::DataFrame, dag::DAG, cpd_type
 
     length(cpd_types) == nv(dag) || throw(DimensionMismatch("dag and cpd_types must have the same length"))
 
-    cpds = Array(CPD, length(cpd_types))
+    cpds = Array{CPD}(length(cpd_types))
     tablenames = names(data)
     for (i, target) in enumerate(tablenames)
         C = cpd_types[i]
@@ -14,7 +14,7 @@ function Distributions.fit(::Type{BayesNet}, data::DataFrame, dag::DAG, cpd_type
 end
 function Distributions.fit{C<:CPD}(::Type{BayesNet}, data::DataFrame, dag::DAG, ::Type{C})
 
-    cpds = Array(C, nv(dag))
+    cpds = Array{C}(nv(dag))
     tablenames = names(data)
     for (i, target) in enumerate(tablenames)
         parents = tablenames[in_neighbors(dag, i)]
@@ -79,7 +79,7 @@ const ScoreComponentCache = Vector{PriorityQueue{Vector{Int}, Float64}} # parent
 Construct an empty ScoreComponentCache the size of ncol(data)
 """
 function ScoreComponentCache(data::DataFrame)
-    cache = Array(PriorityQueue{Vector{Int}, Float64}, ncol(data))
+    cache = Array{PriorityQueue{Vector{Int}, Float64}}(ncol(data))
     for i in 1 : ncol(data)
         cache[i] = PriorityQueue{Vector{Int}, Float64, Base.Order.ForwardOrdering}()
     end
@@ -94,7 +94,7 @@ An abstract type for which subtypes allow extracting CPD score components,
 which are to be maximized:
 score_component(::ScoringFunction, cpd::CPD, data::DataFrame)
 """
-@compat abstract type ScoringFunction end
+abstract type ScoringFunction end
 
 """
     score_component(a::ScoringFunction, cpd::CPD, data::DataFrame)
@@ -110,7 +110,7 @@ if they exist, and populates the cache if they don't
 """
 function _get_parent_indeces(parents::NodeNames, data::DataFrame)
     varnames = names(data)
-    retval = Array(Int, length(parents))
+    retval = Array{Int}(length(parents))
     for (i,p) in enumerate(parents)
         retval[i] = findfirst(varnames, p)
     end
@@ -140,14 +140,14 @@ end
 Get a list of score components for all cpds
 """
 function score_components{C<:CPD}(a::ScoringFunction, cpds::Vector{C}, data::DataFrame)
-    retval = Array(Float64, length(cpds))
+    retval = Array{Float64}(length(cpds))
     for (i,cpd) in enumerate(cpds)
         retval[i] = score_component(a, cpd, data)
     end
     retval
 end
 function score_components{C<:CPD}(a::ScoringFunction, cpds::Vector{C}, data::DataFrame, cache::ScoreComponentCache)
-    retval = Array(Float64, length(cpds))
+    retval = Array{Float64}(length(cpds))
     for (i,cpd) in enumerate(cpds)
         retval[i] = score_component(a, cpd, data, cache)
     end
@@ -165,7 +165,7 @@ A ScoringFunction for the negative Bayesian information criterion.
        k - the number of free parameters to be estimated
        n - the sample size
 """
-immutable NegativeBayesianInformationCriterion <: ScoringFunction
+struct NegativeBayesianInformationCriterion <: ScoringFunction
 end
 function score_component(::NegativeBayesianInformationCriterion, cpd::CPD, data::DataFrame)
     L = logpdf(cpd, data)
@@ -191,7 +191,7 @@ A GraphSearchStrategy following the K2 algorithm.
 Takes polynomial time to find the optimal structure assuming
 a topological variable ordering.
 """
-type K2GraphSearch <: GraphSearchStrategy
+mutable struct K2GraphSearch <: GraphSearchStrategy
     order::NodeNames            # topological ordering of variables
     cpd_types::Vector{DataType} # cpd types, in same order as `order`
     max_n_parents::Int          # maximum number of parents per CPD
@@ -239,7 +239,7 @@ end
 function Distributions.fit{C<:CPD}(::Type{BayesNet{C}}, data::DataFrame, params::K2GraphSearch)
 
     N = length(params.order)
-    cpds = Array(C, N)
+    cpds = Array{C}(N)
     for i in 1 : N
 
         cpd_type = params.cpd_types[i]
