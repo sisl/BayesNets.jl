@@ -14,6 +14,6 @@ before_install:
   - sudo apt-get install git
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.clone("https://github.com/sisl/ProbabilisticGraphicalModels.jl.git"); Pkg.test("BayesNets"; coverage=true)'
+  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.test("BayesNets"; coverage=true)'
 after_success:
   - julia -e 'cd(Pkg.dir("BayesNets")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
