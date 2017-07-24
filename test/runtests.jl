@@ -2,7 +2,6 @@ using BayesNets
 using DataFrames
 using Base.Test
 using LightGraphs
-using Compat
 
 srand(0)
 
