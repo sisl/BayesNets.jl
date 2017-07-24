@@ -33,7 +33,7 @@ export
 include("nodenames.jl")
 include("assignments.jl")
 
-abstract ProbabilisticGraphicalModel
+abstract type ProbabilisticGraphicalModel end
 
 Base.get(pgm::ProbabilisticGraphicalModel, i::Int) = error("get(pgm, Int) not implemented for $(typeof(pgm))!")
 Base.get(pgm::ProbabilisticGraphicalModel, name::NodeName) = error("get(pgm, NodeName) not implemented for $(typeof(pgm))!")

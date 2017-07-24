@@ -5,5 +5,5 @@ let
     @test BayesNets.CPDs.paramcount(true) == 1
     @test BayesNets.CPDs.paramcount(false) == 1
     @test BayesNets.CPDs.paramcount(1.0) == 1
-    @test BayesNets.CPDs.paramcount(Array(Float64, 3)) == 3
+    @test BayesNets.CPDs.paramcount(Array{Float64}(3)) == 3
 end

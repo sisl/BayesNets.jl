@@ -9,7 +9,7 @@ A conditional linear Gaussian CPD, always returns a Normal{Float64}
 	P(x|parents(x)) = { Normal(μ=a₂×continuous_parents(x) + b₂, σ₂) for discrete instantiation 2
                       { ...
 """
-immutable ConditionalLinearGaussianCPD <: CPD{Normal}
+struct ConditionalLinearGaussianCPD <: CPD{Normal}
     target::NodeName
     parents::NodeNames # list of all parents
 
@@ -21,7 +21,7 @@ end
 name(cpd::ConditionalLinearGaussianCPD) = cpd.target
 parents(cpd::ConditionalLinearGaussianCPD) = cpd.parents
 nparams(cpd::ConditionalLinearGaussianCPD) = sum(d->nparams(d), cpd.linear_gaussians)
-@compat function (cpd::ConditionalLinearGaussianCPD)(a::Assignment)
+function (cpd::ConditionalLinearGaussianCPD)(a::Assignment)
 
     idx = 1
     if !isempty(cpd.parents_disc)
@@ -38,8 +38,8 @@ nparams(cpd::ConditionalLinearGaussianCPD) = sum(d->nparams(d), cpd.linear_gauss
     lingaussian = cpd.linear_gaussians[idx]
     lingaussian(a)
 end
-@compat (cpd::ConditionalLinearGaussianCPD)() = (cpd)(Assignment()) # cpd()
-@compat (cpd::ConditionalLinearGaussianCPD)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
+(cpd::ConditionalLinearGaussianCPD)() = (cpd)(Assignment()) # cpd()
+(cpd::ConditionalLinearGaussianCPD)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
 
 function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
     data::DataFrame,
@@ -83,8 +83,8 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
 
     if nparents_disc != 0
 
-        parental_ncategories = Array(Int, nparents_disc)
-        dims = Array(UnitRange{Int64}, nparents_disc)
+        parental_ncategories = Array{Int}(nparents_disc)
+        dims = Array{UnitRange{Int64}}(nparents_disc)
         for (i,p) in enumerate(parents_disc)
             parental_ncategories[i] = infer_number_of_instantiations(data[p])
             dims[i] = 1:parental_ncategories[i]
@@ -93,7 +93,7 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
         # ---------------------
         # fit linear gaussians
 
-        linear_gaussians = Array(LinearGaussianCPD, prod(parental_ncategories))
+        linear_gaussians = Array{LinearGaussianCPD}(prod(parental_ncategories))
         for (q, parent_instantiation) in enumerate(product(dims...))
             indeces = Int[]
             for i in 1 : nrow(data)

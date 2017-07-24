@@ -1,14 +1,12 @@
-__precompile__(true)
+__precompile__()
 
 module BayesNets
 
-using Compat
 using Reexport
 using Parameters
 
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
-
 @reexport using BayesNets.CPDs.ProbabilisticGraphicalModels
 
 import Base: *, /, +, -, normalize

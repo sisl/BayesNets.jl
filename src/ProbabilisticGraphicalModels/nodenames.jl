@@ -1,5 +1,5 @@
-typealias NodeName Symbol
-typealias NodeNames AbstractVector{NodeName}
-typealias NodeNameUnion Union{NodeName, NodeNames}
-    
+const NodeName = Symbol
+const NodeNames = AbstractVector{NodeName}
+const NodeNameUnion = Union{NodeName, NodeNames}
+
 Base.convert(::Type{NodeNames}, name::NodeName) = [name]

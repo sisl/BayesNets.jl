@@ -1,7 +1,7 @@
 """
 Used to cache various things the Gibbs sampler needs
 """
-type GibbsSamplerState
+mutable struct GibbsSamplerState
 
     bn::BayesNet
     key_constructor_name_order::Array{Symbol,1}
@@ -215,7 +215,7 @@ function gibbs_sample_main_loop(
     end
 
     for sample_iter in 1:nsamples
-        if (~ isnull(time_limit)) && (Integer(now() - start_time) > get(time_limit))
+        if (~ isnull(time_limit)) && ((now() - start_time).value > get(time_limit))
             break
         end
 
@@ -241,7 +241,7 @@ function gibbs_sample_main_loop(
 
     end
 
-    return convert(DataFrame, t), Integer(now() - start_time)
+    return convert(DataFrame, t), (now() - start_time).value
 end
 
 """
@@ -329,7 +329,7 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     # for burn_in_initial_sample use get_weighted_dataframe, should be consistent with the varibale consistent_with
     if isnull(initial_sample)
         rand_samples = get_weighted_dataframe(bn, 50, consistent_with)
-    	if reduce(|, isnan(convert(Array{AbstractFloat}, rand_samples[:p])))
+    	if reduce(|, isnan.(convert(Array{AbstractFloat}, rand_samples[:p])))
     		error("Gibbs Sampler was unable to find an inital sample with non-zero probability, please supply an inital sample")
     	end
         burn_in_initial_sample = sample_weighted_dataframe(rand_samples)
@@ -407,7 +407,7 @@ Otherwise should be a list containing all the variables in the order they should
 initial_sample:  The inital assignment to variables to use.  If null, the initial sample is chosen by
 briefly using a LikelihoodWeightedSampler.
 """
-type GibbsSampler <: BayesNetSampler
+mutable struct GibbsSampler <: BayesNetSampler
 
     evidence::Assignment
     burn_in::Int

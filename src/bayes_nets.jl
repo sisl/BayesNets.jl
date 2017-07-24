@@ -31,7 +31,7 @@ function _enforce_topological_order{T<:CPD}(
 
 	topo = topological_sort_by_dfs(dag)
 
-	cpds2 = Array(T, length(cpds))
+	cpds2 = Array{T}(length(cpds))
 	name_to_index2 = Dict{NodeName, Int}()
 	for (i,j) in enumerate(topo)
 		# i is the new index
@@ -47,7 +47,7 @@ function _enforce_topological_order{T<:CPD}(
 	(dag2, cpds2, name_to_index2)
 end
 
-type BayesNet{T<:CPD} <: ProbabilisticGraphicalModel
+mutable struct BayesNet{T<:CPD} <: ProbabilisticGraphicalModel
 	dag::DAG # nodes are in topological order
 	cpds::Vector{T} # the CPDs associated with each node in the dag
 	name_to_index::Dict{NodeName,Int} # NodeName → index in dag and cpds
@@ -78,7 +78,7 @@ Base.length(bn::BayesNet) = length(bn.cpds)
 Returns the ordered list of NodeNames
 """
 function Base.names(bn::BayesNet)
-	retval = Array(NodeName, length(bn))
+	retval = Array{NodeName}(length(bn))
 	for (i,cpd) in enumerate(bn.cpds)
 		retval[i] = name(cpd)
 	end

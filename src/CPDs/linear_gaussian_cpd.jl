@@ -18,7 +18,7 @@ LinearGaussianCPD(target::NodeName, μ::Float64, σ::Float64) = LinearGaussianCP
 name(cpd::LinearGaussianCPD) = cpd.target
 parents(cpd::LinearGaussianCPD) = cpd.parents
 nparams(cpd::LinearGaussianCPD) = length(cpd.a) + 2
-@compat function (cpd::LinearGaussianCPD)(a::Assignment)
+function (cpd::LinearGaussianCPD)(a::Assignment)
 
     # compute A⋅v + b
     μ = cpd.b
@@ -28,8 +28,8 @@ nparams(cpd::LinearGaussianCPD) = length(cpd.a) + 2
 
     Normal(μ, cpd.σ)
 end
-@compat (cpd::LinearGaussianCPD)() = (cpd)(Assignment()) # cpd()
-@compat (cpd::LinearGaussianCPD)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
+(cpd::LinearGaussianCPD)() = (cpd)(Assignment()) # cpd()
+(cpd::LinearGaussianCPD)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
 
 function Distributions.fit(::Type{LinearGaussianCPD},
     data::DataFrame,
@@ -65,7 +65,7 @@ function Distributions.fit(::Type{LinearGaussianCPD},
     # 2nd row is all of the data for the 2nd parent, etc.
 
     nparents = length(parents)
-    X = Array(Float64, nrow(data), nparents+1)
+    X = Array{Float64}(nrow(data), nparents+1)
     for (i,p) in enumerate(parents)
         arr = data[p]
     	for j in 1 : nrow(data)

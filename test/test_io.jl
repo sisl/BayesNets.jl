@@ -17,11 +17,11 @@ let
 	@test isapprox(pdf(bn, :Success=>2, :Forecast=>2), 0.8*0.3)
 	@test isapprox(pdf(bn, :Success=>2, :Forecast=>3), 0.8*0.6)
 
+    # test output to text
     push!(bn, DiscreteCPD(:Test, [:Forecast], [3], [Categorical([1.0, 0.0]),
                                                     Categorical([0.0, 1.0]),
                                                     Categorical([0.1234569, 1-0.1234569])]))
 
-    # test output to text
     filename = tempname()
     open(filename, "w") do io
         write(io, MIME"text/plain"(), bn)
@@ -33,7 +33,7 @@ let
     @test strip(lines[3]) == "001"
     @test strip(lines[4]) == "000"
     @test strip(lines[5]) == "2 3 2"
-    @test strip(lines[6]) == "2 4 4 1 3 I 0 123457"
+    @test strip(lines[6]) == "0.2 0.4 0.4 0.1 0.3 1 0 0.1234569"
     @test length(lines) == 6
 
     bn2 = open(filename, "r") do io
@@ -45,18 +45,12 @@ let
     @test isapprox(pdf(bn2, :Success=>1, :Forecast=>1, :Test=>2), 0.2*0.4*0.0)
     @test isapprox(pdf(bn2, :Success=>1, :Forecast=>2, :Test=>1), 0.2*0.4*0.0)
     @test isapprox(pdf(bn2, :Success=>1, :Forecast=>2, :Test=>2), 0.2*0.4*1.0)
-    @test isapprox(pdf(bn2, :Success=>1, :Forecast=>3, :Test=>1), 0.2*0.2*0.123457)
-    @test isapprox(pdf(bn2, :Success=>1, :Forecast=>3, :Test=>2), 0.2*0.2*(1-0.123457))
+    @test isapprox(pdf(bn2, :Success=>1, :Forecast=>3, :Test=>1), 0.2*0.2*0.1234569)
+    @test isapprox(pdf(bn2, :Success=>1, :Forecast=>3, :Test=>2), 0.2*0.2*(1-0.1234569))
     @test isapprox(pdf(bn2, :Success=>2, :Forecast=>1, :Test=>1), 0.8*0.1*1.0)
     @test isapprox(pdf(bn2, :Success=>2, :Forecast=>1, :Test=>2), 0.8*0.1*0.0)
     @test isapprox(pdf(bn2, :Success=>2, :Forecast=>2, :Test=>1), 0.8*0.3*0.0)
     @test isapprox(pdf(bn2, :Success=>2, :Forecast=>2, :Test=>2), 0.8*0.3*1.0)
-    @test isapprox(pdf(bn2, :Success=>2, :Forecast=>3, :Test=>1), 0.8*0.6*0.123457)
-    @test isapprox(pdf(bn2, :Success=>2, :Forecast=>3, :Test=>2), 0.8*0.6*(1-0.123457))
-
-    # plot an empty BayesNet
-    # disabled because of latex dependency
-    # b = BayesNet()
-    # dummy = IOBuffer()
-    # show(dummy, MIME("image/svg+xml"), b)
+    @test isapprox(pdf(bn2, :Success=>2, :Forecast=>3, :Test=>1), 0.8*0.6*0.1234569)
+    @test isapprox(pdf(bn2, :Success=>2, :Forecast=>3, :Test=>2), 0.8*0.6*(1-0.1234569))
 end

@@ -7,7 +7,6 @@ and contains the CPD relating that var to its parents, P(x | parents(x))
 
 module CPDs
 
-using Compat
 using Discretizers
 using Distributions
 using DataFrames
@@ -49,7 +48,7 @@ include("utils.jl")
 
 #############################################
 
-@compat abstract type CPD{D<:Distribution} end
+abstract type CPD{D<:Distribution} end
 
 """
     name(cpd::CPD)

@@ -1,7 +1,7 @@
 """
 Abstract type for probability inference
 """
-abstract InferenceMethod
+abstract type InferenceMethod end
 
 @inline function _ensure_query_nodes_in_pgm_and_not_in_evidence(query::NodeNames, nodenames::NodeNames, evidence::Assignment)
     isempty(query) && return
@@ -16,12 +16,12 @@ end
 """
 Type for capturing the inference state
 """
-immutable InferenceState{PGM<:ProbabilisticGraphicalModel}
+struct InferenceState{PGM<:ProbabilisticGraphicalModel}
     pgm::PGM
     query::NodeNames
     evidence::Assignment
 
-    function InferenceState(pgm::PGM, query::NodeNames, evidence::Assignment)
+    function InferenceState{PGM}(pgm::PGM, query::NodeNames, evidence::Assignment) where PGM<:ProbabilisticGraphicalModel
 
         _ensure_query_nodes_in_pgm_and_not_in_evidence(query, names(pgm), evidence)
         return new(pgm, query, evidence)

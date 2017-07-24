@@ -13,7 +13,7 @@ const Table = DataFrame
 """
 Table multiplication
 """
-@compat function Base.:*(f1::Table, f2::Table)
+function Base.:*(f1::Table, f2::Table)
     onnames = setdiff(intersect(names(f1), names(f2)), [:p])
     finalnames = vcat(setdiff(union(names(f1), names(f2)), [:p]), :p)
 
@@ -23,7 +23,7 @@ Table multiplication
         j = join(f1, f2, on=onnames, kind=:outer)
     end
 
-    j[:p] = j[:p] .* j[:p_1]
+    j[:p] = broadcast(*, j[:p], j[:p_1])
 
     return j[finalnames]
 end

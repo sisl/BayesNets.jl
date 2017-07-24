@@ -29,9 +29,9 @@ function LinAlg.normalize!(ϕ::Factor, dims::NodeNameUnion; p::Int=1)
 
     if !isempty(inds)
         if p == 1
-            total = sumabs(ϕ.potential, inds)
+            total = sum(abs, ϕ.potential, inds)
         elseif p == 2
-            total = sumabs2(ϕ.potential, inds)
+            total = sum(abs2, ϕ.potential, inds)
         else
             throw(ArgumentError("p = $(p) is not supported"))
         end
@@ -44,9 +44,9 @@ end
 
 function LinAlg.normalize!(ϕ::Factor; p::Int=1)
     if p == 1
-        total = sumabs(ϕ.potential)
+        total = sum(abs, ϕ.potential)
     elseif p == 2
-        total = sumabs2(ϕ.potential)
+        total = sum(abs2, ϕ.potential)
     else
         throw(ArgumentError("p = $(p) is not supported"))
     end

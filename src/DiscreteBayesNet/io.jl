@@ -6,49 +6,49 @@ Return a DiscreteBayesNet read from the xdsl file
 """
 function readxdsl( filename::AbstractString )
 
-	# This currently assumes that the states are Integers
-	# Thus, all <state id="???"/> must be integers
+    # This currently assumes that the states are Integers
+    # Thus, all <state id="???"/> must be integers
 
-	splitext(filename)[2] == ".xdsl" || error("readxdsl only supports .xdsl format")
+    splitext(filename)[2] == ".xdsl" || error("readxdsl only supports .xdsl format")
 
-	xdoc  = LightXML.parse_file(filename)
-	xroot = LightXML.root(xdoc)
-	ces   = LightXML.get_elements_by_tagname(xroot, "nodes")[1]
-	cpts  = collect(LightXML.child_elements(ces))
+    xdoc  = LightXML.parse_file(filename)
+    xroot = LightXML.root(xdoc)
+    ces   = LightXML.get_elements_by_tagname(xroot, "nodes")[1]
+    cpts  = collect(LightXML.child_elements(ces))
 
-	varnames = Array(Symbol, length(cpts))
-	for (i,e) in enumerate(cpts)
-		id = LightXML.attribute(e, "id")
-		varnames[i] = Symbol(id)
-	end
+    varnames = Array{Symbol}(length(cpts))
+    for (i,e) in enumerate(cpts)
+        id = LightXML.attribute(e, "id")
+        varnames[i] = Symbol(id)
+    end
 
-	bn = DiscreteBayesNet()
+    bn = DiscreteBayesNet()
 
-	for (i,e) in enumerate(cpts)
+    for (i,e) in enumerate(cpts)
 
-		node_sym = varnames[i]
+        node_sym = varnames[i]
 
-		for s in LightXML.get_elements_by_tagname(e, "state")
-			attr = convert(String, LightXML.attribute(s, "id"))
-			@assert(!isa(match(r"\d", attr), Void), "All state ids must be integers")
-		end
+        for s in LightXML.get_elements_by_tagname(e, "state")
+            attr = convert(String, LightXML.attribute(s, "id"))
+            @assert(!isa(match(r"\d", attr), Void), "All state ids must be integers")
+        end
 
-		# set the node's domain
-		states   = [parse(Int, match(r"\d", convert(String, LightXML.attribute(s, "id"))).match) for s in LightXML.get_elements_by_tagname(e, "state")]
+        # set the node's domain
+        states   = [parse(Int, match(r"\d", convert(String, LightXML.attribute(s, "id"))).match) for s in LightXML.get_elements_by_tagname(e, "state")]
 
-		probs = Float64[parse(Float64, s) for s in split(LightXML.content(LightXML.find_element(e, "probabilities")))]
+        probs = Float64[parse(Float64, s) for s in split(LightXML.content(LightXML.find_element(e, "probabilities")))]
 
-		# set any parents & populate probability table
-		parents_elem = LightXML.get_elements_by_tagname(e, "parents")
-		if !isempty(parents_elem)
-			parents = NodeName[Symbol(s) for s in split(LightXML.content(parents_elem[1]))]
+        # set any parents & populate probability table
+        parents_elem = LightXML.get_elements_by_tagname(e, "parents")
+        if !isempty(parents_elem)
+            parents = NodeName[Symbol(s) for s in split(LightXML.content(parents_elem[1]))]
 
-			# populate probability table
-			reverse!(parents) # because SMILE varies first parent least quickly
+            # populate probability table
+            reverse!(parents) # because SMILE varies first parent least quickly
             parental_ncategories = _get_parental_ncategories(bn, parents)
             k = length(states)
             Q = prod(parental_ncategories)
-            distributions = Array(Categorical, Q)
+            distributions = Array{Categorical}(Q)
             for q in 1:Q
                 hi = k*q
                 lo = hi - k + 1
@@ -56,13 +56,13 @@ function readxdsl( filename::AbstractString )
             end
 
             push!(bn, DiscreteCPD(node_sym, parents, parental_ncategories, distributions))
-		else
-			# no parents
+        else
+            # no parents
             push!(bn, DiscreteCPD(node_sym, probs))
-		end
-	end
+        end
+    end
 
-	bn
+    bn
 end
 
 """
@@ -85,20 +85,14 @@ The text file contains the following parameters:
                    The entries are 0 or 1 and are not delimited.
 - variable instantiations: A list of integers specifying the number of instantiations for each variable.
                    The list is space-delimited.
-- sufficient statistics: A list of space-delimited integers Nₐⱼₖ  which specifies the sufficient statistics.
+- sufficient statistics: A list of space-delimited integers Pₐⱼₖ  which specifies the sufficient statistics.
                    The array is ordered first by increasing k, then increasing j, then increasing i.
                    The variable ordering is defined in the variable labels section of the file.
                    The list is a flattened matrices, where each matrix is rₐ × qₐ where rₐ is the number of
                    instantiations of variable a and qₐ is the number of instantiations of the parents of
                    variable a. The ordering is the same as the ordering of the distributions vector in
                    the CategoricalCPD type.
-                   The entires in Nₐⱼₖ are integers, despite the fact that probabilities are floating point.
-                   A number of digits, `ndigits`, of each probability past the decimal point are printed.
-                   For a probability distribution with r values only the first r-1 values are printed.
-                   To save a network to 3 decimals of precision, for instance, a categorical distribution
-                   with probabilities [0.0123, 0.6759, 0.3123] would be saved as "012 676" and would
-                   be read back in as [0.012,  0.676,  0.312] such that the probabilities sum to one.
-                   A probability of one is output as the character `I'.
+                   The entires in Pₐⱼₖ are floating point probability values.
 
 For example, the network Success -> Forecast
 with Success ∈ [1, 2] and P(1) = 0.2, P(2) = 0.8
@@ -114,7 +108,7 @@ Success Forecast
 2 3
 2 4 4 1 3
 """
-function Base.write(io::IO, mime::MIME"text/plain", bn::DiscreteBayesNet; digits::Int=6)
+function Base.write(io::IO, mime::MIME"text/plain", bn::DiscreteBayesNet)
 
     n = length(bn)
     arr_names = names(bn)
@@ -144,7 +138,7 @@ function Base.write(io::IO, mime::MIME"text/plain", bn::DiscreteBayesNet; digits
         cpd = get(bn, name)
         for D in cpd.distributions
             for p in probs(D)[1:end-1]
-                str = p ≥ 1.0 ? "I" : string(round(p, digits))[3:end]
+                str = @sprintf("%.16g", p)
                 print(io, space ? " " : "" , str)
                 space = true
             end
@@ -178,8 +172,7 @@ function Base.read(io::IO, mime::MIME"text/plain", ::Type{DiscreteBayesNet})
     function pull_next_prob_vector(r)
         probs = Array{Float64}(r)
         for j in 1 : r-1
-            str = stats[idx += 1]
-            probs[j] = str == "I" ? 1.0 : parse(Float64, "0."*str)
+            probs[j] = parse(Float64, stats[idx += 1])
         end
         probs[end] = 1.0 - sum(probs[1:end-1])
         if probs[end] < 0.0
@@ -189,7 +182,7 @@ function Base.read(io::IO, mime::MIME"text/plain", ::Type{DiscreteBayesNet})
         return probs
     end
 
-    cpds = Array(DiscreteCPD, n)
+    cpds = Array{DiscreteCPD}(n)
     for i in 1 : n
         name = arr_names[i]
         r = rs[i]

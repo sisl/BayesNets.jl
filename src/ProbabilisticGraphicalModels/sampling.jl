@@ -3,7 +3,7 @@ Abstract type for sampling with Base.rand(ProbabilisticGraphicalModel, Sampler, 
                                 Base.rand!(Assignment, ProbabilisticGraphicalModel, Sampler)
                                 Base.rand(ProbabilisticGraphicalModel, Sampler)
 """
-abstract Sampler
+abstract type Sampler end
 
 """
 Overwrites Assignment with a sample from the PGM using the given Sampler
@@ -25,7 +25,7 @@ function Base.rand(pgm::ProbabilisticGraphicalModel, sampler::Sampler, nsamples:
     df = DataFrame()
     nodenames = names(pgm)
     for nodename in nodenames
-        df[nodename] = Array(typeof(a[nodename]), nsamples)
+        df[nodename] = Array{typeof(a[nodename])}(nsamples)
     end
 
     for i in 1:nsamples

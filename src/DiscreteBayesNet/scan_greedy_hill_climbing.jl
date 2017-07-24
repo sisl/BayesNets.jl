@@ -82,11 +82,11 @@ function greedy_score(score_components, n, prior_parent_list, datamat, params::S
 end
 
 function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::ScanGreedyHillClimbing;
-    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[i]), Array(Int, ncol(data)), 1:ncol(data)),
+    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[i]), Array{Int}(ncol(data)), 1:ncol(data)),
     )
 
     n = ncol(data)
-    parent_list = map!(i->Int[], Array(Vector{Int}, n), 1:n)
+    parent_list = map!(i->Int[], Array{Vector{Int}}(n), 1:n)
     datamat = convert(Matrix{Int}, data)'
     score_components = bayesian_score_components(parent_list, ncategories, datamat, params.prior, params.cache)
 
@@ -134,7 +134,7 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Sc
     parent_list = greedy_parents
 
     # construct the BayesNet
-    cpds = Array(DiscreteCPD, n)
+    cpds = Array{DiscreteCPD}(n)
     varnames = names(data)
     for i in 1:n
         name = varnames[i]
