@@ -135,7 +135,7 @@ Base.indexin(dims::NodeNames, ϕ::Factor) = indexin(dims, names(ϕ))
 
 Fill with random values
 """
-Base.rand!(ϕ) = rand!(ϕ.potential)
+Base.rand!(ϕ::Factor) = rand!(ϕ.potential)
 
 """
 Appends a new dimension to a Factor
