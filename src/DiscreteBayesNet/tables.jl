@@ -8,12 +8,17 @@ https://en.wikipedia.org/wiki/Factor_graph
 These can be obtained using the table() function
 =#
 
-const Table = DataFrame
+mutable struct Table
+    potential::DataFrame
+end
 
 """
 Table multiplication
 """
-function Base.:*(f1::Table, f2::Table)
+function Base.:*(t1::Table, t2::Table)
+    f1 =t1.potential
+    f2 =t2.potential
+
     onnames = setdiff(intersect(names(f1), names(f2)), [:p])
     finalnames = vcat(setdiff(union(names(f1), names(f2)), [:p]), :p)
 
@@ -25,7 +30,7 @@ function Base.:*(f1::Table, f2::Table)
 
     j[:p] = broadcast(*, j[:p], j[:p_1])
 
-    return j[finalnames]
+    return Table(j[finalnames])
 end
 
 """
@@ -33,18 +38,20 @@ end
 
 Table marginalization
 """
-function sumout(f::Table, v::NodeNameUnion)
+function sumout(t::Table, v::NodeNameUnion)
+    f = t.potential
+
     # vcat works for single values and vectors alike (magic?)
     remainingvars = setdiff(names(f), vcat(v, :p))
 
     if isempty(remainingvars)
         # they want to remove all variables except for prob column
         # uh ... 'singleton' table?
-        return DataFrame(p = sum(f[:p]))
+        return Table(DataFrame(p = sum(f[:p])))
     else
         # note that this will fail miserably if f is too large (~1E4 maybe?)
         #  nothing I can do :'(  github issue about it
-        return by(f, remainingvars, df -> Table(p = sum(df[:p])))
+        return Table(by(f, remainingvars, df -> Table(p = sum(df[:p]))))
     end
 end
 

@@ -26,25 +26,26 @@ struct CategoricalCPD{D} <: CPD{D}
     # a vector of distributions in DMU order
     distributions::Vector{D}
 end
-CategoricalCPD{D<:Distribution}(target::NodeName, d::D) = CategoricalCPD(target, NodeName[], Int[], D[d])
+CategoricalCPD{D<:Distribution}(target::NodeName, d::D) =
+        CategoricalCPD(target, NodeName[], Int[], D[d])
 
 name(cpd::CategoricalCPD) = cpd.target
 parents(cpd::CategoricalCPD) = cpd.parents
 nparams(cpd::CategoricalCPD) = sum(d->paramcount(params(d)), cpd.distributions)
 
 function (cpd::CategoricalCPD)(a::Assignment=Assignment())
-    q = 1
-    if !isempty(cpd.parents)
-        N = length(cpd.parents)
-        q = a[cpd.parents[N]] - 1
-        for i in N-1 : -1 : 1
-            q = (a[cpd.parents[i]] -1  + cpd.parental_ncategories[i]*q)
-        end
-        q += 1
+    if isempty(cpd.parents)
+        return first(cpd.distributions)
+    else
+        sub = [a[p] for p in cpd.parents]
+        shape = ntuple(i -> cpd.parental_ncategories[i],
+                length(cpd.parental_ncategories))
+        ind = sub2ind(shape, sub...)
+        return cpd.distributions[ind]
     end
-    return cpd.distributions[q]
 end
-(cpd::CategoricalCPD)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
+(cpd::CategoricalCPD)(pair::Pair{NodeName}...) =
+        (cpd)(Assignment(pair)) # cpd(:A=>1)
 
 """
     Distributions.ncategories(cpd::CategoricalCPD)
