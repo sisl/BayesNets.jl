@@ -44,4 +44,3 @@ include(joinpath(testdir, "test_discrete_bayes_nets.jl"))
 include(joinpath(testdir, "test_genbn.jl"))
 
 include(joinpath(testdir, "test_docs.jl"))
-

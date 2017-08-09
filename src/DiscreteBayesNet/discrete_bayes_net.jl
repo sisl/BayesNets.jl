@@ -52,7 +52,6 @@ end
 Constructs the CPD factor associated with the given node in the BayesNet
 """
 function table(bn::DiscreteBayesNet, name::NodeName)
-
     d = DataFrame()
     cpd = get(bn, name)
     varnames = push!(deepcopy(parents(bn, name)), name)
@@ -81,11 +80,13 @@ function table(bn::DiscreteBayesNet, name::NodeName)
         p[i] = pdf(cpd, assignment)
     end
     d[:p] = p
-    d
+
+    return Table(d)
 end
 
 table(bn::DiscreteBayesNet, name::NodeName, a::Assignment) = select(table(bn, name), a)
-table(bn::DiscreteBayesNet, name::NodeName, pair::Pair{NodeName}...) = table(bn, name, Assignment(pair))
+table(bn::DiscreteBayesNet, name::NodeName, pair::Pair{NodeName}...) =
+        table(bn, name, Assignment(pair))
 
 """
     Distributions.ncategories(bn::DiscreteBayesNet, node::Symbol)
@@ -102,7 +103,6 @@ returns a table containing all observed assignments and their
 corresponding counts
 """
 function Base.count(bn::DiscreteBayesNet, name::NodeName, data::DataFrame)
-
     # find relevant variable names based on structure of network
     varnames = push!(deepcopy(parents(bn, name)), name)
 
@@ -111,9 +111,11 @@ function Base.count(bn::DiscreteBayesNet, name::NodeName, data::DataFrame)
 
     # add column with counts of unique samples
     tu[:count] = Int[sum(Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]) for j = 1:size(tu,1)]
-    tu
+
+    return tu
 end
-Base.count(bn::DiscreteBayesNet, data::DataFrame) = map(nodename->count(bn, nodename, data), names(bn))
+Base.count(bn::DiscreteBayesNet, data::DataFrame) =
+        map(nodename->count(bn, nodename, data), names(bn))
 
 
 """
@@ -165,6 +167,7 @@ function statistics(
     else
         js = fill(1, size(data,2))
     end
+
     full(sparse(vec(data[targetind,:]), vec(js), 1, ncategories[targetind], q))
 end
 
@@ -217,8 +220,7 @@ OUTPUT:
                 N[1][6,2] is the number of time v₁ = 2, v₂ = 1, v₃ = 1
                 ...
 
-This function uses sparse matrix black magic and was
-mercilessly stolen from Ed Schmerling.
+This function uses sparse matrix black magic and was mercilessly stolen from Ed Schmerling.
 """
 function statistics(
     parent_list::Vector{Vector{Int}},
@@ -233,6 +235,7 @@ function statistics(
     end
     N
 end
+
 function statistics(dag::DAG, data::DataFrame)
 
     n = nv(dag)
@@ -245,7 +248,7 @@ function statistics(dag::DAG, data::DataFrame)
 
     statistics(parents, ncategories, datamat)
 end
-statistics(bn::DiscreteBayesNet, data::DataFrame) = statistics(bn.dag, data)
+
 function statistics(bn::DiscreteBayesNet, target::NodeName, data::DataFrame)
 
     n = nv(bn.dag)
@@ -257,3 +260,4 @@ function statistics(bn::DiscreteBayesNet, target::NodeName, data::DataFrame)
     statistics(targetind, parents, ncategories, datamat)
 end
 
+statistics(bn::DiscreteBayesNet, data::DataFrame) = statistics(bn.dag, data)

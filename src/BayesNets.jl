@@ -40,7 +40,9 @@ export
     gibbs_sample,
     GibbsSampler,
 
-    # tables, formerly known as factors
+    # tables, formerly known as factors; the DataFrames based approach
+    # TODO remove
+    Table,
     table,
     sumout,
     normalize,
@@ -126,4 +128,3 @@ include(joinpath("Factors", "factors.jl"))
 include(joinpath("Inference", "inference.jl"))
 
 end # module
-

@@ -2,12 +2,12 @@ f1 = DataFrame(
     A = [false, true, false, true],
     B = [false, false, true, true],
     p = [0.75, 0.60, 0.25, 0.40]
-    )
+    ) |> Table
 
 f2 = DataFrame(
     A = [false, true],
     p = [0.9, 0.1]
-    )
+    ) |> Table
 
 let
     # factor multiplication
@@ -34,22 +34,21 @@ end
 
 let
     # factor normalization
-    f3 = BayesNets.normalize!(DataFrame(
+    f3 = BayesNets.normalize!(Table(DataFrame(
         A = [false, true],
         p = [1.0, 3.0]
-    ))
+    )))
 
     @test elementwise_isapprox(f3[:p], [0.25, 0.75])
 end
 
 let
     # estimation
-    df = estimate(DataFrame(
+    df = estimate(Table(DataFrame(
         A = [false, false, true, true, true]
-        ))
+    )))
     @test elementwise_isapprox(df[:p], [2/5, 3/5])
 
     # TODO: properly test this
     estimate_convergence(df, Assignment(:A=>true))
 end
-

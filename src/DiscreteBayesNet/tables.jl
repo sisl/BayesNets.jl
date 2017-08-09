@@ -12,6 +12,21 @@ mutable struct Table
     potential::DataFrame
 end
 
+Base.names(t::Table) = names(t.potential)
+Base.unique(t::Table) = unique(t.potential)
+Base.size(t::Table) = size(t.potential)
+Base.size(t::Table, x...) = size(t.potential, x...)
+Base.eltype(t::Table) = eltype(t.potential)
+Base.getindex(t::Table, x...) = getindex(t.potential, x...)
+Base.setindex(t::Table, x...) = setindex(t.potential, x...)
+Base.convert(::Type{DataFrame}, t::Table) = t.potential
+
+for s in [:(==), :≤, :≥, :<, :>, :(!=)]
+    @eval (Base.$s)(t::Table, f::DataFrame) = $s(t.potential, f)
+    @eval (Base.$s)(f::DataFrame, t::Table) = $s(f, t.potential)
+    @eval (Base.$s)(t1::Table, t2::Table) = $s(t1.potential, t2.potential)
+end
+
 """
 Table multiplication
 """
@@ -34,7 +49,7 @@ function Base.:*(t1::Table, t2::Table)
 end
 
 """
-    sumout(f, v)
+    sumout(t, v)
 
 Table marginalization
 """
@@ -50,28 +65,30 @@ function sumout(t::Table, v::NodeNameUnion)
         return Table(DataFrame(p = sum(f[:p])))
     else
         # note that this will fail miserably if f is too large (~1E4 maybe?)
-        #  nothing I can do :'(  github issue about it
-        return Table(by(f, remainingvars, df -> Table(p = sum(df[:p]))))
+        #  nothing I can do; there is a github issue
+        return Table(by(f, remainingvars, df -> DataFrame(p = sum(df[:p]))))
     end
 end
 
 """
 Table normalization
-Ensures that the :p column sums to one
+Ensures that the `:p` column sums to one
 """
-function LinAlg.normalize!(f::Table)
-    f[:p] /= sum(f[:p])
+function LinAlg.normalize!(t::Table)
+    t.potential[:p] ./= sum(t.potential[:p])
 
-    return f
+    return t
 end
 
 """
 Given a Table,
 extract the rows which match the given assignment
 """
-function Base.select(f::Table, a::Assignment)
+function Base.select(t::Table, a::Assignment)
+    f = t.potential
+
     commonNames = intersect(names(f), keys(a))
-    mask = trues(size(f,1))
+    mask = trues(size(f, 1))
     for s in commonNames
         # mask &= (f[s] .== a[s])
         vals = (f[s] .== a[s])
@@ -79,7 +96,8 @@ function Base.select(f::Table, a::Assignment)
             mask[i] = mask[i] & v
         end
     end
-    f[mask, :]
+
+    return Table(f[mask, :])
 end
 
 """
@@ -89,7 +107,9 @@ takes the unique assignments,
 and estimates the associated probability of each assignment
 based on its frequency of occurrence.
 """
-function Distributions.estimate(f::DataFrame)
+function Distributions.estimate(t::Table)
+    f = t.potential
+
     w = ones(size(f, 1))
     t = f
     if haskey(f, :p)
@@ -101,13 +121,15 @@ function Distributions.estimate(f::DataFrame)
     # add column with probabilities of unique samples
     tu[:p] = Float64[sum(w[Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]]) for j = 1:size(tu,1)]
     tu[:p] /= sum(tu[:p])
-    tu
+
+    return Table(tu)
 end
 
 """
 TODO: what is this for?
 """
-function estimate_convergence(f::DataFrame, a::Assignment)
+function estimate_convergence(t::Table, a::Assignment)
+    f = t.potential
 
     n = size(f, 1)
     p = zeros(n)
@@ -128,6 +150,6 @@ function estimate_convergence(f::DataFrame, a::Assignment)
         cumTotalWeight += w[i]
         p[i] = cumWeight / cumTotalWeight
     end
-    p
+    
+    return p
 end
-
