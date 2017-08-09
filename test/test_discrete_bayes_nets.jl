@@ -16,7 +16,7 @@ let
 	@test T == DataFrame(a=[1,2,1,2], b=[1,1,2,2], p=[0.5,0.2,0.5,0.8]) |> Table
 
 	data = DataFrame(a=[1,1,1,1,2,2,2,2],
-		             b=[1,2,1,2,1,1,1,2]) |> Table 
+		             b=[1,2,1,2,1,1,1,2])
 	T = count(bn, :a, data)
 	@test T == DataFrame(a=[1,2], count=[4,4]) 
 

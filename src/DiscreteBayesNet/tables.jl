@@ -12,14 +12,11 @@ mutable struct Table
     potential::DataFrame
 end
 
-Base.names(t::Table) = names(t.potential)
-Base.unique(t::Table) = unique(t.potential)
-Base.size(t::Table) = size(t.potential)
-Base.size(t::Table, x...) = size(t.potential, x...)
-Base.eltype(t::Table) = eltype(t.potential)
-Base.getindex(t::Table, x...) = getindex(t.potential, x...)
-Base.setindex(t::Table, x...) = setindex(t.potential, x...)
 Base.convert(::Type{DataFrame}, t::Table) = t.potential
+
+for f in [:names, :unique, :size, :eltype, :setindex!, :getindex]
+    @eval (Base.$f)(t::Table, x...) = $f(t.potential, x...)
+end
 
 for s in [:(==), :≤, :≥, :<, :>, :(!=)]
     @eval (Base.$s)(t::Table, f::DataFrame) = $s(t.potential, f)
