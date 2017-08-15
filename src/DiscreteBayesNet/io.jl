@@ -146,6 +146,7 @@ function Base.write(io::IO, mime::MIME"text/plain", bn::DiscreteBayesNet)
     end
     print(io, "\n")
 end
+
 function Base.read(io::IO, mime::MIME"text/plain", ::Type{DiscreteBayesNet})
 
     # variable labels

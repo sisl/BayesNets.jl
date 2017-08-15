@@ -11,7 +11,7 @@ let
 		│ 2   │ 2 │ 4     │
 		│ 3   │ 3 │ 4     │
 		=#
-		df_count = count(bn, :A, data)
+		df_count = count(bn, :A, data) |> Table
 		@test size(df_count) == (3,2)
 		@test select(df_count, Assignment(:A=>1))[:count] == [4]
 		@test select(df_count, Assignment(:A=>2))[:count] == [4]
@@ -27,7 +27,7 @@ let
 		│ 6   │ 3 │ 1 │ 1 │ 3     │
 		│ 7   │ 3 │ 2 │ 2 │ 1     │
 		=#
-		df_count = count(bn, :C, data)
+		df_count = count(bn, :C, data) |> Table
 		@test size(df_count) == (7,4)
 		@test select(df_count, Assignment(:A=>1, :B=>1))[:count] == [3]
 		@test select(df_count, Assignment(:A=>1, :B=>2))[:count] == [1]
