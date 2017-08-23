@@ -1,5 +1,7 @@
+#
+# Bayes Net
+#
 Base.mimewritable(::MIME"image/svg+xml", bn::BayesNet) = success(`lualatex -v`)
-Base.mimewritable(::MIME"text/html", dfs::Vector{DataFrame}) = true
 
 function plot(bn::BayesNet)
 	if !isempty(names(bn))
@@ -13,9 +15,22 @@ function Base.show(f::IO, a::MIME"image/svg+xml", bn::BayesNet)
  	show(f, a, plot(bn))
 end
 
-function Base.show(io::IO, a::MIME"text/html", dfs::Vector{DataFrame})
-	for df in dfs
-		writemime(io, a, df)
-	end
+#
+# Table
+#
+Base.mimewritable(::MIME"text/html", table::Table) = true
+
+function Base.show(io::IO, a::MIME"text/html", table::Table)
+	show(io, a, table.potential)
 end
 
+#
+# Vector{Table}
+#
+Base.mimewritable(::MIME"text/html", tables::Vector{Table}) = true
+
+function Base.show(io::IO, a::MIME"text/html", tables::Vector{Table})
+	for table in tables
+		show(io, a, table)
+	end
+end
