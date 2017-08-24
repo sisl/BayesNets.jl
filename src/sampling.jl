@@ -1,14 +1,16 @@
 """
-Abstract type for sampling with Base.rand(BayesNet, BayesNetSampler, nsamples)
-                                Base.rand!(Assignemnt, BayesNet, BayesNetSampler)
-                                Base.rand(BayesNet, BayesNetSampler)
+Abstract type for sampling with:
+ * `Base.rand(BayesNet, BayesNetSampler)`
+ * `Base.rand(BayesNet, BayesNetSampler, nsamples)`
+ * `Base.rand!(Assignment, BayesNet, BayesNetSampler)`
 """
 abstract type BayesNetSampler end
 
 """
 Overwrites assignment with a sample from bn using the sampler
 """
-Base.rand!(a::Assignment, bn::BayesNet, sampler::BayesNetSampler) = error("rand! not implemented for $(typeof(sampler))")
+Base.rand!(a::Assignment, bn::BayesNet, sampler::BayesNetSampler) =
+        error("rand! not implemented for $(typeof(sampler))")
 
 """
 Returns an assignment sampled from the bn using the provided sampler
@@ -38,23 +40,31 @@ function Base.rand(bn::BayesNet, sampler::BayesNetSampler, nsamples::Integer)
     df
 end
 
-
+#
+# Direct Sampling
+#
 """
 Straightforward sampling from a BayesNet.
 The default sampler.
 """
 struct DirectSampler <: BayesNetSampler end
+
 function Base.rand!(a::Assignment, bn::BayesNet, sampler::DirectSampler)
     for cpd in bn.cpds
         a[name(cpd)] = rand(cpd, a)
     end
     a
 end
+
 Base.rand!(a::Assignment, bn::BayesNet) = rand!(a, bn, DirectSampler())
+
 Base.rand(bn::BayesNet, nsamples::Integer) = rand(bn, DirectSampler(), nsamples)
+
 Base.rand(bn::BayesNet) = rand(bn, DirectSampler())
 
-
+#
+# Rejection Sampling
+#
 """
 Rejection Sampling in which the assignments are forced to be consistent with the provided values.
 Each sampler is attempted at most `max_nsamples` times before returning an empty assignment.
@@ -63,7 +73,9 @@ struct RejectionSampler <: BayesNetSampler
     evidence::Assignment
     max_nsamples::Int
 end
-RejectionSampler(pair::Pair{NodeName}...; max_nsamples::Integer=100) = RejectionSampler(Assignment(pair), max_nsamples)
+RejectionSampler(pair::Pair{NodeName}...; max_nsamples::Integer=100) =
+        RejectionSampler(Assignment(pair), max_nsamples)
+
 function Base.rand!(a::Assignment, bn::BayesNet, sampler::RejectionSampler)
     for sample_count in 1 : sampler.max_nsamples
         rand!(a, bn)
@@ -73,9 +85,16 @@ function Base.rand!(a::Assignment, bn::BayesNet, sampler::RejectionSampler)
     end
     return empty!(a)
 end
-Base.rand(bn::BayesNet, nsamples::Integer, evidence::Assignment) = rand(bn, RejectionSampler(evidence, 100), nsamples)
-Base.rand(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName}...) = rand(bn, nsamples, Assignment(pair))
 
+Base.rand(bn::BayesNet, nsamples::Integer, evidence::Assignment) =
+        rand(bn, RejectionSampler(evidence, 100), nsamples)
+
+Base.rand(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName}...) =
+        rand(bn, nsamples, Assignment(pair))
+
+#
+# Likelihood Sampling
+#
 """
 Draw an assignment from the Bayesian network but set any variables in the evidence accordingly.
 Returns the assignment and the probability weighting associated with the evidence.
@@ -91,12 +110,42 @@ function get_weighted_sample!(a::Assignment, bn::BayesNet, evidence::Assignment)
             a[varname] = rand(cpd, a)
         end
     end
+
     return (a, w)
 end
-get_weighted_sample!(a::Assignment, bn::BayesNet, pair::Pair{NodeName}...) = get_weighted_sample!(a, bn, Assignment(pair))
-get_weighted_sample(bn::BayesNet, evidence::Assignment) = get_weighted_sample!(Assignment(), bn, evidence)
-get_weighted_sample(bn::BayesNet, pair::Pair{NodeName}...) = get_weighted_sample(bn, Assignment(pair))
 
+get_weighted_sample!(a::Assignment, bn::BayesNet, pair::Pair{NodeName}...) =
+        get_weighted_sample!(a, bn, Assignment(pair))
+
+get_weighted_sample(bn::BayesNet, evidence::Assignment) =
+        get_weighted_sample!(Assignment(), bn, evidence)
+
+get_weighted_sample(bn::BayesNet, pair::Pair{NodeName}...) =
+        get_weighted_sample(bn, Assignment(pair))
+
+sample_weighted_dataframe(weighted_dataframe::DataFrame) =
+        sample_weighted_dataframe!(Assignment(), weighted_dataframe)
+
+"""
+Likelihood Weighted Sampling
+"""
+struct LikelihoodWeightedSampler <: BayesNetSampler
+    evidence::Assignment
+end
+LikelihoodWeightedSampler(pair::Pair{NodeName}...) =
+        LikelihoodWeightedSampler(Assignment(pair))
+
+function Base.rand!(a::Assignment, bn::BayesNet, sampler::LikelihoodWeightedSampler)
+    get_weighted_sample!(a, sampler.weighted_dataframe)
+    return a
+end
+
+Base.rand(bn::BayesNet, sampler::LikelihoodWeightedSampler, nsamples::Integer) =
+        get_weighted_dataframe(bn, nsamples, sampler.evidence)
+
+#
+# only used by the src/gibbs code, not the inference code
+#
 """
 A dataset of variable assignments is obtained with an additional column
 of weights in accordance with the likelihood of each assignment.
@@ -122,7 +171,9 @@ function get_weighted_dataframe(bn::BayesNet, nsamples::Integer, evidence::Assig
 
     convert(DataFrame, t)
 end
-get_weighted_dataframe(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName}...) = get_weighted_dataframe(bn, nsamples, Assignment(pair))
+
+get_weighted_dataframe(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName}...) =
+        get_weighted_dataframe(bn, nsamples, Assignment(pair))
 
 """
 Chooses a sample at random from a weighted dataframe
@@ -141,23 +192,5 @@ function sample_weighted_dataframe!(a::Assignment, weighted_dataframe::DataFrame
             a[varname] = weighted_dataframe[i, varname]
         end
     end
-    return a
-end
-sample_weighted_dataframe(weighted_dataframe::DataFrame) = sample_weighted_dataframe!(Assignment(), weighted_dataframe)
-
-
-"""
-Likelihood Weighted Sampling in which:
-1 - a set of initial samples are generated that adhere to the evidence.
-2 - each sample is weighted according to its likelihood
-3 - the final set of samples are sampled from the initial samples according to their weights
-"""
-struct LikelihoodWeightedSampler <: BayesNetSampler
-    weighted_dataframe::DataFrame
-end
-LikelihoodWeightedSampler(bn::BayesNet, nsamples::Integer, evidence::Assignment) = LikelihoodWeightedSampler(get_weighted_dataframe(bn, nsamples, evidence))
-LikelihoodWeightedSampler(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName}...) = LikelihoodWeightedSampler(bn, nsamples, Assignment(pair))
-function Base.rand!(a::Assignment, bn::BayesNet, sampler::LikelihoodWeightedSampler)
-    sample_weighted_dataframe!(a, sampler.weighted_dataframe)
     return a
 end

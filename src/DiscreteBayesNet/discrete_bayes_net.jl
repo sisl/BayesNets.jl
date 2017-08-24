@@ -114,9 +114,9 @@ function Base.count(bn::DiscreteBayesNet, name::NodeName, data::DataFrame)
 
     return tu
 end
+
 Base.count(bn::DiscreteBayesNet, data::DataFrame) =
         map(nodename->count(bn, nodename, data), names(bn))
-
 
 """
     statistics(

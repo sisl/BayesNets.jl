@@ -1,5 +1,25 @@
 import LightXML
 
+#
+# Table
+#
+Base.mimewritable(::MIME"text/html", table::Table) = true
+
+function Base.show(io::IO, a::MIME"text/html", table::Table)
+	show(io, a, table.potential)
+end
+
+#
+# Vector{Table}
+#
+Base.mimewritable(::MIME"text/html", tables::Vector{Table}) = true
+
+function Base.show(io::IO, a::MIME"text/html", tables::Vector{Table})
+	for table in tables
+		show(io, a, table)
+	end
+end
+
 """
     readxdsl( filename::AbstractString )
 Return a DiscreteBayesNet read from the xdsl file
