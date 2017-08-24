@@ -10,10 +10,10 @@ let
 	push!(bn, DiscreteCPD(:b, [:a], [2], [Categorical([0.5,0.5]),Categorical([0.2,0.8])]))
 
 	T = table(bn, :a)
-	@test T == DataFrame(a=[1,2], p=[0.4,0.6]) |> Table
+	@test T == DataFrame(a=[1,2], p=[0.4,0.6])
 
 	T = table(bn, :b)
-	@test T == DataFrame(a=[1,2,1,2], b=[1,1,2,2], p=[0.5,0.2,0.5,0.8]) |> Table
+	@test T == DataFrame(a=[1,2,1,2], b=[1,1,2,2], p=[0.5,0.2,0.5,0.8])
 
 	data = DataFrame(a=[1,1,1,1,2,2,2,2],
 		             b=[1,2,1,2,1,1,1,2])
