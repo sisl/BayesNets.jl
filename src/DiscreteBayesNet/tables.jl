@@ -18,7 +18,13 @@ for f in [:names, :unique, :size, :eltype, :setindex!, :getindex]
     @eval (Base.$f)(t::Table, x...) = $f(t.potential, x...)
 end
 
-nrow(t::Table) = nrow(t.potential)
+for s in [:(==), :(!=)]
+    @eval (Base.$s)(t::Table, f::DataFrame) = $s(t.potential, f)
+    @eval (Base.$s)(f::DataFrame, t::Table) = $s(f, t.potential)
+    @eval (Base.$s)(t1::Table, t2::Table) = $s(t1.potential, t2.potential)
+end
+
+DataFrames.nrow(t::Table) = nrow(t.potential)
 
 """
 Table multiplication

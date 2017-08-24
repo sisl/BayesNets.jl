@@ -44,9 +44,9 @@ end
 
 let
     # estimation
-    df = estimate(Table(DataFrame(
+    df = estimate(DataFrame(
         A = [false, false, true, true, true]
-    )))
+    ))
     @test elementwise_isapprox(df[:p], [2/5, 3/5])
 
     # TODO: properly test this
