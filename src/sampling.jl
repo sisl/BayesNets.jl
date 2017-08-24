@@ -110,6 +110,7 @@ function get_weighted_sample!(a::Assignment, bn::BayesNet, evidence::Assignment)
             a[varname] = rand(cpd, a)
         end
     end
+
     return (a, w)
 end
 
@@ -131,14 +132,16 @@ Likelihood Weighted Sampling
 struct LikelihoodWeightedSampler <: BayesNetSampler
     evidence::Assignment
 end
+LikelihoodWeightedSampler(pair::Pair{NodeName}...) =
+        LikelihoodWeightedSampler(Assignment(pair))
+
 function Base.rand!(a::Assignment, bn::BayesNet, sampler::LikelihoodWeightedSampler)
     get_weighted_sample!(a, sampler.weighted_dataframe)
     return a
 end
 
-function Base.rand(bn::BayesNet, sampler::LikelihoodWeightedSampler, nsamples::Integer)
-    Table(get_weighted_dataframe(bn, nsamples, sampler.evidence))
-end
+Base.rand(bn::BayesNet, sampler::LikelihoodWeightedSampler, nsamples::Integer) =
+        get_weighted_dataframe(bn, nsamples, sampler.evidence)
 
 #
 # only used by the src/gibbs code, not the inference code

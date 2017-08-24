@@ -18,11 +18,7 @@ for f in [:names, :unique, :size, :eltype, :setindex!, :getindex]
     @eval (Base.$f)(t::Table, x...) = $f(t.potential, x...)
 end
 
-for s in [:(==), :≤, :≥, :<, :>, :(!=)]
-    @eval (Base.$s)(t::Table, f::DataFrame) = $s(t.potential, f)
-    @eval (Base.$s)(f::DataFrame, t::Table) = $s(f, t.potential)
-    @eval (Base.$s)(t1::Table, t2::Table) = $s(t1.potential, t2.potential)
-end
+nrow(t::Table) = nrow(t.potential)
 
 """
 Table multiplication
@@ -77,9 +73,10 @@ function LinAlg.normalize!(t::Table)
     return t
 end
 
+LinAlg.normalize(t::Table) = normalize!(deepcopy(t))
+
 """
-Given a Table,
-extract the rows which match the given assignment
+Given a Table, extract the rows which match the given assignment
 """
 function Base.select(t::Table, a::Assignment)
     f = t.potential
@@ -98,15 +95,13 @@ function Base.select(t::Table, a::Assignment)
 end
 
 """
-takes a factor represented as a DataFrame
+takes a list of observations of assignments represented as a DataFrame
 or a set of data samples (without :p),
 takes the unique assignments,
 and estimates the associated probability of each assignment
 based on its frequency of occurrence.
 """
-function Distributions.estimate(t::Table)
-    f = t.potential
-
+function Distributions.estimate(f::DataFrame)
     w = ones(size(f, 1))
     t = f
     if haskey(f, :p)

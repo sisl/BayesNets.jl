@@ -14,23 +14,3 @@ end
 function Base.show(f::IO, a::MIME"image/svg+xml", bn::BayesNet)
  	show(f, a, plot(bn))
 end
-
-#
-# Table
-#
-Base.mimewritable(::MIME"text/html", table::Table) = true
-
-function Base.show(io::IO, a::MIME"text/html", table::Table)
-	show(io, a, table.potential)
-end
-
-#
-# Vector{Table}
-#
-Base.mimewritable(::MIME"text/html", tables::Vector{Table}) = true
-
-function Base.show(io::IO, a::MIME"text/html", tables::Vector{Table})
-	for table in tables
-		show(io, a, table)
-	end
-end
