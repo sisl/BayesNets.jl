@@ -44,11 +44,11 @@ end
 
 let
     # estimation
-    df = estimate(DataFrame(
+    table = fit(Table, DataFrame(
         A = [false, false, true, true, true]
     ))
-    @test elementwise_isapprox(df[:p], [2/5, 3/5])
+    @test elementwise_isapprox(table[:p], [2/5, 3/5])
 
     # TODO: properly test this
-    estimate_convergence(df, Assignment(:A=>true))
+    # estimate_convergence(df, Assignment(:A=>true))
 end

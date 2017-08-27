@@ -123,31 +123,31 @@ function Distributions.fit(::Type{Table}, f::DataFrame)
     return Table(tu)
 end
 
-"""
-TODO: what is this for?
-"""
-function estimate_convergence(t::Table, a::Assignment)
-    f = t.potential
-
-    n = size(f, 1)
-    p = zeros(n)
-    w = ones(n)
-    if haskey(f, :p)
-        w = f[:p]
-    end
-
-    dfindex = find([haskey(a, n) for n in names(f)])
-    dfvalues = [a[n] for n in names(f)[dfindex]]'
-
-    cumWeight = 0.0
-    cumTotalWeight = 0.0
-    for i in 1:n
-        if convert(Array, f[i, dfindex]) == dfvalues
-            cumWeight += w[i]
-        end
-        cumTotalWeight += w[i]
-        p[i] = cumWeight / cumTotalWeight
-    end
-
-    return p
-end
+# """
+# TODO: what is this for?
+# """
+# function estimate_convergence(t::Table, a::Assignment)
+#     f = t.potential
+#
+#     n = size(f, 1)
+#     p = zeros(n)
+#     w = ones(n)
+#     if haskey(f, :p)
+#         w = f[:p]
+#     end
+#
+#     dfindex = find([haskey(a, n) for n in names(f)])
+#     dfvalues = [a[n] for n in names(f)[dfindex]]'
+#
+#     cumWeight = 0.0
+#     cumTotalWeight = 0.0
+#     for i in 1:n
+#         if convert(Array, f[i, dfindex]) == dfvalues
+#             cumWeight += w[i]
+#         end
+#         cumTotalWeight += w[i]
+#         p[i] = cumWeight / cumTotalWeight
+#     end
+#
+#     return p
+# end

@@ -46,7 +46,7 @@ export
     table,
     sumout,
     normalize,
-    estimate_convergence,
+    # estimate_convergence,
     readxdsl,
 
     # generate BNs
