@@ -107,7 +107,7 @@ takes the unique assignments,
 and estimates the associated probability of each assignment
 based on its frequency of occurrence.
 """
-function Distributions.estimate(f::DataFrame)
+function Distributions.fit(::Type{Table}, f::DataFrame)
     w = ones(size(f, 1))
     t = f
     if haskey(f, :p)
@@ -148,6 +148,6 @@ function estimate_convergence(t::Table, a::Assignment)
         cumTotalWeight += w[i]
         p[i] = cumWeight / cumTotalWeight
     end
-    
+
     return p
 end
