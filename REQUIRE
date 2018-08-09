@@ -3,7 +3,6 @@ Distributions 0.11.0
 Discretizers 0.3.0
 Iterators 0.1.9
 LightGraphs 0.6.0
-DataFrames 0.8.0
 TikzGraphs 0.1.1
 LightXML 0.3.0
 Reexport 0.0.3
