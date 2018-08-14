@@ -37,14 +37,14 @@ Create a factor with dimensions `dims`, each with lengths corresponding to
 `lengths`. `fill_value` will fill the potential array with that value.
 To keep uninitialized, use `fill_value=nothing`.
 """
-Factor(dims::NodeNames, lengths::Vector{Int}, ::Void) =
-    Factor(dims, Array{Float64}(lengths...))
+Factor(dims::NodeNames, lengths::Vector{Int}, ::Nothing) =
+    Factor(dims, Array{Float64}(undef, lengths...))
 
 Factor(dims::NodeNames, lengths::Vector{Int}, fill_value::Number=0) =
     Factor(dims, fill(Float64(fill_value), lengths...))
 
-Factor(dim::NodeName, length::Int, ::Void) =
-    Factor([dims], Array{Float64}(length))
+Factor(dim::NodeName, length::Int, ::Nothing) =
+    Factor([dims], Array{Float64}(undef, length))
 
 Factor(dim::NodeName, length::Int, fill_value::Number=0) =
     Factor(dims, fill(Float64(fill_value), length))
@@ -106,7 +106,7 @@ Returns a tuple of the dimensions of `ϕ`
 """
 Base.size(ϕ::Factor) = size(ϕ.potential)
 Base.size(ϕ::Factor, dim::NodeName) = size(ϕ.potential, indexin(dim, ϕ))
-Base.size{N}(ϕ::Factor, dims::Vararg{NodeName, N}) =
+Base.size(ϕ::Factor, dims::Vararg{NodeName, N}) where {N} =
     ntuple(k -> size(ϕ, dims[k]), Val{N})
 
 """
@@ -126,7 +126,7 @@ Base.in(dim::NodeName, ϕ::Factor) = dim in names(ϕ)
 
 Return the index of dimension `dim` in `ϕ`, or 0 if not in `ϕ`.
 """
-Base.indexin(dim::NodeName, ϕ::Factor) = findnext(ϕ.dimensions, dim, 1)
+Base.indexin(dim::NodeName, ϕ::Factor) = something(findnext(isequal(dim), ϕ.dimensions, 1), 0)
 Base.indexin(dims::NodeNames, ϕ::Factor) = indexin(dims, names(ϕ))
 
 
@@ -135,7 +135,7 @@ Base.indexin(dims::NodeNames, ϕ::Factor) = indexin(dims, names(ϕ))
 
 Fill with random values
 """
-Base.rand!(ϕ::Factor) = rand!(ϕ.potential)
+Random.rand!(ϕ::Factor) = Random.rand!(ϕ.potential)
 
 """
 Appends a new dimension to a Factor

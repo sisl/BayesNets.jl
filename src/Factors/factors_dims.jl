@@ -12,7 +12,7 @@
 Return a normalized copy of the factor so all instances of dims have
 (or the entire factors has) p-norm of 1
 """
-LinAlg.normalize(ϕ::Factor, x...; k...) = normalize!(deepcopy(ϕ), x...; k...)
+LinearAlgebra.normalize(ϕ::Factor, x...; k...) = normalize!(deepcopy(ϕ), x...; k...)
 
 """
     normalize!(ϕ, dims; p=1)
@@ -21,7 +21,7 @@ LinAlg.normalize(ϕ::Factor, x...; k...) = normalize!(deepcopy(ϕ), x...; k...)
 Normalize the factor so all instances of dims have (or the entire factors has)
 p-norm of 1
 """
-function LinAlg.normalize!(ϕ::Factor, dims::NodeNameUnion; p::Int=1)
+function LinearAlgebra.normalize!(ϕ::Factor, dims::NodeNameUnion; p::Int=1)
     dims = unique(convert(NodeNames, dims))
     _check_dims_valid(dims, ϕ)
 
@@ -42,7 +42,7 @@ function LinAlg.normalize!(ϕ::Factor, dims::NodeNameUnion; p::Int=1)
     return ϕ
 end
 
-function LinAlg.normalize!(ϕ::Factor; p::Int=1)
+function LinearAlgebra.normalize!(ϕ::Factor; p::Int=1)
     if p == 1
         total = sum(abs, ϕ.potential)
     elseif p == 2
@@ -57,10 +57,10 @@ function LinAlg.normalize!(ϕ::Factor; p::Int=1)
 end
 
 # reduce the dimension and then squeeze them out
-_reddim(op, ϕ::Factor, inds::Tuple, ::Void) =
-            squeeze(reducedim(op, ϕ.potential, inds), inds)
+_reddim(op, ϕ::Factor, inds::Tuple, ::Nothing) =
+            dropdims(reduce(op, ϕ.potential, dims=inds), dims=inds)
 _reddim(op, ϕ::Factor, inds::Tuple, v0) =
-            squeeze(reducedim(op, ϕ.potential, inds, v0), inds)
+            dropdims(reducedim(op, ϕ.potential, inds, v0), dims=inds)
 
 """
     reducedim(op, ϕ, dims, [v0])
@@ -74,7 +74,7 @@ function Base.reducedim(op, ϕ::Factor, dims::NodeNameUnion, v0=nothing)
     _check_dims_valid(dims, ϕ)
 
     # needs to be a tuple for squeeze
-    inds = (indexin(dims, ϕ)...)
+    inds = (indexin(dims, ϕ)...,)
 
     dims_new = deepcopy(ϕ.dimensions)
     deleteat!(dims_new, inds)
@@ -90,7 +90,7 @@ function reducedim!(op, ϕ::Factor, dims::NodeNameUnion, v0=nothing)
     _check_dims_valid(dims, ϕ)
 
     # needs to be a tuple for squeeze
-    inds = (indexin(dims, ϕ)...)
+    inds = (indexin(dims, ϕ)...,)
 
     deleteat!(ϕ.dimensions, inds)
     ϕ.potential = _reddim(op, ϕ, inds, v0)
@@ -220,8 +220,8 @@ function Base.join(op, ϕ1::Factor, ϕ2::Factor, kind::Symbol=:outer,
             reshape_lengths = vcat(size(ϕ1)..., size_unique2...)
             #new_v = duplicate(ϕ1.potential, size_unique2)
             new_v = Array{Float64}(reshape_lengths...)
-            reshape_lengths[index_unique1] = 1
-            temp = reshape(temp, (reshape_lengths...))
+            reshape_lengths[index_unique1] .= 1
+            temp = reshape(temp, (reshape_lengths...,))
         else
             new_v = similar(ϕ1.potential)
             temp = ϕ2.potential
@@ -247,8 +247,8 @@ function Base.join(op, ϕ1::Factor, ϕ2::Factor, kind::Symbol=:outer,
                             "non-common dimensions"))
             end
 
-            inds1 = (findin(ϕ1.dimensions, common)...)
-            inds2 = (findin(ϕ2.dimensions, common)...)
+            inds1 = (findin(ϕ1.dimensions, common)...,)
+            inds2 = (findin(ϕ2.dimensions, common)...,)
 
             if v0 != nothing
                 v1_new = squeeze(reducedim(op, ϕ1.potential, inds1, v0), inds)

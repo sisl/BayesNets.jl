@@ -6,7 +6,7 @@ A CPD for which the distribution never changes.
 
 While a StaticCPD can have parents, their assignments will not affect the distribution.
 """
-type StaticCPD{D} <: CPD{D}
+mutable struct StaticCPD{D} <: CPD{D}
     target::NodeName
     parents::NodeNames
     d::D
@@ -19,11 +19,11 @@ parents(cpd::StaticCPD) = cpd.parents
 (cpd::StaticCPD)() = (cpd)(Assignment()) # cpd()
 (cpd::StaticCPD)(pair::Pair{NodeName}...) = (cpd)(Assignment(pair)) # cpd(:A=>1)
 
-function Distributions.fit{D<:Distribution}(::Type{StaticCPD{D}},
-    data::DataFrame,
-    target::NodeName,
-    parents::NodeNames=NodeName[],
-    )
+function Distributions.fit(::Type{StaticCPD{D}},
+                           data::DataFrame,
+                           target::NodeName,
+                           parents::NodeNames=NodeName[],
+                           ) where {D<:Distribution}
 
     d = fit(D, data[target])
     StaticCPD(target, parents, d)

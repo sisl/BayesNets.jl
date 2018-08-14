@@ -33,7 +33,7 @@ let
 	datamat = convert(Matrix{Int}, data)'
 
 	for (i,cpd) in enumerate(bn.cpds)
-		parent_list[i] = in_neighbors(bn.dag, i)
+		parent_list[i] = inneighbors(bn.dag, i)
 		bincounts[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
 	end
 

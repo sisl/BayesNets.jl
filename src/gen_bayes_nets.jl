@@ -32,7 +32,7 @@ function rand_discrete_bn(num_nodes::Int=16,
 
     bn = DiscreteBayesNet();
 
-    for i in range(1, num_nodes)
+    for i in range(1, length=num_nodes)
         # the symbol to add, NX, where X is its number
         s = Symbol("N", i)
         n_states = rand(2:max_num_states)

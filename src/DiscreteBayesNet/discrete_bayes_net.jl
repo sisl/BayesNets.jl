@@ -12,7 +12,7 @@ const DiscreteBayesNet = BayesNet{DiscreteCPD}
 DiscreteBayesNet() = BayesNet(DiscreteCPD)
 
 function _get_parental_ncategories(bn::DiscreteBayesNet, parents::NodeNames)
-    parental_ncategories = Array{Int}(length(parents))
+    parental_ncategories = Array{Int}(undef, length(parents))
     for (i,p) in enumerate(parents)
         parent_cpd = get(bn, p)::CategoricalCPD
 
@@ -37,7 +37,7 @@ function rand_cpd(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, pare
     parental_ncategories = _get_parental_ncategories(bn, parents)
 
     Q = prod(parental_ncategories)
-    distributions = Array{Categorical{Float64}}(Q)
+    distributions = Array{Categorical{Float64}}(undef, Q)
     dir = Dirichlet(ncategories, uniform_dirichlet_prior) # draw random categoricals from a Dirichlet distribution
     for q in 1:Q
         distributions[q] = Categorical{Float64}(rand(dir))
@@ -242,7 +242,7 @@ function statistics(dag::DAG, data::DataFrame)
 
     n == ncol(data) || throw(DimensionMismatch("statistics' dag and data must be of the same dimension, $n ≠ $(ncol(data))"))
 
-    parents = [in_neighbors(dag, i) for i in 1:n]
+    parents = [inneighbors(dag, i) for i in 1:n]
     ncategories = [Int(infer_number_of_instantiations(data[i])) for i in 1 : n]
     datamat = convert(Matrix{Int}, data)'
 
@@ -253,7 +253,7 @@ function statistics(bn::DiscreteBayesNet, target::NodeName, data::DataFrame)
 
     n = nv(bn.dag)
     targetind = bn.name_to_index[target]
-    parents = in_neighbors(bn.dag, targetind)
+    parents = inneighbors(bn.dag, targetind)
     ncategories = [Int(infer_number_of_instantiations(data[i])) for i in 1 : n]
     datamat = convert(Matrix{Int}, data)'
 

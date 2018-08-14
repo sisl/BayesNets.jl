@@ -14,13 +14,13 @@ INPUT:
 OUTPUT:
     the Bayesian score, Float64
 """
-function bayesian_score_component{I<:Integer}(
+function bayesian_score_component(
     i::Int,
     parents::AbstractVector{I},
     ncategories::AbstractVector{Int},
     data::AbstractMatrix{Int},
     alpha::AbstractMatrix{Float64}, # ncategories[i]×prod(ncategories[parents])
-    )
+) where {I<:Integer}
 
     (n, m) = size(data)
     if !isempty(parents)
@@ -37,13 +37,13 @@ function bayesian_score_component{I<:Integer}(
     N = sparse(vec(data[i,:]), vec(js), 1, size(alpha)...) # note: duplicates are added together
     sum(lgamma.(alpha + N)) - sum(lgamma.(alpha)) + sum(lgamma.(sum(alpha,1))) - sum(lgamma.(sum(alpha,1) + sum(N,1)))::Float64
 end
-function bayesian_score_component_uniform{I<:Integer}(
+function bayesian_score_component_uniform(
     i::Int,
     parents::AbstractVector{I},
     ncategories::AbstractVector{Int},
     data::AbstractMatrix{Int},
     prior::DirichletPrior,
-    )
+) where {I<:Integer}
 
     (n, m) = size(data)
     if !isempty(parents)
@@ -78,13 +78,13 @@ function bayesian_score_component_uniform{I<:Integer}(
     sum3 = sum(lgamma.(nonzeros(sN) + cc)) + (size(N, 2) - nnz(sN)) * lgamma(cc)
     sum0 - sum1 + sum2 - sum3::Float64
 end
-function bayesian_score_component{I<:Integer}(
+function bayesian_score_component(
     i::Int,
     parents::AbstractVector{I},
     ncategories::AbstractVector{Int},
     data::AbstractMatrix{Int},
     prior::DirichletPrior,
-    )
+) where {I<:Integer}
 
     if typeof(prior) == UniformPrior
         return bayesian_score_component_uniform(i, parents, ncategories, data, prior)
@@ -114,7 +114,7 @@ function bayesian_score(bn::DiscreteBayesNet, data::DataFrame, prior::DirichletP
     datamat = convert(Matrix{Int}, data)'
 
     for (i,cpd) in enumerate(bn.cpds)
-        parent_list[i] = in_neighbors(bn.dag, i)
+        parent_list[i] = inneighbors(bn.dag, i)
         ncategories[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
     end
 
@@ -171,7 +171,7 @@ function bayesian_score_components(bn::DiscreteBayesNet, data::DataFrame, prior:
     datamat = convert(Matrix{Int}, data)'
 
     for (i,cpd) in enumerate(bn.cpds)
-        parent_list[i] = in_neighbors(bn.dag, i)
+        parent_list[i] = inneighbors(bn.dag, i)
         ncategories[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
     end
 
@@ -195,7 +195,7 @@ function bayesian_score(G::DAG,
         datamat[i,:] = data[names[i]]
     end
 
-    # NOTE: this is badj(G) prior to v0.6 and in_neighbors(G) in v0.6
-    backwards_adjacency = [in_neighbors(G, i) for i in 1 : nv(G)]
+    # NOTE: this is badj(G) prior to v0.6 and inneighbors(G) in v0.6
+    backwards_adjacency = [inneighbors(G, i) for i in 1 : nv(G)]
     return bayesian_score(backwards_adjacency, ncategories, datamat, prior)
 end

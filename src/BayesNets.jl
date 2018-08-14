@@ -4,6 +4,10 @@ module BayesNets
 
 using Reexport
 using Parameters
+using Random
+using LinearAlgebra
+using Nullables
+using Printf
 
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
@@ -17,8 +21,8 @@ import StatsBase: sample, Weights
 import TikzGraphs: plot
 import LightGraphs: DiGraph, add_edge!, rem_edge!,
        add_vertex!, rem_vertex!, has_edge,
-       edges, topological_sort_by_dfs, in_neighbors,
-       out_neighbors, neighbors, is_cyclic, nv, ne,
+       edges, topological_sort_by_dfs, inneighbors,
+       outneighbors, neighbors, is_cyclic, nv, ne,
        outdegree, bfs_tree, dst
 
 export

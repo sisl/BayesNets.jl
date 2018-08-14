@@ -453,7 +453,7 @@ end
 """
     NOTE: this is inefficient. Use rand(bn, GibbsSampler, nsamples) whenever you can
 """
-function Base.rand!(a::Assignment, bn::BayesNet, sampler::GibbsSampler)
+function Random.rand!(a::Assignment, bn::BayesNet, sampler::GibbsSampler)
     df = rand(bn, sampler, 1)
     for name in names(bn)
         a[name] = df[1, name]

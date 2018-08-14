@@ -21,7 +21,7 @@ If it isn't an evidence node, this will break
     return z
 end
 
-function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
+function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBayesNet}
 
     length(inf.query) == 1 || throw(ArgumentError("There can only be one query variable"))
 

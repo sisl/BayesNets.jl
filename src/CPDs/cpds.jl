@@ -11,6 +11,9 @@ using Discretizers
 using Distributions
 using DataFrames
 using Reexport
+using Printf
+using Random
+using Statistics
 
 include(joinpath("../ProbabilisticGraphicalModels", "ProbabilisticGraphicalModels.jl"))
 using BayesNets.CPDs.ProbabilisticGraphicalModels
@@ -85,7 +88,7 @@ parentless(cpd::CPD) = isempty(parents(cpd))
     disttype(cpd::CPD)
 Return the type of the CPD's distribution
 """
-disttype{D}(cpd::CPD{D}) = D
+disttype(cpd::CPD{D}) where {D} = D
 
 """
     rand(cpd::CPD)

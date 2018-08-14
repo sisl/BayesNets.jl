@@ -9,24 +9,24 @@ abstract type BayesNetSampler end
 """
 Overwrites assignment with a sample from bn using the sampler
 """
-Base.rand!(a::Assignment, bn::BayesNet, sampler::BayesNetSampler) =
+Random.rand!(a::Assignment, bn::BayesNet, sampler::BayesNetSampler) =
         error("rand! not implemented for $(typeof(sampler))")
 
 """
 Returns an assignment sampled from the bn using the provided sampler
 """
-Base.rand(bn::BayesNet, sampler::BayesNetSampler) = rand!(Assignment(), bn, sampler)
+Random.rand(bn::BayesNet, sampler::BayesNetSampler) = rand!(Assignment(), bn, sampler)
 
 """
 Generates a DataFrame containing a dataset of variable assignments.
 Always return a DataFrame with `nsamples` rows.
 """
-function Base.rand(bn::BayesNet, sampler::BayesNetSampler, nsamples::Integer)
+function Random.rand(bn::BayesNet, sampler::BayesNetSampler, nsamples::Integer)
 
     a = rand(bn, sampler)
     df = DataFrame()
     for cpd in bn.cpds
-        df[name(cpd)] = Array{typeof(a[name(cpd)])}(nsamples)
+        df[name(cpd)] = Array{typeof(a[name(cpd)])}(undef, nsamples)
     end
 
     for i in 1:nsamples
@@ -49,18 +49,18 @@ The default sampler.
 """
 struct DirectSampler <: BayesNetSampler end
 
-function Base.rand!(a::Assignment, bn::BayesNet, sampler::DirectSampler)
+function Random.rand!(a::Assignment, bn::BayesNet, sampler::DirectSampler)
     for cpd in bn.cpds
         a[name(cpd)] = rand(cpd, a)
     end
     a
 end
 
-Base.rand!(a::Assignment, bn::BayesNet) = rand!(a, bn, DirectSampler())
+Random.rand!(a::Assignment, bn::BayesNet) = rand!(a, bn, DirectSampler())
 
-Base.rand(bn::BayesNet, nsamples::Integer) = rand(bn, DirectSampler(), nsamples)
+Random.rand(bn::BayesNet, nsamples::Integer) = rand(bn, DirectSampler(), nsamples)
 
-Base.rand(bn::BayesNet) = rand(bn, DirectSampler())
+Random.rand(bn::BayesNet) = rand(bn, DirectSampler())
 
 #
 # Rejection Sampling
@@ -76,7 +76,7 @@ end
 RejectionSampler(pair::Pair{NodeName}...; max_nsamples::Integer=100) =
         RejectionSampler(Assignment(pair), max_nsamples)
 
-function Base.rand!(a::Assignment, bn::BayesNet, sampler::RejectionSampler)
+function Random.rand!(a::Assignment, bn::BayesNet, sampler::RejectionSampler)
     for sample_count in 1 : sampler.max_nsamples
         rand!(a, bn)
         if consistent(a, sampler.evidence)
@@ -86,10 +86,10 @@ function Base.rand!(a::Assignment, bn::BayesNet, sampler::RejectionSampler)
     return empty!(a)
 end
 
-Base.rand(bn::BayesNet, nsamples::Integer, evidence::Assignment) =
+Random.rand(bn::BayesNet, nsamples::Integer, evidence::Assignment) =
         rand(bn, RejectionSampler(evidence, 100), nsamples)
 
-Base.rand(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName}...) =
+Random.rand(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName}...) =
         rand(bn, nsamples, Assignment(pair))
 
 #
@@ -135,12 +135,12 @@ end
 LikelihoodWeightedSampler(pair::Pair{NodeName}...) =
         LikelihoodWeightedSampler(Assignment(pair))
 
-function Base.rand!(a::Assignment, bn::BayesNet, sampler::LikelihoodWeightedSampler)
+function Random.rand!(a::Assignment, bn::BayesNet, sampler::LikelihoodWeightedSampler)
     get_weighted_sample!(a, sampler.weighted_dataframe)
     return a
 end
 
-Base.rand(bn::BayesNet, sampler::LikelihoodWeightedSampler, nsamples::Integer) =
+Random.rand(bn::BayesNet, sampler::LikelihoodWeightedSampler, nsamples::Integer) =
         get_weighted_dataframe(bn, nsamples, sampler.evidence)
 
 #

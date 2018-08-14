@@ -83,8 +83,8 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
 
     if nparents_disc != 0
 
-        parental_ncategories = Array{Int}(nparents_disc)
-        dims = Array{UnitRange{Int64}}(nparents_disc)
+        parental_ncategories = Array{Int}(undef, nparents_disc)
+        dims = Array{UnitRange{Int64}}(undef, nparents_disc)
         for (i,p) in enumerate(parents_disc)
             parental_ncategories[i] = infer_number_of_instantiations(data[p])
             dims[i] = 1:parental_ncategories[i]
@@ -93,7 +93,7 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
         # ---------------------
         # fit linear gaussians
 
-        linear_gaussians = Array{LinearGaussianCPD}(prod(parental_ncategories))
+        linear_gaussians = Array{LinearGaussianCPD}(undef, prod(parental_ncategories))
         for (q, parent_instantiation) in enumerate(product(dims...))
             indeces = Int[]
             for i in 1 : nrow(data)

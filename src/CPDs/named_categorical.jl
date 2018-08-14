@@ -3,7 +3,7 @@ struct NamedCategorical{N<:MapableTypes} <: DiscreteUnivariateDistribution
     cat::Categorical
     map::CategoricalDiscretizer{N, Int}
 end
-function NamedCategorical{N<:MapableTypes}(items::AbstractVector{N}, probs::Vector{Float64})
+function NamedCategorical(items::AbstractVector{N}, probs::Vector{Float64}) where {N<:MapableTypes}
     cat = Categorical(probs./sum(probs))
     map = CategoricalDiscretizer(items)
     NamedCategorical{N}(cat, map)
@@ -20,8 +20,8 @@ Distributions.ncategories(d::NamedCategorical) = Distributions.ncategories(d.cat
 Distributions.probs(d::NamedCategorical) = Distributions.probs(d.cat)
 Distributions.params(d::NamedCategorical) = Distributions.params(d.cat)
 
-Distributions.pdf{N<:MapableTypes}(d::NamedCategorical{N}, x::N) = Distributions.pdf(d.cat, encode(d.map, x))
-Distributions.logpdf{N<:MapableTypes}(d::NamedCategorical{N}, x::N) = Distributions.logpdf(d.cat, encode(d.map, x))
+Distributions.pdf(d::NamedCategorical{N}, x::N) where {N<:MapableTypes} = Distributions.pdf(d.cat, encode(d.map, x))
+Distributions.logpdf(d::NamedCategorical{N}, x::N) where {N<:MapableTypes} = Distributions.logpdf(d.cat, encode(d.map, x))
 Base.rand(d::NamedCategorical) = rand(sampler(d))
 
 struct MappedAliasTable <: Sampleable{Univariate,Discrete}
@@ -29,7 +29,7 @@ struct MappedAliasTable <: Sampleable{Univariate,Discrete}
    map::CategoricalDiscretizer
 end
 Distributions.ncategories(s::MappedAliasTable) = Distributions.ncategories(s.alias)
-Base.rand(s::MappedAliasTable) = decode(s.map, rand(s.alias))
+Random.rand(s::MappedAliasTable) = decode(s.map, rand(s.alias))
 Base.show(io::IO, s::MappedAliasTable) = @printf(io, "MappedAliasTable with %d entries", ncategories(s))
 
 Distributions.sampler(d::NamedCategorical) = MappedAliasTable(Distributions.sampler(d.cat), d.map)

@@ -8,18 +8,18 @@ abstract type Sampler end
 """
 Overwrites Assignment with a sample from the PGM using the given Sampler
 """
-Base.rand!(a::Assignment, pgm::ProbabilisticGraphicalModel, sampler::Sampler) = error("rand! not implemented for $(typeof(Sampler))")
+Random.rand!(a::Assignment, pgm::ProbabilisticGraphicalModel, sampler::Sampler) = error("rand! not implemented for $(typeof(Sampler))")
 
 """
 Returns a new Assignment sampled from the PGM using the provided sampler
 """
-Base.rand(pgm::ProbabilisticGraphicalModel, sampler::Sampler) = rand!(Assignment(), bn, sampler)
+Random.rand(pgm::ProbabilisticGraphicalModel, sampler::Sampler) = rand!(Assignment(), bn, sampler)
 
 """
 Generates a DataFrame containing a dataset of variable assignments.
 Always return a DataFrame with `nsamples` rows.
 """
-function Base.rand(pgm::ProbabilisticGraphicalModel, sampler::Sampler, nsamples::Integer)
+function Random.rand(pgm::ProbabilisticGraphicalModel, sampler::Sampler, nsamples::Integer)
 
     a = rand(pgm, sampler)
     df = DataFrame()

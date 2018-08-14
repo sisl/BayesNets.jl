@@ -49,7 +49,7 @@ macro required_func(signature)
     # if you are modifying this and want to debug, it might be helpful to print
     # println(error_string)
 
-    body = Expr(:call, :error, parse("\"$error_string\""))
+    body = Expr(:call, :error, Meta.parse("\"$error_string\""))
 
     return Expr(:function, esc(signature), esc(body))
 end
@@ -58,7 +58,7 @@ end
     infer_number_of_instantiations{I<:Int}(arr::AbstractVector{I})
 Infer the number of instantiations, N, for a data type, assuming that it takes on the values 1:N
 """
-function infer_number_of_instantiations{I<:Int}(arr::AbstractVector{I})
+function infer_number_of_instantiations(arr::AbstractVector{I}) where {I<:Int}
     lo, hi = extrema(arr)
     lo ≥ 1 || error("infer_number_of_instantiations assumes values in 1:N, value $lo found!")
     lo == 1 || warn("infer_number_of_instantiations assumes values in 1:N, lowest value is $(lo)!")
@@ -68,7 +68,7 @@ end
 paramcount(::Bool) = 1
 paramcount(::Real) = 1
 paramcount(::Symbol) = 1
-paramcount{R<:Real}(arr::Vector{R}) = length(arr)
+paramcount(arr::Vector{R}) where {R<:Real} = length(arr)
 
 function paramcount(tup::Tuple)
     retval = 0

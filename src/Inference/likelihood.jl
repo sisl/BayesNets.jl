@@ -13,7 +13,7 @@ Since this uses a Factor, it is only efficient if the number of samples
 is (signifcantly) greater than the number of possible instantiations for the
 query variables
 """
-function infer{BN<:DiscreteBayesNet}(im::LikelihoodWeightingInference, inf::InferenceState{BN})
+function infer(im::LikelihoodWeightingInference, inf::InferenceState{BN}) where {BN<:DiscreteBayesNet}
     bn = inf.pgm
     nodes = names(bn)
     query = inf.query
