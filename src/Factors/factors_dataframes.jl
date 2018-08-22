@@ -15,3 +15,6 @@ function Base.convert(::Type{DataFrame}, ϕ::Factor)
 end
 
 
+function DataFrame(ϕ::Factor)
+    return convert(DataFrame, ϕ)
+end

@@ -18,7 +18,7 @@ using Statistics
 include(joinpath("../ProbabilisticGraphicalModels", "ProbabilisticGraphicalModels.jl"))
 using BayesNets.CPDs.ProbabilisticGraphicalModels
 
-import Iterators: product
+using IterTools
 
 export
     CPD,                           # the abstract CPD type

@@ -1,5 +1,3 @@
- __precompile__()
-
 module BayesNets
 
 using Reexport
@@ -8,6 +6,7 @@ using Random
 using LinearAlgebra
 using Nullables
 using Printf
+using IterTools
 
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
@@ -16,7 +15,6 @@ include(joinpath("CPDs", "cpds.jl"))
 import Base: *, /, +, -, normalize
 import DataStructures: PriorityQueue, peek
 import BayesNets.CPDs.ProbabilisticGraphicalModels: markov_blanket, is_independent, infer
-import Iterators: subsets, product
 import StatsBase: sample, Weights
 import TikzGraphs: plot
 import LightGraphs: DiGraph, add_edge!, rem_edge!,

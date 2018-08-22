@@ -57,7 +57,7 @@ function duplicate(A::Array, dims::Dims)
 
     # zero in dims means no looping
     @simd for index in 1:prod(dims)
-        unsafe_copy!(B, (index - 1) * length_in + 1, A, 1, length_in)
+        unsafe_copyto!(B, (index - 1) * length_in + 1, A, 1, length_in)
     end
 
     return B

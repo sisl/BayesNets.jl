@@ -57,7 +57,7 @@ Construct a Factor from a DiscreteCPD.
 function Base.convert(::Type{Factor}, cpd::DiscreteCPD)
     dims = vcat(name(cpd), parents(cpd))
     lengths = tuple(ncategories(cpd), cpd.parental_ncategories...)
-    p = Array{Float64}(lengths)
+    p = Array{Float64}(undef,lengths)
     p[:] = vcat([d.p for d in cpd.distributions]...)
     return Factor(dims, p)
 end
@@ -107,7 +107,7 @@ Returns a tuple of the dimensions of `ϕ`
 Base.size(ϕ::Factor) = size(ϕ.potential)
 Base.size(ϕ::Factor, dim::NodeName) = size(ϕ.potential, indexin(dim, ϕ))
 Base.size(ϕ::Factor, dims::Vararg{NodeName, N}) where {N} =
-    ntuple(k -> size(ϕ, dims[k]), Val{N})
+    ntuple(k -> size(ϕ, dims[k]), Val(N))
 
 """
 Total number of elements in Factor (potential)
@@ -169,7 +169,7 @@ instances
 function pattern(ϕ::Factor, dims)
     inds = indexin(dims, ϕ)
 
-    zero_loc = findfirst(inds, 0)
+    zero_loc = something(findfirst(isequal(0), inds), 0)
     zero_loc == 0 || not_in_factor_error(dims[zero_loc])
 
     lens = [size(ϕ)...]

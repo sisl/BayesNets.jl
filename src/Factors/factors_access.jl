@@ -41,8 +41,8 @@ function Base.setindex!(ϕ::Factor, v, a::Assignment)
 end
 
 @inline function _translate_index(ϕ::Factor, a::Assignment)
-    inds = Array{Any}(ndims(ϕ))
-    inds[:] = Colon()
+    inds = Array{Any}(undef, ndims(ϕ))
+    inds[:] .= Colon()
 
     for (i, dim) in enumerate(ϕ.dimensions)
         if haskey(a, dim)
@@ -66,6 +66,6 @@ end
     return inds
 end
 
-Base.sub2ind(ϕ::Factor, i...) = sub2ind(size(ϕ), i...)
-Base.ind2sub(ϕ::Factor, i) = ind2sub(size(ϕ), i)
+# Base.sub2ind(ϕ::Factor, i...) = sub2ind(size(ϕ), i...)
+# Base.ind2sub(ϕ::Factor, i) = ind2sub(size(ϕ), i)
 

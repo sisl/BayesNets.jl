@@ -87,7 +87,7 @@ function Distributions.fit(::Type{CategoricalCPD{D}},
     parental_ncategories = map!(p->infer_number_of_instantiations(data[p]), Array{Int}(undef, length(parents)), parents)
     dims = [1:parental_ncategories[i] for i in 1:nparents]
     distributions = Array{D}(undef, prod(parental_ncategories))
-    for (q, parent_instantiation) in enumerate(product(dims...))
+    for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
         arr = Array{eltype(data[target])}(undef, 0)
         for i in 1 : nrow(data)
             if all(j->data[i,parents[j]]==parent_instantiation[j], 1:nparents) # parental instantiation matches
@@ -133,7 +133,7 @@ function Distributions.fit(::Type{DiscreteCPD},
     dims = [1:parental_ncategories[i] for i in 1:nparents]
     distributions = Array{Categorical{Float64}}(undef, prod(parental_ncategories))
     arr = Array{eltype(data[target])}(undef, 0)
-    for (q, parent_instantiation) in enumerate(product(dims...))
+    for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
         empty!(arr)
         for i in 1 : nrow(data)
             if all(j->data[i,parents[j]]==parent_instantiation[j], 1:nparents) # parental instantiation matches

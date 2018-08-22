@@ -94,7 +94,7 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
         # fit linear gaussians
 
         linear_gaussians = Array{LinearGaussianCPD}(undef, prod(parental_ncategories))
-        for (q, parent_instantiation) in enumerate(product(dims...))
+        for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
             indeces = Int[]
             for i in 1 : nrow(data)
                 if all(j->data[i,parents_disc[j]]==parent_instantiation[j], 1:nparents_disc) # parental instantiation matches

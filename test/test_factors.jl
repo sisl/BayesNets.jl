@@ -115,7 +115,7 @@ df_original = DataFrame(ϕ)
 @test DataFrame(ϕ) == df_original
 
 # squeeze does some weird stuff man ...
-@test sum(broadcast(*, ϕ, :Z, 0.0), names(ϕ)).potential == squeeze([0.0], 1)
+@test sum(broadcast(*, ϕ, :Z, 0.0), names(ϕ)).potential == dropdims([0.0], dims=1)
 
 df = DataFrame(X = [1, 2, 3], potential = [123.0, 165.0, 237.0])
 
@@ -145,7 +145,7 @@ a = Assignment(:Y=> 2, :K => 16, :Z => 1)
 
 ϕ[Assignment(:X => 2, :Y => 1, :Z => 2)] = 1600.0
 @test ϕ.potential[2, 1, 2] == 1600.0
-@test DataFrame(ϕ)[sub2ind(ϕ, 2, 1, 2), :potential] == 1600.0
+@test DataFrame(ϕ)[LinearIndices(size(ϕ))[2, 1, 2], :potential] == 1600.0
 
 ϕ[Assignment(:X => 1, :Y => 2)] = 2016
 @test ϕ.potential[1, 2, :] == Float64[2016, 2016]

@@ -146,7 +146,7 @@ function Base.broadcast!(f, ϕ::Factor, dims::NodeNameUnion, values)
     inds = indexin(dims, ϕ)
 
     reshape_dims = ones(Int, ndims(ϕ))
-    new_values = Vector{Array{Float64}}(length(values))
+    new_values = Vector{Array{Float64}}(undef, length(values))
 
     for (i, val) in enumerate(values)
         if isa(val, Vector{Float64})
@@ -219,7 +219,7 @@ function Base.join(op, ϕ1::Factor, ϕ2::Factor, kind::Symbol=:outer,
             # set those dims to have dimension 1 for data in ϕ2
             reshape_lengths = vcat(size(ϕ1)..., size_unique2...)
             #new_v = duplicate(ϕ1.potential, size_unique2)
-            new_v = Array{Float64}(reshape_lengths...)
+            new_v = Array{Float64}(undef, reshape_lengths...)
             reshape_lengths[index_unique1] .= 1
             temp = reshape(temp, (reshape_lengths...,))
         else
