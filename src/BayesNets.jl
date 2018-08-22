@@ -7,6 +7,9 @@ using LinearAlgebra
 using Nullables
 using Printf
 using IterTools
+using Dates
+using SpecialFunctions
+using SparseArrays
 
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs

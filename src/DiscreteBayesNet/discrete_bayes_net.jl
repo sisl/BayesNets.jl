@@ -163,12 +163,12 @@ function statistics(
         for k in 2:Np
             stridevec[k] = stridevec[k-1] * ncategories[parents[k-1]]
         end
-        js = (data[parents,:] - 1)' * stridevec + 1
+        js = (data[parents,:] .- 1)' * stridevec .+ 1
     else
         js = fill(1, size(data,2))
     end
 
-    full(sparse(vec(data[targetind,:]), vec(js), 1, ncategories[targetind], q))
+    Matrix(sparse(vec(data[targetind,:]), vec(js), 1, ncategories[targetind], q))
 end
 
 """
@@ -229,7 +229,7 @@ function statistics(
     )
 
     n, m = size(data)
-    N = Array{Matrix{Int}}(n)
+    N = Array{Matrix{Int}}(undef, n)
     for i in 1 : n
         N[i] = statistics(i, parent_list[i], ncategories, data)
     end

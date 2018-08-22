@@ -28,7 +28,7 @@ function Base.getindex(ϕ::Factor, a::Assignment)
     # as always, the weird edge case to get a zero-dimensional array and not
     #  a scalar
     if ndims(new_p) == 0
-        new_p = squeeze([new_p], 1)
+        new_p = dropdims([new_p], dims=1)
     end
 
     return Factor(new_dims, new_p)

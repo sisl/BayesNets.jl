@@ -36,7 +36,7 @@ function readxdsl( filename::AbstractString )
     ces   = LightXML.get_elements_by_tagname(xroot, "nodes")[1]
     cpts  = collect(LightXML.child_elements(ces))
 
-    varnames = Array{Symbol}(length(cpts))
+    varnames = Array{Symbol}(undef, length(cpts))
     for (i,e) in enumerate(cpts)
         id = LightXML.attribute(e, "id")
         varnames[i] = Symbol(id)
@@ -50,7 +50,7 @@ function readxdsl( filename::AbstractString )
 
         for s in LightXML.get_elements_by_tagname(e, "state")
             attr = convert(String, LightXML.attribute(s, "id"))
-            @assert(!isa(match(r"\d", attr), Void), "All state ids must be integers")
+            @assert(!isa(match(r"\d", attr), Nothing), "All state ids must be integers")
         end
 
         # set the node's domain
@@ -68,7 +68,7 @@ function readxdsl( filename::AbstractString )
             parental_ncategories = _get_parental_ncategories(bn, parents)
             k = length(states)
             Q = prod(parental_ncategories)
-            distributions = Array{Categorical}(Q)
+            distributions = Array{Categorical}(undef, Q)
             for q in 1:Q
                 hi = k*q
                 lo = hi - k + 1
@@ -191,7 +191,7 @@ function Base.read(io::IO, mime::MIME"text/plain", ::Type{DiscreteBayesNet})
     idx = 0
 
     function pull_next_prob_vector(r)
-        probs = Array{Float64}(r)
+        probs = Array{Float64}(undef, r)
         for j in 1 : r-1
             probs[j] = parse(Float64, stats[idx += 1])
         end
@@ -203,11 +203,11 @@ function Base.read(io::IO, mime::MIME"text/plain", ::Type{DiscreteBayesNet})
         return probs
     end
 
-    cpds = Array{DiscreteCPD}(n)
+    cpds = Array{DiscreteCPD}(undef, n)
     for i in 1 : n
         name = arr_names[i]
         r = rs[i]
-        parents = find(adj[:,i])
+        parents = findall(adj[:,i])
         if isempty(parents)
             probs = pull_next_prob_vector(r)
             cpds[i] = DiscreteCPD(name, probs)
@@ -215,7 +215,7 @@ function Base.read(io::IO, mime::MIME"text/plain", ::Type{DiscreteBayesNet})
             parent_names = arr_names[parents]
             parental_ncategories = rs[parents]
             Q = prod(parental_ncategories)
-            distributions = Array{Categorical}(Q)
+            distributions = Array{Categorical}(undef, Q)
             for q in 1 : Q
                 probs = pull_next_prob_vector(r)
                 distributions[q] = Categorical(probs)

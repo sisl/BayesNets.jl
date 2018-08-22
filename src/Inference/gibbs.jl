@@ -114,7 +114,8 @@ function infer(im::GibbsSamplingNodewise, inf::InferenceState{BN}) where {BN<:Di
             # changing one variable at a time, so can just update that node
             qi = q_loc[i]
             # if it is a query variable, update the index
-            qi != 0 && (q_ind[qi] = x[n])
+            # Shushman : See my comments in loopy_belief.jl
+            qi != 0 && qi != nothing && (q_ind[qi] = x[n])
 
             num_iters += 1
 
@@ -207,7 +208,7 @@ function infer(im::GibbsSamplingFull, inf::InferenceState{BN}) where {BN<:Discre
 
             # check if `n` is a query node, and update the index
             qi = q_loc[i]
-            qi != 0 && (q_ind[qi] = x[n])
+            qi != 0 && qi != nothing && (q_ind[qi] = x[n])
         end
 
         num_iters += 1

@@ -28,8 +28,8 @@ let
 	@test T[findfirst(i->T[i,:a] == 2 && T[i,:b] == 2, 1:4), :count] == 1
 
 	n = length(bn)
-	parent_list = Array{Vector{Int}}(n)
-	bincounts = Array{Int}(n)
+	parent_list = Array{Vector{Int}}(undef, n)
+	bincounts = Array{Int}(undef, n)
 	datamat = convert(Matrix{Int}, data)'
 
 	for (i,cpd) in enumerate(bn.cpds)

@@ -6,7 +6,7 @@ function ndgrid(v1::AbstractVector{T}, v2::AbstractVector{T}) where {T}
     m, n = length(v1), length(v2)
     v1 = reshape(v1, m, 1)
     v2 = reshape(v2, 1, n)
-    (repmat(v1, 1, n), repmat(v2, m, 1))
+    (repeat(v1, 1, n), repeat(v2, m, 1))
 end
 
 function ndgrid(vs::AbstractVector{T}...) where {T}
@@ -38,7 +38,7 @@ function meshgrid(vx::AbstractVector{T}, vy::AbstractVector{T}) where {T}
     m, n = length(vy), length(vx)
     vx = reshape(vx, 1, n)
     vy = reshape(vy, m, 1)
-    (repmat(vx, m, 1), repmat(vy, 1, n))
+    (repeat(vx, m, 1), repeat(vy, 1, n))
 end
 meshgrid(v::AbstractVector) = meshgrid(v, v)
 

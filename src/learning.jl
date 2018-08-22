@@ -2,7 +2,7 @@ function Distributions.fit(::Type{BayesNet}, data::DataFrame, dag::DAG, cpd_type
 
     length(cpd_types) == nv(dag) || throw(DimensionMismatch("dag and cpd_types must have the same length"))
 
-    cpds = Array{CPD}(length(cpd_types))
+    cpds = Array{CPD}(undef, length(cpd_types))
     tablenames = names(data)
     for (i, target) in enumerate(tablenames)
         C = cpd_types[i]
@@ -14,7 +14,7 @@ function Distributions.fit(::Type{BayesNet}, data::DataFrame, dag::DAG, cpd_type
 end
 function Distributions.fit(::Type{BayesNet}, data::DataFrame, dag::DAG, ::Type{C}) where {C<:CPD}
 
-    cpds = Array{C}(nv(dag))
+    cpds = Array{C}(undef, nv(dag))
     tablenames = names(data)
     for (i, target) in enumerate(tablenames)
         parents = tablenames[inneighbors(dag, i)]
@@ -29,8 +29,8 @@ function _get_dag(data::DataFrame, edges::Tuple{Vararg{Pair{NodeName, NodeName}}
     varnames = names(data)
     dag = DAG(length(varnames))
     for (a,b) in edges
-        i = findfirst(varnames, a)
-        j = findfirst(varnames, b)
+        i = something(findfirst(isequal(a), varnames), 0)
+        j = something(findfirst(isequal(b), varnames), 0)
         add_edge!(dag, i, j)
     end
     dag
@@ -79,9 +79,9 @@ const ScoreComponentCache = Vector{PriorityQueue{Vector{Int}, Float64}} # parent
 Construct an empty ScoreComponentCache the size of ncol(data)
 """
 function ScoreComponentCache(data::DataFrame)
-    cache = Array{PriorityQueue{Vector{Int}, Float64}}(ncol(data))
+    cache = Array{PriorityQueue{Vector{Int}, Float64}}(undef, ncol(data))
     for i in 1 : ncol(data)
-        cache[i] = PriorityQueue{Vector{Int}, Float64, Base.Order.ForwardOrdering}()
+        cache[i] = PriorityQueue{Vector{Int}, Float64, Base.Order.ForwardOrdering}(Base.Order.Forward)
     end
     cache
 end
@@ -110,9 +110,9 @@ if they exist, and populates the cache if they don't
 """
 function _get_parent_indeces(parents::NodeNames, data::DataFrame)
     varnames = names(data)
-    retval = Array{Int}(length(parents))
+    retval = Array{Int}(undef, length(parents))
     for (i,p) in enumerate(parents)
-        retval[i] = findfirst(varnames, p)
+        retval[i] = something(findfirst(isequal(p), varnames), 0)
     end
     retval
 end
@@ -125,7 +125,7 @@ function score_component(
 
     pinds = _get_parent_indeces(parents(cpd), data)
     varnames = names(data)
-    i = findfirst(varnames, name(cpd))
+    i = something(findfirst(isequal(name(cpd)), varnames), 0)
 
     if !haskey(cache[i], pinds)
         cache[i][pinds] = score_component(a, cpd, data)
@@ -140,14 +140,14 @@ end
 Get a list of score components for all cpds
 """
 function score_components(a::ScoringFunction, cpds::Vector{C}, data::DataFrame) where {C<:CPD}
-    retval = Array{Float64}(length(cpds))
+    retval = Array{Float64}(undef, length(cpds))
     for (i,cpd) in enumerate(cpds)
         retval[i] = score_component(a, cpd, data)
     end
     retval
 end
 function score_components(a::ScoringFunction, cpds::Vector{C}, data::DataFrame, cache::ScoreComponentCache) where {C<:CPD}
-    retval = Array{Float64}(length(cpds))
+    retval = Array{Float64}(undef, length(cpds))
     for (i,cpd) in enumerate(cpds)
         retval[i] = score_component(a, cpd, data, cache)
     end
@@ -239,7 +239,7 @@ end
 function Distributions.fit(::Type{BayesNet{C}}, data::DataFrame, params::K2GraphSearch) where {C<:CPD}
 
     N = length(params.order)
-    cpds = Array{C}(N)
+    cpds = Array{C}(undef, N)
     for i in 1 : N
 
         cpd_type = params.cpd_types[i]

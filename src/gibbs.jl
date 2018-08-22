@@ -5,7 +5,7 @@ mutable struct GibbsSamplerState
 
     bn::BayesNet
     key_constructor_name_order::Array{Symbol,1}
-    max_cache_size::Nullable{Int}
+    max_cache_size::Union{Int, Nothing}
     markov_blanket_cpds_cache::Dict{Symbol, Array{CPD}}
     markov_blanket_cache::Dict{Symbol, Vector{Symbol}}
     finite_distrbution_is_cacheable::Dict{Symbol, Bool}
@@ -13,7 +13,7 @@ mutable struct GibbsSamplerState
 
     function GibbsSamplerState(
         bn::BayesNet,
-        max_cache_size::Nullable{Int}=Nullable{Int}()
+        max_cache_size::Union{Int, Nothing}=nothing
         )
 
         a = rand(bn)
@@ -64,7 +64,7 @@ function get_finite_distribution!(gss::GibbsSamplerState, varname::NodeName, a::
                                                  logpdf(get(gss.bn, varname), a)) # because A is not in its own Markov blanket
     end
     posterior_distribution = posterior_distribution / sum(posterior_distribution)
-    if is_cacheable && ( isnull(gss.max_cache_size) || length(gss.finite_distribution_cache) < get(gss.max_cache_size) )
+    if is_cacheable && ( gss.max_cache_size == nothing || length(gss.finite_distribution_cache) < gss.max_cache_size )
         gss.finite_distribution_cache[key] = posterior_distribution
     end
     return posterior_distribution
@@ -186,18 +186,18 @@ function gibbs_sample_main_loop(
     thinning::Integer,
     start_sample::Assignment,
     consistent_with::Assignment,
-    variable_order::Nullable{Vector{Symbol}},
-    time_limit::Nullable{Int},
+    variable_order::Union{Vector{Symbol}, Nothing},
+    time_limit::Union{Int, Nothing},
     )
 
     start_time = now()
 
     bn = gss.bn
     a = start_sample
-    if isnull(variable_order)
+    if variable_order == nothing
          v_order = names(bn)
     else
-         v_order = get(variable_order)
+         v_order = coalesce(variable_order)
     end
 
     # v_order = [varname for varname in v_order if ~haskey(consistent_with, varname)]
@@ -215,11 +215,11 @@ function gibbs_sample_main_loop(
     end
 
     for sample_iter in 1:nsamples
-        if (~ isnull(time_limit)) && ((now() - start_time).value > get(time_limit))
+        if (time_limit!=nothing) && ((now() - start_time).value > time_limit)
             break
         end
 
-        if isnull(variable_order)
+        if variable_order == nothing
             v_order = shuffle!(v_order)
         end
 
@@ -229,7 +229,7 @@ function gibbs_sample_main_loop(
                  sample_posterior!(gss, varname, a)
             end
 
-            if isnull(variable_order)
+            if variable_order == nothing
                 v_order = shuffle!(v_order)
             end
         end
@@ -289,18 +289,18 @@ briefly running rand(bn, get_weighted_dataframe).
 function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
         thinning::Integer=0,
         consistent_with::Assignment=Assignment(),
-        variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(),
-        time_limit::Nullable{Int}=Nullable{Int}(),
+        variable_order::Union{Vector{Symbol}, Nothing}=nothing,
+        time_limit::Union{Int, Nothing}=nothing,
         error_if_time_out::Bool=true,
-        initial_sample::Nullable{Assignment}=Nullable{Assignment}(),
-        max_cache_size::Nullable{Int}=Nullable{Int}()
+        initial_sample::Union{Assignment, Nothing}=nothing,
+        max_cache_size::Union{Int, Nothing}=nothing
         )
     # check parameters for correctness
     nsamples > 0 || throw(ArgumentError("nsamples parameter less than 1"))
     burn_in >= 0 || throw(ArgumentError("Negative burn_in parameter"))
     thinning >= 0 || throw(ArgumentError("Negative thinning parameter"))
-    if ~ isnull(variable_order)
-        v_order = get(variable_order)
+    if variable_order != nothing
+        v_order = coalesce(variable_order)
         bn_names = names(bn)
         for name in bn_names
             name in v_order || throw(ArgumentError("Gibbs sample variable_order must contain all variables in the Bayes Net"))
@@ -309,11 +309,11 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
             name in bn_names || throw(ArgumentError("Gibbs sample variable_order contains a variable not in the Bayes Net"))
         end
     end
-    if ~ isnull(time_limit)
-        get(time_limit) > 0 || throw(ArgumentError(join(["Invalid time_limit specified (", get(time_limit), ")"])))
+    if time_limit != nothing
+        time_limit > 0 || throw(ArgumentError(join(["Invalid time_limit specified (", time_limit, ")"])))
     end
-    if ~ isnull(initial_sample)
-        init_sample = get(initial_sample)
+    if initial_sample != nothing
+        init_sample = coalesce(initial_sample)
         for name in names(bn)
             haskey(init_sample, name) || throw(ArgumentError("Gibbs sample initial_sample must be an assignment with all variables in the Bayes Net"))
         end
@@ -327,24 +327,24 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
 
     # Burn in
     # for burn_in_initial_sample use get_weighted_dataframe, should be consistent with the varibale consistent_with
-    if isnull(initial_sample)
+    if initial_sample == nothing
         rand_samples = get_weighted_dataframe(bn, 50, consistent_with)
     	if reduce(|, isnan.(convert(Array{AbstractFloat}, rand_samples[:p])))
     		error("Gibbs Sampler was unable to find an inital sample with non-zero probability, please supply an inital sample")
     	end
         burn_in_initial_sample = sample_weighted_dataframe(rand_samples)
     else
-        burn_in_initial_sample = get(initial_sample)
+        burn_in_initial_sample = initial_sample
     end
     burn_in_samples, burn_in_time = gibbs_sample_main_loop(gss, burn_in, 0, burn_in_initial_sample,
                                          consistent_with, variable_order, time_limit)
 
     # Check that more time is available
-    remaining_time = Nullable{Int}()
-    if ~isnull(time_limit)
-        remaining_time = Nullable{Int}(get(time_limit) - burn_in_time)
+    remaining_time = nothing
+    if time_limit != nothing
+        remaining_time = time_limit - burn_in_time
         if error_if_time_out
-            get(remaining_time) > 0 || error("Time expired during Gibbs sampling")
+            remaining_time > 0 || error("Time expired during Gibbs sampling")
         end
     end
 
@@ -360,8 +360,8 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     samples, samples_time = gibbs_sample_main_loop(gss, nsamples, thinning,
                                main_samples_initial_sample, consistent_with, variable_order, remaining_time)
     combined_time = burn_in_time + samples_time
-    if error_if_time_out && ~isnull(time_limit)
-        combined_time < get(time_limit) || error("Time expired during Gibbs sampling")
+    if error_if_time_out && time_limit!=nothing
+        combined_time < time_limit || error("Time expired during Gibbs sampling")
     end
 
     # Add in columns for variables that were conditioned on
@@ -412,20 +412,20 @@ mutable struct GibbsSampler <: BayesNetSampler
     evidence::Assignment
     burn_in::Int
     thinning::Int
-    variable_order::Nullable{Vector{Symbol}}
-    time_limit::Nullable{Int}
+    variable_order::Union{Vector{Symbol}, Nothing}
+    time_limit::Union{Int, Nothing}
     error_if_time_out::Bool
-    initial_sample::Nullable{Assignment}
-    max_cache_size::Nullable{Int}
+    initial_sample::Union{Assignment, Nothing}
+    max_cache_size::Union{Int, Nothing}
 
     function GibbsSampler(evidence::Assignment=Assignment();
         burn_in::Int=100,
         thinning::Int=0,
-        variable_order::Nullable{Vector{Symbol}}=Nullable{Vector{Symbol}}(),
-        time_limit::Nullable{Int}=Nullable{Int}(),
+        variable_order::Union{Vector{Symbol}, Nothing}=nothing,
+        time_limit::Union{Int, Nothing}=nothing,
         error_if_time_out::Bool=true,
-        initial_sample::Nullable{Assignment}=Nullable{Assignment}(),
-        max_cache_size::Nullable{Int}=Nullable{Int}()
+        initial_sample::Union{Assignment, Nothing}=nothing,
+        max_cache_size::Union{Int, Nothing}=nothing
         )
 
         new(evidence, burn_in, thinning, variable_order, time_limit, error_if_time_out, initial_sample, max_cache_size)

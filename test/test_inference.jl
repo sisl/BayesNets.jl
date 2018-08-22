@@ -43,7 +43,7 @@ let
                                                 ]))
 
     for im in [ExactInference(), LikelihoodWeightingInference(), LoopyBelief(), GibbsSamplingNodewise(), GibbsSamplingFull()]
-        srand(0)
+        Random.seed!(0)
         ϕ = infer(im, bn, :a)::Factor
         @test length(ϕ) == 2
         f = ϕ[:a=>1]::Factor
@@ -56,7 +56,7 @@ let
     end
 
     for im in [ExactInference(), LikelihoodWeightingInference(), LoopyBelief(), GibbsSamplingNodewise(), GibbsSamplingFull()]
-        srand(0)
+        Random.seed!(0)
         ϕ = infer(im, bn, :c)::Factor
         @test length(ϕ) == 2
         @test isapprox(ϕ[:c=>1].potential[1], 1.0, atol=0.02)
@@ -64,7 +64,7 @@ let
     end
 
     for im in [ExactInference(), LikelihoodWeightingInference(), GibbsSamplingNodewise(), GibbsSamplingFull()] # LoopyBelief(),
-        srand(0)
+        Random.seed!(0)
         ϕ = infer(im, bn, [:b, :c])
         @test size(ϕ) == (2,2)
         @test isapprox(ϕ[:b=>1, :c=>1].potential[1], 0.0, atol=0.02)
@@ -92,7 +92,7 @@ let
 
     # P(D) = [0.6, 0.4]
     for im in [ExactInference(), LikelihoodWeightingInference(), LoopyBelief(), GibbsSamplingNodewise(), GibbsSamplingFull()]
-        srand(0)
+        Random.seed!(0)
         ϕ = infer(im, bn, :D)
         @test size(ϕ) == (2,)
         @test isapprox(ϕ[:D=>1].potential[1], 0.6, atol=0.05)
@@ -101,7 +101,7 @@ let
 
     # P(G|d₁, i₁) = [0.3, 0.4, 0.3]
     for im in [ExactInference(), LikelihoodWeightingInference(), LoopyBelief(), GibbsSamplingNodewise(), GibbsSamplingFull()]
-        srand(0)
+        Random.seed!(0)
         ϕ = infer(im, bn, :G, evidence=Assignment(:D=>1, :I=>1))
         @test size(ϕ) == (3,)
         @test isapprox(ϕ.potential[1], 0.3, atol=0.05)

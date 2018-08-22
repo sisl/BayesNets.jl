@@ -1,7 +1,7 @@
 struct FakeScoringFunction <: ScoringFunction end
 struct FakeGraphSearchStrategy <: GraphSearchStrategy end
 
-srand(0)
+Random.seed!(0)
 let
 	function test_disc_bn(bn::DiscreteBayesNet)
 		#=

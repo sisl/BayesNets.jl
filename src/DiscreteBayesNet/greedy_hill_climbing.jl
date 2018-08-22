@@ -45,8 +45,8 @@ function Distributions.fit(::Type{DiscreteCPD},
 
     nparents = length(parents)
     dims = [1:parental_ncategories[i] for i in 1:nparents]
-    distributions = Array{Categorical{Float64}}(prod(parental_ncategories))
-    for (q, parent_instantiation) in enumerate(product(dims...))
+    distributions = Array{Categorical{Float64}}(undef, prod(parental_ncategories))
+    for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
 
         prior_counts = get(prior, target_ncategories)
         for i in 1 : nrow(data)
@@ -60,11 +60,11 @@ function Distributions.fit(::Type{DiscreteCPD},
     CategoricalCPD(target, parents, parental_ncategories, distributions)
 end
 function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::GreedyHillClimbing;
-    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[i]), Array{Int}(ncol(data)), 1:ncol(data)),
+    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[i]), Array{Int}(undef, ncol(data)), 1:ncol(data)),
     )
 
     n = ncol(data)
-    parent_list = map!(i->Int[], Array{Vector{Int}}(n), 1:n)
+    parent_list = map!(i->Int[], Array{Vector{Int}}(undef, n), 1:n)
     datamat = convert(Matrix{Int}, data)'
     score_components = bayesian_score_components(parent_list, ncategories, datamat, params.prior, params.cache)
 
@@ -124,7 +124,7 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
     end
 
     # construct the BayesNet
-    cpds = Array{DiscreteCPD}(n)
+    cpds = Array{DiscreteCPD}(undef, n)
     varnames = names(data)
     for i in 1:n
         name = varnames[i]

@@ -5,6 +5,7 @@ using LightGraphs
 using Statistics
 using LinearAlgebra
 using Random
+using Pkg
 
 Random.seed!(0)
 
@@ -42,8 +43,6 @@ include(joinpath(testdir, "test_inference.jl"))
 include(joinpath(testdir, "test_learning.jl"))
 include(joinpath(testdir, "test_io.jl"))
 include(joinpath(testdir, "test_ndgrid.jl"))
-
 include(joinpath(testdir, "test_discrete_bayes_nets.jl"))
 include(joinpath(testdir, "test_genbn.jl"))
-
 include(joinpath(testdir, "test_docs.jl"))

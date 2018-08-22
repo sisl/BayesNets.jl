@@ -55,7 +55,7 @@ function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBaye
     Each node has a vector containing the messages from its parents
     Each message is about the parent, so they may have different lengths
     =#
-    pis = similar(lambdas)
+    pis = empty(lambdas)
 
     #=
     Init first messages
@@ -77,13 +77,15 @@ function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBaye
             # pi from parent (nn) to children
             #  if evidence node, set to evidence_lambda to avoid recomputing
             ev_i = evidence_index[i]
-            pis[(nn, ch)] = (ev_i == 0) ? fill(1/nn_ncat, nn_ncat) :
+
+            # Shushman : Test was erroring with ev_i = nothing. Is this change correct?
+            pis[(nn, ch)] = (ev_i == 0 || ev_i == nothing) ? fill(1/nn_ncat, nn_ncat) :
                 evidence_lambdas[ev_i]
         end
     end
 
     # messages are passed in parallel, so need a "new" set
-    new_lambdas = similar(lambdas)
+    new_lambdas = empty(lambdas)
     # pi messages for evidence nodes won't be (re-)computed, so
     # just copy over *all* initial pi messages
     new_pis = deepcopy(pis)
@@ -110,7 +112,9 @@ function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBaye
             #  about each instance of itself
             # nn's index in the evidence
             ev_i = evidence_index[i]
-            if ev_i != 0
+
+            # Shushman : See Line 81 comment above
+            if ev_i != 0 && ev_i != nothing
                 # if it is evidence, then just one value will be non-zero
                 # normalization will kick in and do magic ...
                 lambda = evidence_lambdas[ev_i]
@@ -193,7 +197,8 @@ function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBaye
     end
 
     # compute belief P(x|e)
-    qi = findfirst(nodes, query)
+    qi = something(findfirst(isequal(query), nodes), 0)
+    
     # lambda and pi one last time
     ϕ = factors[qi]
     nn_ncat = ncat_lut[query]

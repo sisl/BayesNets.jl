@@ -229,7 +229,7 @@ function Base.join(op, ϕ1::Factor, ϕ2::Factor, kind::Symbol=:outer,
 
         # ndims(ϕ1) == 0 implies ndims(ϕ2) == 0
         if ndims(ϕ1) == 0
-            new_v = squeeze([op(ϕ1.potential[1], temp[1])], 1)
+            new_v = dropdims([op(ϕ1.potential[1], temp[1])], dims=1)
         else
             broadcast!(op, new_v, ϕ1.potential, temp)
         end
