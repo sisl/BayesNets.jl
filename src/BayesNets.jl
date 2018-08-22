@@ -15,7 +15,7 @@ include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
 @reexport using BayesNets.CPDs.ProbabilisticGraphicalModels
 
-import Base: *, /, +, -, normalize
+import Base: *, /, +, -
 import DataStructures: PriorityQueue, peek
 import BayesNets.CPDs.ProbabilisticGraphicalModels: markov_blanket, is_independent, infer
 import StatsBase: sample, Weights
