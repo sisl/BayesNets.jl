@@ -61,7 +61,7 @@ function Base.convert(::Type{Factor}, cpd::DiscreteCPD)
     p[:] = vcat([d.p for d in cpd.distributions]...)
     return Factor(dims, p)
 end
-Base.mimewritable(::MIME"text/html", ϕ::DiscreteCPD) = true
+Base.showable(::MIME"text/html", ϕ::DiscreteCPD) = true
 Base.show(io::IO, cpd::DiscreteCPD) = show(io, convert(Factor, cpd))
 Base.show(io::IO, a::MIME"text/html", cpd::DiscreteCPD) = show(io, a, convert(DataFrame, convert(Factor, cpd)))
 

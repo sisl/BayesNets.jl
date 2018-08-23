@@ -84,7 +84,7 @@ LinearAlgebra.normalize(t::Table) = normalize!(deepcopy(t))
 """
 Given a Table, extract the rows which match the given assignment
 """
-function Base.select(t::Table, a::Assignment)
+function Base.partialsort(t::Table, a::Assignment)
     f = t.potential
 
     commonNames = intersect(names(f), keys(a))
