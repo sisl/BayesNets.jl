@@ -31,18 +31,48 @@ function elementwise_isapprox(x::AbstractArray{F},
     true
 end
 
-testdir = joinpath(dirname(@__DIR__), "test")
-include(joinpath(testdir, "test_utils.jl"))
-include(joinpath(testdir, "test_cpds.jl"))
-include(joinpath(testdir, "test_tables.jl"))
-include(joinpath(testdir, "test_factors.jl"))
-include(joinpath(testdir, "test_bayesnets.jl"))
-include(joinpath(testdir, "test_gibbs.jl"))
-include(joinpath(testdir, "test_sampling.jl"))
-include(joinpath(testdir, "test_inference.jl"))
-include(joinpath(testdir, "test_learning.jl"))
-include(joinpath(testdir, "test_io.jl"))
-include(joinpath(testdir, "test_ndgrid.jl"))
-include(joinpath(testdir, "test_discrete_bayes_nets.jl"))
-include(joinpath(testdir, "test_genbn.jl"))
-include(joinpath(testdir, "test_docs.jl"))
+@testset "bn" begin
+    testdir = joinpath(dirname(@__DIR__), "test")
+    @testset "utils" begin
+        include(joinpath(testdir, "test_utils.jl"))
+    end
+    @testset "cpds" begin
+        include(joinpath(testdir, "test_cpds.jl"))
+    end
+    @testset "tables" begin
+        include(joinpath(testdir, "test_tables.jl"))
+    end
+    @testset "factors" begin
+        include(joinpath(testdir, "test_factors.jl"))
+    end
+    @testset "bayesnets" begin
+        include(joinpath(testdir, "test_bayesnets.jl"))
+    end
+    @testset "gibbs" begin
+        include(joinpath(testdir, "test_gibbs.jl"))
+    end
+    @testset "sampling" begin
+        include(joinpath(testdir, "test_sampling.jl"))
+    end
+    @testset "inference" begin
+        include(joinpath(testdir, "test_inference.jl"))
+    end
+    @testset "learning" begin
+        include(joinpath(testdir, "test_learning.jl"))
+    end
+    @testset "io" begin
+        include(joinpath(testdir, "test_io.jl"))
+    end
+    @testset "ndgrid" begin
+        include(joinpath(testdir, "test_ndgrid.jl"))
+    end
+    @testset "discrete bayes" begin
+        include(joinpath(testdir, "test_discrete_bayes_nets.jl"))
+    end
+    @testset "gen bn" begin
+        include(joinpath(testdir, "test_genbn.jl"))
+    end
+    @testset "docs" begin
+        include(joinpath(testdir, "test_docs.jl"))
+    end
+end
