@@ -84,7 +84,7 @@ function table(bn::DiscreteBayesNet, name::NodeName)
     return Table(d)
 end
 
-table(bn::DiscreteBayesNet, name::NodeName, a::Assignment) = select(table(bn, name), a)
+table(bn::DiscreteBayesNet, name::NodeName, a::Assignment) = partialsort(table(bn, name), a)
 table(bn::DiscreteBayesNet, name::NodeName, pair::Pair{NodeName}...) =
         table(bn, name, Assignment(pair))
 
