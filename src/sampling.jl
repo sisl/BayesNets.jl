@@ -1,8 +1,8 @@
 """
 Abstract type for sampling with:
- * `Base.rand(BayesNet, BayesNetSampler)`
- * `Base.rand(BayesNet, BayesNetSampler, nsamples)`
- * `Base.rand!(Assignment, BayesNet, BayesNetSampler)`
+ * `Random.rand(BayesNet, BayesNetSampler)`
+ * `Random.rand(BayesNet, BayesNetSampler, nsamples)`
+ * `Random.rand!(Assignment, BayesNet, BayesNetSampler)`
 """
 abstract type BayesNetSampler end
 
