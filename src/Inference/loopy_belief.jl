@@ -41,7 +41,7 @@ function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBaye
     # evidence node messages to their selves
     evidence_lambdas = map(nn -> _evidence_lambda(nn, evidence, ncat_lut[nn]), evidence_nodes)
 
-    # the index of each node in evidence (lambda) or zero otherwise
+    # the index of each node in evidence (lambda) or nothing otherwise
     evidence_index = indexin(nodes, evidence_nodes)
 
     #=
@@ -77,10 +77,7 @@ function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBaye
             # pi from parent (nn) to children
             #  if evidence node, set to evidence_lambda to avoid recomputing
             ev_i = evidence_index[i]
-
-            # Shushman : Test was erroring with ev_i = nothing. Is this change correct?
-            pis[(nn, ch)] = (ev_i == 0 || ev_i == nothing) ? fill(1/nn_ncat, nn_ncat) :
-                evidence_lambdas[ev_i]
+            pis[(nn, ch)] = isa(ev_i, Int64) ? evidence_lambdas[ev_i] : fill(1/nn_ncat, nn_ncat)
         end
     end
 
@@ -113,8 +110,7 @@ function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBaye
             # nn's index in the evidence
             ev_i = evidence_index[i]
 
-            # Shushman : See Line 81 comment above
-            if ev_i != 0 && ev_i != nothing
+            if isa(ev_i, Int64)
                 # if it is evidence, then just one value will be non-zero
                 # normalization will kick in and do magic ...
                 lambda = evidence_lambdas[ev_i]
@@ -161,7 +157,7 @@ function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBaye
             end
 
             # build pi messages to children
-            if ev_i == 0
+            if ev_i == nothing
                 # if an evidence node, pi will stay [0 ... 0 1 0... 0 ]
                 for ch in nn_children
                     other_ch = setdiff(nn_children, [ch])
@@ -197,8 +193,8 @@ function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBaye
     end
 
     # compute belief P(x|e)
-    qi = something(findfirst(isequal(query), nodes), 0)
-    
+    qi = findfirst(isequal(query), nodes)
+
     # lambda and pi one last time
     ϕ = factors[qi]
     nn_ncat = ncat_lut[query]
@@ -211,8 +207,7 @@ function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBaye
     if isempty(nn_parents)
         pi = ϕ.potential
     else
-        broadcast!(*, ϕ, nn_parents,
-                [pis[(pa, query)] for pa in nn_parents])
+        broadcast!(*, ϕ, nn_parents, [pis[(pa, query)] for pa in nn_parents])
         pi = sum!(ϕ, nn_parents).potential
     end
 
