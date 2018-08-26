@@ -5,7 +5,7 @@ using LightGraphs
 using Statistics
 using LinearAlgebra
 using Random
-using Pkg
+
 
 Random.seed!(0)
 
