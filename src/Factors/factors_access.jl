@@ -37,7 +37,12 @@ Base.getindex(ϕ::Factor, pair::Pair{NodeName}...) = Base.getindex(ϕ, Assignmen
 
 
 function Base.setindex!(ϕ::Factor, v, a::Assignment)
-    @inbounds return ϕ.potential[_translate_index(ϕ, a)...] .= v
+    tridx = _translate_index(ϕ, a)
+    if Colon() in tridx
+        @inbounds return ϕ.potential[tridx...] .= v
+    else
+        @inbounds return ϕ.potential[tridx...] = v
+    end
 end
 
 @inline function _translate_index(ϕ::Factor, a::Assignment)
