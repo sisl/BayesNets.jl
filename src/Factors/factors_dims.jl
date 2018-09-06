@@ -66,9 +66,8 @@ _reddim(op, ϕ::Factor, inds::Tuple, v0) =
     reducedim(op, ϕ, dims, [v0])
 
 Reduce dimensions `dims` in `ϕ` using function `op`.
-See Base.reducedim for more details
 """
-function Base.reducedim(op, ϕ::Factor, dims::NodeNameUnion, v0=nothing)
+function reducedim(op, ϕ::Factor, dims::NodeNameUnion, v0=nothing)
     # a (possibly?) more efficient version than reducedim!(deepcopy(ϕ))
     dims = convert(NodeNames, dims)
     _check_dims_valid(dims, ϕ)

@@ -29,8 +29,8 @@ function _get_dag(data::DataFrame, edges::Tuple{Vararg{Pair{NodeName, NodeName}}
     varnames = names(data)
     dag = DAG(length(varnames))
     for (a,b) in edges
-        i = something(findfirst(isequal(a), varnames), 0)
-        j = something(findfirst(isequal(b), varnames), 0)
+        i = findfirst(isequal(a), varnames)
+        j = findfirst(isequal(b), varnames)
         add_edge!(dag, i, j)
     end
     dag

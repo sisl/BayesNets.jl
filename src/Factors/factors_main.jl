@@ -126,7 +126,7 @@ Base.in(dim::NodeName, ϕ::Factor) = dim in names(ϕ)
 
 Return the index of dimension `dim` in `ϕ`, or 0 if not in `ϕ`.
 """
-Base.indexin(dim::NodeName, ϕ::Factor) = something(findnext(isequal(dim), ϕ.dimensions, 1), 0)
+Base.indexin(dim::NodeName, ϕ::Factor) = findnext(isequal(dim), ϕ.dimensions, 1)
 Base.indexin(dims::NodeNames, ϕ::Factor) = indexin(dims, names(ϕ))
 
 
@@ -169,8 +169,10 @@ instances
 function pattern(ϕ::Factor, dims)
     inds = indexin(dims, ϕ)
 
-    zero_loc = something(findfirst(isequal(0), inds), 0)
-    zero_loc == 0 || not_in_factor_error(dims[zero_loc])
+    zero_loc = findfirst(isequal(0), inds)
+    if zero_loc != nothing
+        not_in_factor_error(dims[zero_loc])
+    end
 
     lens = [size(ϕ)...]
 
