@@ -9,3 +9,5 @@ Reexport 0.2
 Parameters 0.10
 DataFrames 0.13
 SpecialFunctions 0.7
+DataStructures 0.11
+StatsBase 0.25
