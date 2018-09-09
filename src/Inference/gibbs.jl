@@ -57,13 +57,13 @@ Run Gibbs sampling for `N` iterations. Each iteration changes one node.
 Discareds first `burn_in` samples and keeps only the `thin`-th sample.
 Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
-@with_kw type GibbsSamplingNodewise <: InferenceMethod
+@with_kw mutable struct GibbsSamplingNodewise <: InferenceMethod
     nsamples::Int=2E3
     burn_in::Int=500
     thin::Int=3
     state::Assignment = Assignment()
 end
-function infer{BN<:DiscreteBayesNet}(im::GibbsSamplingNodewise, inf::InferenceState{BN})
+function infer(im::GibbsSamplingNodewise, inf::InferenceState{BN}) where {BN<:DiscreteBayesNet}
 
     nsamples, burn_in, thin, x = im.nsamples, im.burn_in, im.thin, im.state
 
@@ -114,7 +114,8 @@ function infer{BN<:DiscreteBayesNet}(im::GibbsSamplingNodewise, inf::InferenceSt
             # changing one variable at a time, so can just update that node
             qi = q_loc[i]
             # if it is a query variable, update the index
-            qi != 0 && (q_ind[qi] = x[n])
+            # Shushman : See my comments in loopy_belief.jl
+            qi != 0 && qi != nothing && (q_ind[qi] = x[n])
 
             num_iters += 1
 
@@ -151,13 +152,13 @@ nodes.
 Discareds first `burn_in` samples and keeps only the `thin`-th sample.
 Ex, if `thin=3`, will discard the first two samples and keep the third.
 """
-@with_kw type GibbsSamplingFull <: InferenceMethod
+@with_kw mutable struct GibbsSamplingFull <: InferenceMethod
     nsamples::Int=2E3
     burn_in::Int=500
     thin::Int=3
     state::Assignment=Assignment()
 end
-function infer{BN<:DiscreteBayesNet}(im::GibbsSamplingFull, inf::InferenceState{BN})
+function infer(im::GibbsSamplingFull, inf::InferenceState{BN}) where {BN<:DiscreteBayesNet}
 
     nsamples, burn_in, thin = im.nsamples, im.burn_in, im.thin
 
@@ -207,7 +208,7 @@ function infer{BN<:DiscreteBayesNet}(im::GibbsSamplingFull, inf::InferenceState{
 
             # check if `n` is a query node, and update the index
             qi = q_loc[i]
-            qi != 0 && (q_ind[qi] = x[n])
+            qi != 0 && qi != nothing && (q_ind[qi] = x[n])
         end
 
         num_iters += 1

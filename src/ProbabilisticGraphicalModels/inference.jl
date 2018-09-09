@@ -27,7 +27,7 @@ struct InferenceState{PGM<:ProbabilisticGraphicalModel}
         return new(pgm, query, evidence)
     end
 end
-function InferenceState{PGM<:ProbabilisticGraphicalModel}(pgm::PGM, query::NodeNameUnion, evidence::Assignment=Assignment())
+function InferenceState(pgm::PGM, query::NodeNameUnion, evidence::Assignment=Assignment()) where {PGM<:ProbabilisticGraphicalModel}
     query = unique(convert(NodeNames, query))
     return InferenceState{PGM}(pgm, query, evidence)
 end

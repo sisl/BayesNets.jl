@@ -37,14 +37,14 @@ Create a factor with dimensions `dims`, each with lengths corresponding to
 `lengths`. `fill_value` will fill the potential array with that value.
 To keep uninitialized, use `fill_value=nothing`.
 """
-Factor(dims::NodeNames, lengths::Vector{Int}, ::Void) =
-    Factor(dims, Array{Float64}(lengths...))
+Factor(dims::NodeNames, lengths::Vector{Int}, ::Nothing) =
+    Factor(dims, Array{Float64}(undef, lengths...))
 
 Factor(dims::NodeNames, lengths::Vector{Int}, fill_value::Number=0) =
     Factor(dims, fill(Float64(fill_value), lengths...))
 
-Factor(dim::NodeName, length::Int, ::Void) =
-    Factor([dims], Array{Float64}(length))
+Factor(dim::NodeName, length::Int, ::Nothing) =
+    Factor([dims], Array{Float64}(undef, length))
 
 Factor(dim::NodeName, length::Int, fill_value::Number=0) =
     Factor(dims, fill(Float64(fill_value), length))
@@ -57,11 +57,11 @@ Construct a Factor from a DiscreteCPD.
 function Base.convert(::Type{Factor}, cpd::DiscreteCPD)
     dims = vcat(name(cpd), parents(cpd))
     lengths = tuple(ncategories(cpd), cpd.parental_ncategories...)
-    p = Array{Float64}(lengths)
+    p = Array{Float64}(undef,lengths)
     p[:] = vcat([d.p for d in cpd.distributions]...)
     return Factor(dims, p)
 end
-Base.mimewritable(::MIME"text/html", ϕ::DiscreteCPD) = true
+Base.showable(::MIME"text/html", ϕ::DiscreteCPD) = true
 Base.show(io::IO, cpd::DiscreteCPD) = show(io, convert(Factor, cpd))
 Base.show(io::IO, a::MIME"text/html", cpd::DiscreteCPD) = show(io, a, convert(DataFrame, convert(Factor, cpd)))
 
@@ -106,8 +106,8 @@ Returns a tuple of the dimensions of `ϕ`
 """
 Base.size(ϕ::Factor) = size(ϕ.potential)
 Base.size(ϕ::Factor, dim::NodeName) = size(ϕ.potential, indexin(dim, ϕ))
-Base.size{N}(ϕ::Factor, dims::Vararg{NodeName, N}) =
-    ntuple(k -> size(ϕ, dims[k]), Val{N})
+Base.size(ϕ::Factor, dims::Vararg{NodeName, N}) where {N} =
+    ntuple(k -> size(ϕ, dims[k]), Val(N))
 
 """
 Total number of elements in Factor (potential)
@@ -126,7 +126,7 @@ Base.in(dim::NodeName, ϕ::Factor) = dim in names(ϕ)
 
 Return the index of dimension `dim` in `ϕ`, or 0 if not in `ϕ`.
 """
-Base.indexin(dim::NodeName, ϕ::Factor) = findnext(ϕ.dimensions, dim, 1)
+Base.indexin(dim::NodeName, ϕ::Factor) = findnext(isequal(dim), ϕ.dimensions, 1)
 Base.indexin(dims::NodeNames, ϕ::Factor) = indexin(dims, names(ϕ))
 
 
@@ -135,7 +135,7 @@ Base.indexin(dims::NodeNames, ϕ::Factor) = indexin(dims, names(ϕ))
 
 Fill with random values
 """
-Base.rand!(ϕ::Factor) = rand!(ϕ.potential)
+Random.rand!(ϕ::Factor) = Random.rand!(ϕ.potential)
 
 """
 Appends a new dimension to a Factor
@@ -169,8 +169,10 @@ instances
 function pattern(ϕ::Factor, dims)
     inds = indexin(dims, ϕ)
 
-    zero_loc = findfirst(inds, 0)
-    zero_loc == 0 || not_in_factor_error(dims[zero_loc])
+    zero_loc = findfirst(isequal(0), inds)
+    if zero_loc != nothing
+        not_in_factor_error(dims[zero_loc])
+    end
 
     lens = [size(ϕ)...]
 

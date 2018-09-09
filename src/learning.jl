@@ -2,35 +2,35 @@ function Distributions.fit(::Type{BayesNet}, data::DataFrame, dag::DAG, cpd_type
 
     length(cpd_types) == nv(dag) || throw(DimensionMismatch("dag and cpd_types must have the same length"))
 
-    cpds = Array{CPD}(length(cpd_types))
+    cpds = Array{CPD}(undef, length(cpd_types))
     tablenames = names(data)
     for (i, target) in enumerate(tablenames)
         C = cpd_types[i]
-        parents = tablenames[in_neighbors(dag, i)]
+        parents = tablenames[inneighbors(dag, i)]
         cpds[i] = fit(C, data, target, parents)
     end
 
     BayesNet(cpds)
 end
-function Distributions.fit{C<:CPD}(::Type{BayesNet}, data::DataFrame, dag::DAG, ::Type{C})
+function Distributions.fit(::Type{BayesNet}, data::DataFrame, dag::DAG, ::Type{C}) where {C<:CPD}
 
-    cpds = Array{C}(nv(dag))
+    cpds = Array{C}(undef, nv(dag))
     tablenames = names(data)
     for (i, target) in enumerate(tablenames)
-        parents = tablenames[in_neighbors(dag, i)]
+        parents = tablenames[inneighbors(dag, i)]
         cpds[i] = fit(C, data, target, parents)
     end
 
     BayesNet(cpds)
 end
-Distributions.fit{T<:CPD}(::Type{BayesNet{T}}, data::DataFrame, dag::DAG) = fit(BayesNet, data, dag, T)
+Distributions.fit(::Type{BayesNet{T}}, data::DataFrame, dag::DAG) where {T<:CPD} = fit(BayesNet, data, dag, T)
 
 function _get_dag(data::DataFrame, edges::Tuple{Vararg{Pair{NodeName, NodeName}}})
     varnames = names(data)
     dag = DAG(length(varnames))
     for (a,b) in edges
-        i = findfirst(varnames, a)
-        j = findfirst(varnames, b)
+        i = findfirst(isequal(a), varnames)
+        j = findfirst(isequal(b), varnames)
         add_edge!(dag, i, j)
     end
     dag
@@ -43,7 +43,7 @@ and whose edges are given in edges
 
     ex: fit(DiscreteBayesNet, data, (:A=>:B, :C=>B))
 """
-function Distributions.fit{T<:CPD}(::Type{BayesNet{T}}, data::DataFrame, edges::Tuple{Vararg{Pair{NodeName, NodeName}}})
+function Distributions.fit(::Type{BayesNet{T}}, data::DataFrame, edges::Tuple{Vararg{Pair{NodeName, NodeName}}}) where {T<:CPD}
     dag = _get_dag(data, edges)
     fit(BayesNet, data, dag, T)
 end
@@ -51,7 +51,7 @@ function Distributions.fit(::Type{BayesNet}, data::DataFrame, edges::Tuple{Varar
     dag = _get_dag(data, edges)
     fit(BayesNet, data, dag, cpd_types)
 end
-function Distributions.fit{T<:CPD}(::Type{BayesNet{T}}, data::DataFrame, edge::Pair{NodeName, NodeName})
+function Distributions.fit(::Type{BayesNet{T}}, data::DataFrame, edge::Pair{NodeName, NodeName}) where {T<:CPD}
     dag = _get_dag(data, tuple(edge))
     fit(BayesNet, data, dag, T)
 end
@@ -59,7 +59,7 @@ function Distributions.fit(::Type{BayesNet}, data::DataFrame, edge::Pair{NodeNam
     dag = _get_dag(data, tuple(edge))
     fit(BayesNet, data, dag, cpd_types)
 end
-function Distributions.fit{T<:CPD}(::Type{BayesNet}, data::DataFrame, edge::Pair{NodeName, NodeName}, ::Type{T})
+function Distributions.fit(::Type{BayesNet}, data::DataFrame, edge::Pair{NodeName, NodeName}, ::Type{T}) where {T<:CPD}
     dag = _get_dag(data, tuple(edge))
     fit(BayesNet, data, dag, T)
 end
@@ -79,9 +79,9 @@ const ScoreComponentCache = Vector{PriorityQueue{Vector{Int}, Float64}} # parent
 Construct an empty ScoreComponentCache the size of ncol(data)
 """
 function ScoreComponentCache(data::DataFrame)
-    cache = Array{PriorityQueue{Vector{Int}, Float64}}(ncol(data))
+    cache = Array{PriorityQueue{Vector{Int}, Float64}}(undef, ncol(data))
     for i in 1 : ncol(data)
-        cache[i] = PriorityQueue{Vector{Int}, Float64, Base.Order.ForwardOrdering}()
+        cache[i] = PriorityQueue{Vector{Int}, Float64, Base.Order.ForwardOrdering}(Base.Order.Forward)
     end
     cache
 end
@@ -110,9 +110,9 @@ if they exist, and populates the cache if they don't
 """
 function _get_parent_indeces(parents::NodeNames, data::DataFrame)
     varnames = names(data)
-    retval = Array{Int}(length(parents))
+    retval = Array{Int}(undef, length(parents))
     for (i,p) in enumerate(parents)
-        retval[i] = findfirst(varnames, p)
+        retval[i] = something(findfirst(isequal(p), varnames), 0)
     end
     retval
 end
@@ -125,7 +125,7 @@ function score_component(
 
     pinds = _get_parent_indeces(parents(cpd), data)
     varnames = names(data)
-    i = findfirst(varnames, name(cpd))
+    i = something(findfirst(isequal(name(cpd)), varnames), 0)
 
     if !haskey(cache[i], pinds)
         cache[i][pinds] = score_component(a, cpd, data)
@@ -139,15 +139,15 @@ end
     score_components(a::ScoringFunction, cpds::Vector{CPD}, data::DataFrame, cache::ScoreComponentCache)
 Get a list of score components for all cpds
 """
-function score_components{C<:CPD}(a::ScoringFunction, cpds::Vector{C}, data::DataFrame)
-    retval = Array{Float64}(length(cpds))
+function score_components(a::ScoringFunction, cpds::Vector{C}, data::DataFrame) where {C<:CPD}
+    retval = Array{Float64}(undef, length(cpds))
     for (i,cpd) in enumerate(cpds)
         retval[i] = score_component(a, cpd, data)
     end
     retval
 end
-function score_components{C<:CPD}(a::ScoringFunction, cpds::Vector{C}, data::DataFrame, cache::ScoreComponentCache)
-    retval = Array{Float64}(length(cpds))
+function score_components(a::ScoringFunction, cpds::Vector{C}, data::DataFrame, cache::ScoreComponentCache) where {C<:CPD}
+    retval = Array{Float64}(undef, length(cpds))
     for (i,cpd) in enumerate(cpds)
         retval[i] = score_component(a, cpd, data, cache)
     end
@@ -183,7 +183,7 @@ end
     fit{C<:CPD}(::Type{BayesNet{C}}, ::DataFrame, ::GraphSearchStrategy)
 Run the graph search algorithm defined by GraphSearchStrategy
 """
-ProbabilisticGraphicalModels.fit{C<:CPD}(::Type{BayesNet{C}}, data::DataFrame, params::GraphSearchStrategy) = error("fit not defined for GraphSearchStrategy $params")
+ProbabilisticGraphicalModels.fit(::Type{BayesNet{C}}, data::DataFrame, params::GraphSearchStrategy) where {C<:CPD} = error("fit not defined for GraphSearchStrategy $params")
 
 """
     K2GraphSearch
@@ -206,12 +206,12 @@ mutable struct K2GraphSearch <: GraphSearchStrategy
 
         new(order, cpd_types, max_n_parents, metric)
     end
-    function K2GraphSearch{C<:CPD}(
+    function K2GraphSearch(
         order::NodeNames,
         cpdtype::Type{C};
         max_n_parents::Int=3,
         metric::ScoringFunction=NegativeBayesianInformationCriterion(),
-        )
+    ) where {C<:CPD}
 
         cpd_types = fill(C, length(order))
         new(order, cpd_types, max_n_parents, metric)
@@ -236,10 +236,10 @@ mutable struct K2GraphSearch <: GraphSearchStrategy
     end
 end
 
-function Distributions.fit{C<:CPD}(::Type{BayesNet{C}}, data::DataFrame, params::K2GraphSearch)
+function Distributions.fit(::Type{BayesNet{C}}, data::DataFrame, params::K2GraphSearch) where {C<:CPD}
 
     N = length(params.order)
-    cpds = Array{C}(N)
+    cpds = Array{C}(undef, N)
     for i in 1 : N
 
         cpd_type = params.cpd_types[i]

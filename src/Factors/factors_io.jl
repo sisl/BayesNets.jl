@@ -14,7 +14,7 @@ function Base.show(io::IO, ϕ::Factor)
 end
 
 # # mimewriting doesn't use a monospace font, which I don't like ...
-Base.mimewritable(::MIME"text/html", ϕ::Factor) = true
+Base.showable(::MIME"text/html", ϕ::Factor) = true
 Base.show(io::IO, a::MIME"text/html", ϕ::Factor) = show(io, a, convert(DataFrame, ϕ))
 #    print(io, replace(replace(repr(ϕ), "\n", "<br>"), "\t",
 #            "&emsp;&emsp;&emsp;"))

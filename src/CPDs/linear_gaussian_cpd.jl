@@ -5,12 +5,11 @@ A linear Gaussian CPD, always returns a Normal
 
 	P(x|parents(x)) = Normal(μ=a×parents(x) + b, σ)
 """
-type LinearGaussianCPD <: CPD{Normal}
+mutable struct LinearGaussianCPD <: CPD{Normal}
     target::NodeName
     parents::NodeNames
-
-	a::Vector{Float64}
-	b::Float64
+    a::Vector{Float64}
+    b::Float64
     σ::Float64
 end
 LinearGaussianCPD(target::NodeName, μ::Float64, σ::Float64) = LinearGaussianCPD(target, NodeName[], Float64[], μ, σ)
@@ -65,14 +64,14 @@ function Distributions.fit(::Type{LinearGaussianCPD},
     # 2nd row is all of the data for the 2nd parent, etc.
 
     nparents = length(parents)
-    X = Array{Float64}(nrow(data), nparents+1)
+    X = Array{Float64}(undef, nrow(data), nparents+1)
     for (i,p) in enumerate(parents)
         arr = data[p]
     	for j in 1 : nrow(data)
             X[j,i] = convert(Float64, arr[j])
     	end
     end
-    X[:,end] = 1.0
+    X[:,end] .= 1.0
 
     y = convert(Vector{Float64}, data[target])
 

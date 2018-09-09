@@ -21,11 +21,11 @@ end
 Base.print(io::IO, p::UniformPrior) = Base.print(io, "UniformPrior(%.2f)", p.α)
 
 Base.get(p::UniformPrior, ncategories::Integer) = fill(p.α, ncategories)
-function Base.get{I<:Integer, J<:Integer}(p::UniformPrior,
-    var_index::Integer,
-    ncategories::AbstractVector{I}, # [nvars]
-    parents::AbstractVector{J},    # [nvars]
-    )
+function Base.get(p::UniformPrior,
+                  var_index::Integer,
+                  ncategories::AbstractVector{I}, # [nvars]
+                  parents::AbstractVector{J},    # [nvars]
+                  ) where {I<:Integer, J<:Integer}
 
     r = ncategories[var_index]
     q = isempty(parents) ? 1 : prod(ncategories[parents])
@@ -50,11 +50,11 @@ end
 Base.print(io::IO, p::BDeuPrior) = @printf(io, "BDeuPrior(%.2f)", p.x)
 
 Base.get(p::BDeuPrior, ncategories::Integer) = fill(p.x/ncategories, ncategories)
-function Base.get{I<:Integer, J<:Integer}(p::BDeuPrior,
-    var_index::Integer,
-    ncategories::AbstractVector{I}, # [nvars]
-    parents::AbstractVector{J},    # [nvars]
-    )
+function Base.get(p::BDeuPrior,
+                  var_index::Integer,
+                  ncategories::AbstractVector{I}, # [nvars]
+                  parents::AbstractVector{J},    # [nvars]
+                  ) where {I<:Integer, J<:Integer}
 
     x = p.x
     r = ncategories[var_index]

@@ -5,6 +5,7 @@ Provides a basic interface for defining and working with probabilistic graphical
 """
 module ProbabilisticGraphicalModels
 
+using Random
 using Reexport
 @reexport using Distributions
 @reexport using DataFrames

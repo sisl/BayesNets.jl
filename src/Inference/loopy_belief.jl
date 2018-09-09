@@ -21,7 +21,7 @@ If it isn't an evidence node, this will break
     return z
 end
 
-function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
+function infer(im::LoopyBelief, inf::InferenceState{BN}) where {BN<:DiscreteBayesNet}
 
     length(inf.query) == 1 || throw(ArgumentError("There can only be one query variable"))
 
@@ -41,7 +41,7 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
     # evidence node messages to their selves
     evidence_lambdas = map(nn -> _evidence_lambda(nn, evidence, ncat_lut[nn]), evidence_nodes)
 
-    # the index of each node in evidence (lambda) or zero otherwise
+    # the index of each node in evidence (lambda) or nothing otherwise
     evidence_index = indexin(nodes, evidence_nodes)
 
     #=
@@ -55,7 +55,7 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
     Each node has a vector containing the messages from its parents
     Each message is about the parent, so they may have different lengths
     =#
-    pis = similar(lambdas)
+    pis = empty(lambdas)
 
     #=
     Init first messages
@@ -77,13 +77,12 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
             # pi from parent (nn) to children
             #  if evidence node, set to evidence_lambda to avoid recomputing
             ev_i = evidence_index[i]
-            pis[(nn, ch)] = (ev_i == 0) ? fill(1/nn_ncat, nn_ncat) :
-                evidence_lambdas[ev_i]
+            pis[(nn, ch)] = isa(ev_i, Int64) ? evidence_lambdas[ev_i] : fill(1/nn_ncat, nn_ncat)
         end
     end
 
     # messages are passed in parallel, so need a "new" set
-    new_lambdas = similar(lambdas)
+    new_lambdas = empty(lambdas)
     # pi messages for evidence nodes won't be (re-)computed, so
     # just copy over *all* initial pi messages
     new_pis = deepcopy(pis)
@@ -110,7 +109,8 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
             #  about each instance of itself
             # nn's index in the evidence
             ev_i = evidence_index[i]
-            if ev_i != 0
+
+            if isa(ev_i, Int64)
                 # if it is evidence, then just one value will be non-zero
                 # normalization will kick in and do magic ...
                 lambda = evidence_lambdas[ev_i]
@@ -157,7 +157,7 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
             end
 
             # build pi messages to children
-            if ev_i == 0
+            if ev_i == nothing
                 # if an evidence node, pi will stay [0 ... 0 1 0... 0 ]
                 for ch in nn_children
                     other_ch = setdiff(nn_children, [ch])
@@ -193,7 +193,8 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
     end
 
     # compute belief P(x|e)
-    qi = findfirst(nodes, query)
+    qi = findfirst(isequal(query), nodes)
+
     # lambda and pi one last time
     ϕ = factors[qi]
     nn_ncat = ncat_lut[query]
@@ -206,8 +207,7 @@ function infer{BN<:DiscreteBayesNet}(im::LoopyBelief, inf::InferenceState{BN})
     if isempty(nn_parents)
         pi = ϕ.potential
     else
-        broadcast!(*, ϕ, nn_parents,
-                [pis[(pa, query)] for pa in nn_parents])
+        broadcast!(*, ϕ, nn_parents, [pis[(pa, query)] for pa in nn_parents])
         pi = sum!(ϕ, nn_parents).potential
     end
 

@@ -1,7 +1,7 @@
 #
 # Bayes Net
 #
-Base.mimewritable(::MIME"image/svg+xml", bn::BayesNet) = success(`lualatex -v`)
+Base.showable(::MIME"image/svg+xml", bn::BayesNet) = success(`lualatex -v`)
 
 function plot(bn::BayesNet)
 	if !isempty(names(bn))

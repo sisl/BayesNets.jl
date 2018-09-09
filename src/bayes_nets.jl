@@ -8,10 +8,10 @@ and contains an associated conditional probability distribution P(xⱼ | parents
 
 const DAG = DiGraph
 
-function _build_dag_from_cpds{T<:CPD}(
+function _build_dag_from_cpds(
 	cpds::AbstractVector{T},
 	name_to_index::Dict{NodeName, Int}
-	)
+) where {T<:CPD}
 
 	dag = DAG(length(cpds))
 	for cpd in cpds
@@ -23,15 +23,15 @@ function _build_dag_from_cpds{T<:CPD}(
 	end
 	dag
 end
-function _enforce_topological_order{T<:CPD}(
+function _enforce_topological_order(
 	dag::DAG,
 	cpds::AbstractVector{T},
 	name_to_index::Dict{NodeName, Int},
-	)
+) where {T<:CPD}
 
 	topo = topological_sort_by_dfs(dag)
 
-	cpds2 = Array{T}(length(cpds))
+	cpds2 = Array{T}(undef, length(cpds))
 	name_to_index2 = Dict{NodeName, Int}()
 	for (i,j) in enumerate(topo)
 		# i is the new index
@@ -53,8 +53,8 @@ mutable struct BayesNet{T<:CPD} <: ProbabilisticGraphicalModel
 	name_to_index::Dict{NodeName,Int} # NodeName → index in dag and cpds
 end
 BayesNet() = BayesNet(DAG(0), CPD[], Dict{NodeName, Int}())
-BayesNet{T <: CPD}(::Type{T}) = BayesNet(DAG(0), T[], Dict{NodeName, Int}())
-function BayesNet{T <: CPD}(cpds::AbstractVector{T})
+BayesNet(::Type{T}) where {T <: CPD} = BayesNet(DAG(0), T[], Dict{NodeName, Int}())
+function BayesNet(cpds::AbstractVector{T}) where {T <: CPD}
 
 	name_to_index = Dict{NodeName, Int}()
 	for (i, cpd) in enumerate(cpds)
@@ -78,7 +78,7 @@ Base.length(bn::BayesNet) = length(bn.cpds)
 Returns the ordered list of NodeNames
 """
 function Base.names(bn::BayesNet)
-	retval = Array{NodeName}(length(bn))
+	retval = Array{NodeName}(undef, length(bn))
 	for (i,cpd) in enumerate(bn.cpds)
 		retval[i] = name(cpd)
 	end
@@ -95,7 +95,7 @@ Returns the children as a list of NodeNames
 """
 function children(bn::BayesNet, target::NodeName)
 	i = bn.name_to_index[target]
-	NodeName[name(bn.cpds[j]) for j in out_neighbors(bn.dag, i)]
+	NodeName[name(bn.cpds[j]) for j in outneighbors(bn.dag, i)]
 end
 
 """
@@ -103,7 +103,7 @@ Returns all neighbors as a list of NodeNames.
 """
 function neighbors(bn::BayesNet, target::NodeName)
 	i = bn.name_to_index[target]
-	NodeName[name(bn.cpds[j]) for j in append!(in_neighbors(bn.dag, i), out_neighbors(bn.dag, i))]
+	NodeName[name(bn.cpds[j]) for j in append!(inneighbors(bn.dag, i), outneighbors(bn.dag, i))]
 end
 
 """
@@ -277,7 +277,7 @@ function Base.push!(bn::BayesNet, cpd::CPD)
 	!is_cyclic(bn.dag) || error("BayesNet graph is non-acyclic!")
 	enforce_topological_order!(bn)
 end
-function Base.append!{C<:CPD}(bn::BayesNet, cpds::AbstractVector{C})
+function Base.append!(bn::BayesNet, cpds::AbstractVector{C}) where {C<:CPD}
 	for cpd in cpds
 		push!(bn, cpd)
 	end

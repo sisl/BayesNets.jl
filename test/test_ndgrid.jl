@@ -11,7 +11,7 @@ let
 	@test isa(BayesNets.ndgrid([1], [2], [3]), Tuple{Array{Int64,3},Array{Int64,3},Array{Int64,3}})
 
 	# TODO: make this test more rigorous
-	@test BayesNets.ndgrid_fill!(Array{Int}(2), [1,2], 1, 2) == [1,2]
+	@test BayesNets.ndgrid_fill!(Array{Int}(undef, 2), [1,2], 1, 2) == [1,2]
 
 	@test BayesNets.meshgrid([1,2]) == (
 										[1 2

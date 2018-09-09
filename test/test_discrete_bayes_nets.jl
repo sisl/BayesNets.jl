@@ -28,12 +28,12 @@ let
 	@test T[findfirst(i->T[i,:a] == 2 && T[i,:b] == 2, 1:4), :count] == 1
 
 	n = length(bn)
-	parent_list = Array{Vector{Int}}(n)
-	bincounts = Array{Int}(n)
+	parent_list = Array{Vector{Int}}(undef, n)
+	bincounts = Array{Int}(undef, n)
 	datamat = convert(Matrix{Int}, data)'
 
 	for (i,cpd) in enumerate(bn.cpds)
-		parent_list[i] = in_neighbors(bn.dag, i)
+		parent_list[i] = inneighbors(bn.dag, i)
 		bincounts[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
 	end
 

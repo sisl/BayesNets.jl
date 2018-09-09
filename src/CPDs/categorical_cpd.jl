@@ -26,7 +26,7 @@ struct CategoricalCPD{D} <: CPD{D}
     # a vector of distributions in DMU order
     distributions::Vector{D}
 end
-CategoricalCPD{D<:Distribution}(target::NodeName, d::D) =
+CategoricalCPD(target::NodeName, d::D) where {D<:Distribution} =
         CategoricalCPD(target, NodeName[], Int[], D[d])
 
 name(cpd::CategoricalCPD) = cpd.target
@@ -40,7 +40,7 @@ function (cpd::CategoricalCPD)(a::Assignment=Assignment())
         sub = [a[p] for p in cpd.parents]
         shape = ntuple(i -> cpd.parental_ncategories[i],
                 length(cpd.parental_ncategories))
-        ind = sub2ind(shape, sub...)
+        ind = LinearIndices(shape)[sub...]
         return cpd.distributions[ind]
     end
 end
@@ -55,21 +55,21 @@ Return the number of categories for a cpd.
 Distributions.ncategories(cpd::CategoricalCPD) =
     ncategories(first(cpd.distributions))
 
-function Distributions.fit{D}(::Type{CategoricalCPD{D}},
-    data::DataFrame,
-    target::NodeName,
-    )
+function Distributions.fit(::Type{CategoricalCPD{D}},
+                           data::DataFrame,
+                           target::NodeName,
+                           ) where {D}
 
     # no parents
 
     d = convert(D, fit(D, data[target]))
     CategoricalCPD(target, NodeName[], Int[], D[d])
 end
-function Distributions.fit{D}(::Type{CategoricalCPD{D}},
-    data::DataFrame,
-    target::NodeName,
-    parents::NodeNames,
-    )
+function Distributions.fit(::Type{CategoricalCPD{D}},
+                           data::DataFrame,
+                           target::NodeName,
+                           parents::NodeNames,
+                           ) where {D}
 
     # with parents
 
@@ -84,11 +84,11 @@ function Distributions.fit{D}(::Type{CategoricalCPD{D}},
     # calc parent_instantiation_counts
 
     nparents = length(parents)
-    parental_ncategories = map!(p->infer_number_of_instantiations(data[p]), Array{Int}(length(parents)), parents)
+    parental_ncategories = map!(p->infer_number_of_instantiations(data[p]), Array{Int}(undef, length(parents)), parents)
     dims = [1:parental_ncategories[i] for i in 1:nparents]
-    distributions = Array{D}(prod(parental_ncategories))
-    for (q, parent_instantiation) in enumerate(product(dims...))
-        arr = Array{eltype(data[target])}(0)
+    distributions = Array{D}(undef, prod(parental_ncategories))
+    for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
+        arr = Array{eltype(data[target])}(undef, 0)
         for i in 1 : nrow(data)
             if all(j->data[i,parents[j]]==parent_instantiation[j], 1:nparents) # parental instantiation matches
                 push!(arr, data[i, target])
@@ -104,7 +104,7 @@ end
 
 const DiscreteCPD = CategoricalCPD{Categorical{Float64}}
 
-DiscreteCPD{T<:Real}(target::NodeName, prob::AbstractVector{T}) = CategoricalCPD(target, Categorical(prob ./ sum(prob)))
+DiscreteCPD(target::NodeName, prob::AbstractVector{T}) where {T<:Real} = CategoricalCPD(target, Categorical(prob ./ sum(prob)))
 
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
@@ -119,7 +119,7 @@ function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
     target::NodeName,
     parents::NodeNames;
-    parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[p]), Array{Int}(length(parents)), parents),
+    parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[p]), Array{Int}(undef, length(parents)), parents),
     target_ncategories::Int = infer_number_of_instantiations(data[target]),
     )
 
@@ -131,9 +131,9 @@ function Distributions.fit(::Type{DiscreteCPD},
 
     nparents = length(parents)
     dims = [1:parental_ncategories[i] for i in 1:nparents]
-    distributions = Array{Categorical{Float64}}(prod(parental_ncategories))
-    arr = Array{eltype(data[target])}(0)
-    for (q, parent_instantiation) in enumerate(product(dims...))
+    distributions = Array{Categorical{Float64}}(undef, prod(parental_ncategories))
+    arr = Array{eltype(data[target])}(undef, 0)
+    for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
         empty!(arr)
         for i in 1 : nrow(data)
             if all(j->data[i,parents[j]]==parent_instantiation[j], 1:nparents) # parental instantiation matches

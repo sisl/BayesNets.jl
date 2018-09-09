@@ -73,18 +73,18 @@ end
 Table normalization
 Ensures that the `:p` column sums to one
 """
-function LinAlg.normalize!(t::Table)
+function LinearAlgebra.normalize!(t::Table)
     t.potential[:p] ./= sum(t.potential[:p])
 
     return t
 end
 
-LinAlg.normalize(t::Table) = normalize!(deepcopy(t))
+LinearAlgebra.normalize(t::Table) = normalize!(deepcopy(t))
 
 """
 Given a Table, extract the rows which match the given assignment
 """
-function Base.select(t::Table, a::Assignment)
+function Base.partialsort(t::Table, a::Assignment)
     f = t.potential
 
     commonNames = intersect(names(f), keys(a))
