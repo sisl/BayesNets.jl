@@ -37,10 +37,10 @@ function rand_cpd(bn::DiscreteBayesNet, ncategories::Int, target::NodeName, pare
     parental_ncategories = _get_parental_ncategories(bn, parents)
 
     Q = prod(parental_ncategories)
-    distributions = Array{Categorical{Float64}}(undef, Q)
+    distributions = Array{Categorical{Float64,Vector{Float64}}}(undef, Q)
     dir = Dirichlet(ncategories, uniform_dirichlet_prior) # draw random categoricals from a Dirichlet distribution
     for q in 1:Q
-        distributions[q] = Categorical{Float64}(rand(dir))
+        distributions[q] = Categorical{Float64,Vector{Float64}}(rand(dir))
     end
 
     CategoricalCPD(target, parents, parental_ncategories, distributions)

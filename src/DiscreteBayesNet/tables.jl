@@ -37,9 +37,9 @@ function Base.:*(t1::Table, t2::Table)
     finalnames = vcat(setdiff(union(names(f1), names(f2)), [:p]), :p)
 
     if isempty(onnames)
-        j = join(f1, f2, kind=:cross)
+        j = join(f1, f2, kind=:cross, makeunique=true)
     else
-        j = join(f1, f2, on=onnames, kind=:outer)
+        j = join(f1, f2, on=onnames, kind=:outer, makeunique=true)
     end
 
     j[:p] = broadcast(*, j[:p], j[:p_1])
