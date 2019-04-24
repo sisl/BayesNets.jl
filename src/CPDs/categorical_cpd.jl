@@ -102,7 +102,7 @@ end
 
 #####
 
-const DiscreteCPD = CategoricalCPD{Categorical{Float64}}
+const DiscreteCPD = CategoricalCPD{Categorical{Float64,Vector{Float64}}}
 
 DiscreteCPD(target::NodeName, prob::AbstractVector{T}) where {T<:Real} = CategoricalCPD(target, Categorical(prob ./ sum(prob)))
 
@@ -112,8 +112,8 @@ function Distributions.fit(::Type{DiscreteCPD},
     ncategories::Int = infer_number_of_instantiations(data[target]),
     )
 
-    d = convert(Categorical{Float64}, fit_mle(Categorical, ncategories, data[target]))
-    CategoricalCPD(target, NodeName[], Int[], Categorical{Float64}[d])
+    d = convert(Categorical{Float64,Vector{Float64}}, fit_mle(Categorical, ncategories, data[target]))
+    CategoricalCPD(target, NodeName[], Int[], Categorical{Float64,Vector{Float64}}[d])
 end
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
@@ -131,7 +131,7 @@ function Distributions.fit(::Type{DiscreteCPD},
 
     nparents = length(parents)
     dims = [1:parental_ncategories[i] for i in 1:nparents]
-    distributions = Array{Categorical{Float64}}(undef, prod(parental_ncategories))
+    distributions = Array{Categorical{Float64,Vector{Float64}}}(undef, prod(parental_ncategories))
     arr = Array{eltype(data[target])}(undef, 0)
     for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
         empty!(arr)
@@ -143,7 +143,7 @@ function Distributions.fit(::Type{DiscreteCPD},
         if !isempty(arr)
             distributions[q] = fit_mle(Categorical, target_ncategories, arr)
         else
-            distributions[q] = Categorical{Float64}(target_ncategories)
+            distributions[q] = Categorical(target_ncategories)
         end
     end
 

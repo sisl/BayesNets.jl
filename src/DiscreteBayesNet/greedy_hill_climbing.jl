@@ -25,8 +25,8 @@ function Distributions.fit(::Type{DiscreteCPD},
         prior_counts[v] += 1.0
     end
 
-    d = Categorical{Float64}(prior_counts ./ sum(prior_counts))
-    CategoricalCPD(target, NodeName[], Int[], Categorical{Float64}[d])
+    d = Categorical{Float64,Vector{Float64}}(prior_counts ./ sum(prior_counts))
+    CategoricalCPD(target, NodeName[], Int[], Categorical{Float64,Vector{Float64}}[d])
 end
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
@@ -45,7 +45,7 @@ function Distributions.fit(::Type{DiscreteCPD},
 
     nparents = length(parents)
     dims = [1:parental_ncategories[i] for i in 1:nparents]
-    distributions = Array{Categorical{Float64}}(undef, prod(parental_ncategories))
+    distributions = Array{Categorical{Float64,Vector{Float64}}}(undef, prod(parental_ncategories))
     for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
 
         prior_counts = get(prior, target_ncategories)
@@ -54,7 +54,7 @@ function Distributions.fit(::Type{DiscreteCPD},
                 prior_counts[data[i, target]] += 1.0
             end
         end
-        distributions[q] = Categorical{Float64}(prior_counts ./ sum(prior_counts))
+        distributions[q] = Categorical{Float64,Vector{Float64}}(prior_counts ./ sum(prior_counts))
     end
 
     CategoricalCPD(target, parents, parental_ncategories, distributions)

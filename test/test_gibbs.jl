@@ -100,7 +100,7 @@ let
         d_bn = DiscreteBayesNet()
         push!(d_bn, DiscreteCPD(:a, [1.0,0.0]))
         push!(d_bn, DiscreteCPD(:b, [0.0,1.0]))
-        push!(d_bn, CategoricalCPD{Categorical{Float64}}(:c, [:a, :b], [2,2], 
+        push!(d_bn, CategoricalCPD{Categorical{Float64,Vector{Float64}}}(:c, [:a, :b], [2,2], 
                         [Categorical([0.1, 0.9]), Categorical([0.2, 0.8]), Categorical([1.0, 0.0]), Categorical([0.4, 0.6])]))
 
 	t12 = gibbs_sample(d_bn, 5, 100; thinning=5, consistent_with=Assignment(),

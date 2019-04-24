@@ -97,14 +97,14 @@ function reducedim!(op, ϕ::Factor, dims::NodeNameUnion, v0=nothing)
     return ϕ
 end
 
-Base.sum(ϕ::Factor, dims) = reducedim(+, ϕ, dims)
-Base.sum!(ϕ::Factor, dims) = reducedim!(+, ϕ, dims)
-Base.prod(ϕ::Factor, dims) = reducedim(*, ϕ, dims)
-Base.prod!(ϕ::Factor, dims) = reducedim!(*, ϕ, dims)
-Base.maximum(ϕ::Factor, dims) = reducedim(max, ϕ, dims)
-Base.maximum!(ϕ::Factor, dims) = reducedim!(max, ϕ, dims)
-Base.minimum(ϕ::Factor, dims) = reducedim(min, ϕ, dims)
-Base.minimum!(ϕ::Factor, dims) = reducedim!(min, ϕ, dims)
+Base.sum(ϕ::Factor, dims::NodeNameUnion) = reducedim(+, ϕ, dims)
+Base.sum!(ϕ::Factor, dims::NodeNameUnion) = reducedim!(+, ϕ, dims)
+Base.prod(ϕ::Factor, dims::NodeNameUnion) = reducedim(*, ϕ, dims)
+Base.prod!(ϕ::Factor, dims::NodeNameUnion) = reducedim!(*, ϕ, dims)
+Base.maximum(ϕ::Factor, dims::NodeNameUnion) = reducedim(max, ϕ, dims)
+Base.maximum!(ϕ::Factor, dims::NodeNameUnion) = reducedim!(max, ϕ, dims)
+Base.minimum(ϕ::Factor, dims::NodeNameUnion) = reducedim(min, ϕ, dims)
+Base.minimum!(ϕ::Factor, dims::NodeNameUnion) = reducedim!(min, ϕ, dims)
 
 """
     broadcast(f, ϕ, dims, values)
