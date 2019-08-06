@@ -28,7 +28,6 @@ function Random.rand(bn::BayesNet, sampler::BayesNetSampler, nsamples::Integer)
     for cpd in bn.cpds
         begin
             df[!, name(cpd)] = Array{typeof(a[name(cpd)])}(undef, nsamples)
-            df
         end
     end
 
