@@ -26,9 +26,7 @@ function Random.rand(bn::BayesNet, sampler::BayesNetSampler, nsamples::Integer)
     a = rand(bn, sampler)
     df = DataFrame()
     for cpd in bn.cpds
-        begin
-            df[!, name(cpd)] = Array{typeof(a[name(cpd)])}(undef, nsamples)
-        end
+        df[!, name(cpd)] = Array{typeof(a[name(cpd)])}(undef, nsamples)
     end
 
     for i in 1:nsamples
