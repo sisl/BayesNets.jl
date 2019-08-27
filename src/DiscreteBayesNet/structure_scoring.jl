@@ -188,11 +188,11 @@ Note that every entry in data must be an integer greater than 0
 function bayesian_score(G::DAG,
                         names::Vector{Symbol},
                         data::DataFrame,
-                        ncategories::Vector{Int}=Int[infer_number_of_instantiations(convert(Vector{Int}, data[n])) for n in names],
+                        ncategories::Vector{Int}=Int[infer_number_of_instantiations(convert(Vector{Int}, data[!,n])) for n in names],
                         prior::DirichletPrior=UniformPrior())
     datamat = Array{Int}(undef, ncol(data), nrow(data))
     for i in 1:nv(G)
-        datamat[i,:] = data[names[i]]
+        datamat[i,:] = data[!,names[i]]
     end
 
     # NOTE: this is badj(G) prior to v0.6 and inneighbors(G) in v0.6
