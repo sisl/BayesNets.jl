@@ -38,7 +38,7 @@ function Distributions.fit(::Type{LinearGaussianCPD},
 
     # no parents
 
-    arr = data[target]
+    arr = data[!,target]
     eltype(arr) <: Real || error("fit LinearGaussianCPD requrires target to be numeric")
 
     μ = convert(Float64, mean(arr))
@@ -66,14 +66,14 @@ function Distributions.fit(::Type{LinearGaussianCPD},
     nparents = length(parents)
     X = Array{Float64}(undef, nrow(data), nparents+1)
     for (i,p) in enumerate(parents)
-        arr = data[p]
+        arr = data[!,p]
     	for j in 1 : nrow(data)
             X[j,i] = convert(Float64, arr[j])
     	end
     end
     X[:,end] .= 1.0
 
-    y = convert(Vector{Float64}, data[target])
+    y = convert(Vector{Float64}, data[!,target])
 
     # --------------------
     # solve the regression problem

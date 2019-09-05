@@ -17,7 +17,7 @@ function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
     target::NodeName,
     prior::DirichletPrior;
-    ncategories::Int = infer_number_of_instantiations(data[target]),
+    ncategories::Int = infer_number_of_instantiations(data[!,target]),
     )
 
     prior_counts = get(prior, ncategories)
@@ -33,8 +33,8 @@ function Distributions.fit(::Type{DiscreteCPD},
     target::NodeName,
     parents::NodeNames,
     prior::DirichletPrior;
-    parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[p]), Array{Int}(length(parents)), parents),
-    target_ncategories::Int = infer_number_of_instantiations(data[target]),
+    parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[!,p]), Array{Int}(length(parents)), parents),
+    target_ncategories::Int = infer_number_of_instantiations(data[!,target]),
     )
 
     # with parents
@@ -60,7 +60,7 @@ function Distributions.fit(::Type{DiscreteCPD},
     CategoricalCPD(target, parents, parental_ncategories, distributions)
 end
 function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::GreedyHillClimbing;
-    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[i]), Array{Int}(undef, ncol(data)), 1:ncol(data)),
+    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[!,i]), Array{Int}(undef, ncol(data)), 1:ncol(data)),
     )
 
     n = ncol(data)

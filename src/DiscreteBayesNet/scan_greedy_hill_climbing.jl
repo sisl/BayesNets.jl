@@ -82,7 +82,7 @@ function greedy_score(score_components, n, prior_parent_list, datamat, params::S
 end
 
 function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::ScanGreedyHillClimbing;
-    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[i]), Array{Int}(undef, ncol(data)), 1:ncol(data)),
+    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[!,i]), Array{Int}(undef, ncol(data)), 1:ncol(data)),
     )
 
     n = ncol(data)

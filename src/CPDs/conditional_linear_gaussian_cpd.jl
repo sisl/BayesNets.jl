@@ -49,7 +49,7 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
 
     # no parents
 
-    arr = data[target]
+    arr = data[!,target]
     eltype(arr) <: Real || error("fit ConditionalLinearGaussianCPD requrires target to be numeric")
 
     lingaussian = fit(LinearGaussianCPD, data, target, min_stdev=min_stdev)
@@ -70,8 +70,8 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
     # ---------------------
     # identify discrete and continuous parents
 
-    parents_disc = filter(p->eltype(data[p]) <: Int, parents)
-    parents_cont = filter(p->eltype(data[p]) <: AbstractFloat, parents)
+    parents_disc = filter(p->eltype(data[!,p]) <: Int, parents)
+    parents_cont = filter(p->eltype(data[!,p]) <: AbstractFloat, parents)
 
    # ---------------------
     # pull discrete dataset
@@ -86,7 +86,7 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
         parental_ncategories = Array{Int}(undef, nparents_disc)
         dims = Array{UnitRange{Int64}}(undef, nparents_disc)
         for (i,p) in enumerate(parents_disc)
-            parental_ncategories[i] = infer_number_of_instantiations(data[p])
+            parental_ncategories[i] = infer_number_of_instantiations(data[!,p])
             dims[i] = 1:parental_ncategories[i]
         end
 

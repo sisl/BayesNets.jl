@@ -15,7 +15,7 @@ type GreedyThickThinning <: GraphSearchStrategy
 end
 
 function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::GreedyThickThinning;
-    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[i]), Array{Int}(ncol(data)), 1:ncol(data)),
+    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[!,i]), Array{Int}(ncol(data)), 1:ncol(data)),
     )
 
     n = ncol(data)
