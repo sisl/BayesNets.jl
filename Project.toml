@@ -1,6 +1,6 @@
 name = "BayesNets"
 uuid = "ba4760a4-c768-5bed-964b-cf806dc591cb"
-version = "3.1.0"
+version = "3.2.0"
 
 
 [deps]
@@ -37,7 +37,7 @@ Reexport = "≥ 0.2.0"
 SpecialFunctions = "≥ 0.7.0"
 StatsBase = "≥ 0.25.0"
 TikzGraphs = "≥ 1.0.0"
-julia = "≥ 0.7.0"
+julia = "≥ 1.1.0"
 
 [extras]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
