@@ -42,9 +42,9 @@ function Base.:*(t1::Table, t2::Table)
         j = join(f1, f2, on=onnames, kind=:outer, makeunique=true)
     end
 
-    j[:p] = broadcast(*, j[:p], j[:p_1])
+    j[!,:p] = broadcast(*, j[!,:p], j[!,:p_1])
 
-    return Table(j[finalnames])
+    return Table(j[!,finalnames])
 end
 
 """
@@ -61,11 +61,11 @@ function sumout(t::Table, v::NodeNameUnion)
     if isempty(remainingvars)
         # they want to remove all variables except for prob column
         # uh ... 'singleton' table?
-        return Table(DataFrame(p = sum(f[:p])))
+        return Table(DataFrame(p = sum(f[!,:p])))
     else
         # note that this will fail miserably if f is too large (~1E4 maybe?)
         #  nothing I can do; there is a github issue
-        return Table(by(f, remainingvars, df -> DataFrame(p = sum(df[:p]))))
+        return Table(by(f, remainingvars, df -> DataFrame(p = sum(df[!,:p]))))
     end
 end
 
@@ -74,7 +74,7 @@ Table normalization
 Ensures that the `:p` column sums to one
 """
 function LinearAlgebra.normalize!(t::Table)
-    t.potential[:p] ./= sum(t.potential[:p])
+    t.potential[!,:p] ./= sum(t.potential[!,:p])
 
     return t
 end
@@ -90,8 +90,8 @@ function Base.partialsort(t::Table, a::Assignment)
     commonNames = intersect(names(f), keys(a))
     mask = trues(size(f, 1))
     for s in commonNames
-        # mask &= (f[s] .== a[s])
-        vals = (f[s] .== a[s])
+        # mask &= (f[!,s] .== a[s])
+        vals = (f[!,s] .== a[s])
         for (i,v) in enumerate(vals)
             mask[i] = mask[i] & v
         end
@@ -110,15 +110,15 @@ based on its frequency of occurrence.
 function Distributions.fit(::Type{Table}, f::DataFrame)
     w = ones(size(f, 1))
     t = f
-    if haskey(f, :p)
+    if hasproperty(f, :p)
         t = f[:, names(t) .!= :p]
-        w = f[:p]
+        w = f[!,:p]
     end
     # unique samples
     tu = unique(t)
     # add column with probabilities of unique samples
-    tu[:p] = Float64[sum(w[Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]]) for j = 1:size(tu,1)]
-    tu[:p] /= sum(tu[:p])
+    tu[!,:p] = Float64[sum(w[Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]]) for j = 1:size(tu,1)]
+    tu[!,:p] /= sum(tu[!,:p])
 
     return Table(tu)
 end
@@ -132,12 +132,12 @@ end
 #     n = size(f, 1)
 #     p = zeros(n)
 #     w = ones(n)
-#     if haskey(f, :p)
-#         w = f[:p]
+#     if hasproperty(f, :p)
+#         w = f[!,:p]
 #     end
 #
-#     dfindex = find([haskey(a, n) for n in names(f)])
-#     dfvalues = [a[n] for n in names(f)[dfindex]]'
+#     dfindex = find([hasproperty(a, n) for n in names(f)])
+#     dfvalues = [a[n] for n in names(f)[!,dfindex]]'
 #
 #     cumWeight = 0.0
 #     cumTotalWeight = 0.0

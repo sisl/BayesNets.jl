@@ -65,10 +65,10 @@ function table(bn::DiscreteBayesNet, name::NodeName)
     if nparents > 0
         A = ndgrid([1:ncategories(get(bn, name)(assignment)) for name in varnames]...)
         for (i,name2) in enumerate(varnames)
-            d[name2] = vec(A[i])
+            d[!,name2] = vec(A[i])
         end
     else
-        d[name] = 1:ncategories(cpd(assignment))
+        d[!,name] = 1:ncategories(cpd(assignment))
     end
 
     p = ones(size(d,1)) # the probability column
@@ -79,7 +79,7 @@ function table(bn::DiscreteBayesNet, name::NodeName)
         end
         p[i] = pdf(cpd, assignment)
     end
-    d[:p] = p
+    d[!,:p] = p
 
     return Table(d)
 end
@@ -110,7 +110,7 @@ function Base.count(bn::DiscreteBayesNet, name::NodeName, data::DataFrame)
     tu = unique(t)
 
     # add column with counts of unique samples
-    tu[:count] = Int[sum(Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]) for j = 1:size(tu,1)]
+    tu[!,:count] = Int[sum(Bool[tu[j,:] == t[i,:] for i = 1:size(t,1)]) for j = 1:size(tu,1)]
 
     return tu
 end
@@ -243,7 +243,7 @@ function statistics(dag::DAG, data::DataFrame)
     n == ncol(data) || throw(DimensionMismatch("statistics' dag and data must be of the same dimension, $n ≠ $(ncol(data))"))
 
     parents = [inneighbors(dag, i) for i in 1:n]
-    ncategories = [Int(infer_number_of_instantiations(data[i])) for i in 1 : n]
+    ncategories = [Int(infer_number_of_instantiations(data[!,i])) for i in 1 : n]
     datamat = convert(Matrix{Int}, data)'
 
     statistics(parents, ncategories, datamat)
@@ -254,7 +254,7 @@ function statistics(bn::DiscreteBayesNet, target::NodeName, data::DataFrame)
     n = nv(bn.dag)
     targetind = bn.name_to_index[target]
     parents = inneighbors(bn.dag, targetind)
-    ncategories = [Int(infer_number_of_instantiations(data[i])) for i in 1 : n]
+    ncategories = [Int(infer_number_of_instantiations(data[!,i])) for i in 1 : n]
     datamat = convert(Matrix{Int}, data)'
 
     statistics(targetind, parents, ncategories, datamat)

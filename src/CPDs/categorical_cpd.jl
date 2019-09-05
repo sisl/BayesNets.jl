@@ -62,7 +62,7 @@ function Distributions.fit(::Type{CategoricalCPD{D}},
 
     # no parents
 
-    d = convert(D, fit(D, data[target]))
+    d = convert(D, fit(D, data[!,target]))
     CategoricalCPD(target, NodeName[], Int[], D[d])
 end
 function Distributions.fit(::Type{CategoricalCPD{D}},
@@ -84,11 +84,11 @@ function Distributions.fit(::Type{CategoricalCPD{D}},
     # calc parent_instantiation_counts
 
     nparents = length(parents)
-    parental_ncategories = map!(p->infer_number_of_instantiations(data[p]), Array{Int}(undef, length(parents)), parents)
+    parental_ncategories = map!(p->infer_number_of_instantiations(data[!,p]), Array{Int}(undef, length(parents)), parents)
     dims = [1:parental_ncategories[i] for i in 1:nparents]
     distributions = Array{D}(undef, prod(parental_ncategories))
     for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
-        arr = Array{eltype(data[target])}(undef, 0)
+        arr = Array{eltype(data[!,target])}(undef, 0)
         for i in 1 : nrow(data)
             if all(j->data[i,parents[j]]==parent_instantiation[j], 1:nparents) # parental instantiation matches
                 push!(arr, data[i, target])
@@ -109,18 +109,18 @@ DiscreteCPD(target::NodeName, prob::AbstractVector{T}) where {T<:Real} = Categor
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
     target::NodeName;
-    ncategories::Int = infer_number_of_instantiations(data[target]),
+    ncategories::Int = infer_number_of_instantiations(data[!,target]),
     )
 
-    d = convert(Categorical{Float64,Vector{Float64}}, fit_mle(Categorical, ncategories, data[target]))
+    d = convert(Categorical{Float64,Vector{Float64}}, fit_mle(Categorical, ncategories, data[!,target]))
     CategoricalCPD(target, NodeName[], Int[], Categorical{Float64,Vector{Float64}}[d])
 end
 function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
     target::NodeName,
     parents::NodeNames;
-    parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[p]), Array{Int}(undef, length(parents)), parents),
-    target_ncategories::Int = infer_number_of_instantiations(data[target]),
+    parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[!,p]), Array{Int}(undef, length(parents)), parents),
+    target_ncategories::Int = infer_number_of_instantiations(data[!,target]),
     )
 
     # with parents
@@ -132,7 +132,7 @@ function Distributions.fit(::Type{DiscreteCPD},
     nparents = length(parents)
     dims = [1:parental_ncategories[i] for i in 1:nparents]
     distributions = Array{Categorical{Float64,Vector{Float64}}}(undef, prod(parental_ncategories))
-    arr = Array{eltype(data[target])}(undef, 0)
+    arr = Array{eltype(data[!,target])}(undef, 0)
     for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
         empty!(arr)
         for i in 1 : nrow(data)
