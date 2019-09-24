@@ -23,8 +23,9 @@ mutable struct Factor
             throw(DimensionMismatch("`potential` must have as many " *
                         "dimensions as dims"))
 
-        (:potential in dims) &&
-            warn("Having a dimension called `potential` will cause problems")
+        if :potential in dims
+            @warn "Having a dimension called `potential` will cause problems"
+        end
 
         return new(dims, potential)
     end
