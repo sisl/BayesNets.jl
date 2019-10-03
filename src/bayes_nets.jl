@@ -292,7 +292,7 @@ the ith cpd will swap i and n and then remove n.
 function Base.delete!(bn::BayesNet, target::NodeName)
 
 	if outdegree(bn.dag, bn.name_to_index[target]) > 0
-		warn("Deleting a CPD with children!")
+		@warn("Deleting a CPD with children!")
 	end
 
 	i = bn.name_to_index[target]

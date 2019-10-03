@@ -24,7 +24,7 @@ mutable struct Factor
                         "dimensions as dims"))
 
         (:potential in dims) &&
-            warn("Having a dimension called `potential` will cause problems")
+            @warn("Having a dimension called `potential` will cause problems")
 
         return new(dims, potential)
     end
