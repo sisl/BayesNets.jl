@@ -61,7 +61,7 @@ Infer the number of instantiations, N, for a data type, assuming that it takes o
 function infer_number_of_instantiations(arr::AbstractVector{I}) where {I<:Int}
     lo, hi = extrema(arr)
     lo ≥ 1 || error("infer_number_of_instantiations assumes values in 1:N, value $lo found!")
-    lo == 1 || warn("infer_number_of_instantiations assumes values in 1:N, lowest value is $(lo)!")
+    lo == 1 || @warn("infer_number_of_instantiations assumes values in 1:N, lowest value is $(lo)!")
     hi
 end
 

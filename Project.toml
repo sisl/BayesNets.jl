@@ -1,6 +1,6 @@
 name = "BayesNets"
 uuid = "ba4760a4-c768-5bed-964b-cf806dc591cb"
-version = "3.2.0"
+version = "3.2.2"
 
 
 [deps]
@@ -24,7 +24,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 TikzGraphs = "b4f28e30-c73f-5eaf-a395-8a9db949a742"
 
 [compat]
-DataFrames = "≥ 0.13.0"
+DataFrames = "≥ 0.19.0"
 DataStructures = "≥ 0.11.0"
 Discretizers = "≥ 3.0.1"
 Distributions = "≥ 0.15.0"
@@ -34,7 +34,7 @@ NBInclude = "≥ 2.0.0"
 Parameters = "≥ 0.10.0"
 RDatasets = "≥ 0.5.0"
 Reexport = "≥ 0.2.0"
-SpecialFunctions = "≥ 0.7.0"
+SpecialFunctions = "≥ 0.8.0"
 StatsBase = "≥ 0.25.0"
 TikzGraphs = "≥ 1.0.0"
 julia = "≥ 1.1.0"

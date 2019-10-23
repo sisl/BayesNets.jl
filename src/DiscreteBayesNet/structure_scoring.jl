@@ -35,7 +35,7 @@ function bayesian_score_component(
     end
 
     N = sparse(vec(data[i,:]), vec(js), 1, size(alpha)...) # note: duplicates are added together
-    sum(SpecialFunctions.lgamma.(alpha + N)) - sum(SpecialFunctions.lgamma.(alpha)) + sum(SpecialFunctions.lgamma.(sum(alpha,dims=1))) - sum(SpecialFunctions.lgamma.(sum(alpha,dims=1) + sum(N,dims=1)))::Float64
+    sum(SpecialFunctions.loggamma.(alpha + N)) - sum(SpecialFunctions.loggamma.(alpha)) + sum(SpecialFunctions.loggamma.(sum(alpha,dims=1))) - sum(SpecialFunctions.loggamma.(sum(alpha,dims=1) + sum(N,dims=1)))::Float64
 end
 function bayesian_score_component_uniform(
     i::Int,
@@ -61,13 +61,13 @@ function bayesian_score_component_uniform(
     N = sparse(data[i,:], js, 1, ncategories[i], n...) # note: duplicates are added together
 
     u = prior.α
-    p = SpecialFunctions.lgamma(u)
+    p = SpecialFunctions.loggamma(u)
 
     # Given a sparse N, we can be clever in our calculation and not waste time
-    # computing the same SpecialFunctions.lgamma values by exploiting the sparse structure.
-    sum0 = sum(SpecialFunctions.lgamma.(nonzeros(N) .+ u)) .+ p * (ncategories[i] * n - nnz(N))
+    # computing the same SpecialFunctions.loggamma values by exploiting the sparse structure.
+    sum0 = sum(SpecialFunctions.loggamma.(nonzeros(N) .+ u)) .+ p * (ncategories[i] * n - nnz(N))
     sum1 = n * ncategories[i] * p
-    sum2 = n * SpecialFunctions.lgamma(ncategories[i] * u)
+    sum2 = n * SpecialFunctions.loggamma(ncategories[i] * u)
     cc = ncategories[i] * u
 
     @static if Base.VERSION.major == 0 && Base.VERSION.minor < 5
@@ -75,7 +75,7 @@ function bayesian_score_component_uniform(
     else
         sN = sum(N[i,:] for i=1:ncategories[i])
     end
-    sum3 = sum(SpecialFunctions.lgamma.(nonzeros(sN) .+ cc)) .+ (size(N, 2) - nnz(sN)) * SpecialFunctions.lgamma(cc)
+    sum3 = sum(SpecialFunctions.loggamma.(nonzeros(sN) .+ cc)) .+ (size(N, 2) - nnz(sN)) * SpecialFunctions.loggamma(cc)
     sum0 - sum1 + sum2 - sum3::Float64
 end
 function bayesian_score_component(
