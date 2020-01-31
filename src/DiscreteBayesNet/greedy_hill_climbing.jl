@@ -21,7 +21,7 @@ function Distributions.fit(::Type{DiscreteCPD},
     )
 
     prior_counts = get(prior, ncategories)
-    for v in data[target]
+    for v in data[!,target]
         prior_counts[v] += 1.0
     end
 
