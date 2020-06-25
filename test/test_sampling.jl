@@ -10,8 +10,8 @@ let
 
     t1 = rand(bn, 5)
     @test size(t1) == (5,3)
-    @test t1[:a] == [1,1,1,1,1]
-    @test t1[:b] == [2,2,2,2,2]
+    @test t1[!,:a] == [1,1,1,1,1]
+    @test t1[!,:b] == [2,2,2,2,2]
 
     t2 = rand(bn, 5, Assignment(:c=>1))
     @test size(t1) == (5,3)
@@ -23,6 +23,6 @@ let
     # is there a test here?
 
     t5 = rand(bn, GibbsSampler(Assignment(:c=>1), burn_in=5), 5)
-    @test t5[:a] == [1,1,1,1,1]
-    @test t5[:b] == [2,2,2,2,2]
+    @test t5[!,:a] == [1,1,1,1,1]
+    @test t5[!,:b] == [2,2,2,2,2]
 end

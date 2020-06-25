@@ -25,7 +25,7 @@ function Distributions.fit(::Type{StaticCPD{D}},
                            parents::NodeNames=NodeName[],
                            ) where {D<:Distribution}
 
-    d = fit(D, data[target])
+    d = fit(D, data[!,target])
     StaticCPD(target, parents, d)
 end
 

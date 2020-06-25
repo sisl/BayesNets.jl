@@ -202,6 +202,6 @@ let
     push!(bn, a)
     push!(bn, b)
     push!(bn, c)
-    @test mean(rand(bn, 20,:a=>0)[:c]) <= 0.6
-    @test mean(rand(bn, 20, :a=>1, :b=>1)[:c]) == 1;
+    @test mean(rand(bn, 20,:a=>0)[!,:c]) <= 0.6
+    @test mean(rand(bn, 20, :a=>1, :b=>1)[!,:c]) == 1;
 end

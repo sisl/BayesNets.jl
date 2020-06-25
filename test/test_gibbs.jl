@@ -1,6 +1,6 @@
 let
 
-        # A â~F~R C â~F~P B
+        # A ï¿½~F~R C ï¿½~F~P B
         bn = BayesNet()
         push!(bn, StaticCPD(:a, Categorical([1.0,0.0])))
         push!(bn, StaticCPD(:b, Categorical([0.0,1.0])))
@@ -10,16 +10,16 @@ let
              variable_order=nothing, time_limit=nothing, 
              error_if_time_out=true, initial_sample=nothing)
         @test size(t5) == (5, 3)
-        @test t5[:a] == [1,1,1,1,1]
-        @test t5[:b] == [2,2,2,2,2]
-        @test t5[:c] == [1,1,1,1,1]
+        @test t5[!,:a] == [1,1,1,1,1]
+        @test t5[!,:b] == [2,2,2,2,2]
+        @test t5[!,:c] == [1,1,1,1,1]
 
         config = GibbsSampler(burn_in=100, thinning=5)
         t5 = rand(bn, config, 5)
         @test size(t5) == (5, 3)
-        @test t5[:a] == [1,1,1,1,1]
-        @test t5[:b] == [2,2,2,2,2]
-        @test t5[:c] == [1,1,1,1,1]
+        @test t5[!,:a] == [1,1,1,1,1]
+        @test t5[!,:b] == [2,2,2,2,2]
+        @test t5[!,:c] == [1,1,1,1,1]
 
         bn2 = BayesNet()
         push!(bn2, StaticCPD(:a, Categorical([0.5,0.5])))
@@ -31,30 +31,30 @@ let
         t6 = gibbs_sample(bn2, 5, 100; thinning=5, consistent_with=Assignment(:c=>1),
              variable_order=nothing, time_limit=nothing,
              error_if_time_out=true, initial_sample=nothing)
-        @test t6[:a] == [1,1,1,1,1]
-        @test t6[:b] == [1,1,1,1,1]
-        @test t6[:c] == [1,1,1,1,1]
+        @test t6[!,:a] == [1,1,1,1,1]
+        @test t6[!,:b] == [1,1,1,1,1]
+        @test t6[!,:c] == [1,1,1,1,1]
 
 	config.evidence = Assignment(:c=>1)
 	t6 = rand(bn2, config, 5)
-	@test t6[:a] == [1,1,1,1,1]
-        @test t6[:b] == [1,1,1,1,1]
-        @test t6[:c] == [1,1,1,1,1]
+	@test t6[!,:a] == [1,1,1,1,1]
+        @test t6[!,:b] == [1,1,1,1,1]
+        @test t6[!,:c] == [1,1,1,1,1]
 
 
         t7 = gibbs_sample(bn2, 5, 100; thinning=5, consistent_with=Assignment(:c=>2),
              variable_order=nothing, time_limit=nothing,
              error_if_time_out=true, initial_sample=nothing)
-        @test t7[:a] == [2,2,2,2,2]
-        @test t7[:b] == [1,1,1,1,1]
-        @test t7[:c] == [2,2,2,2,2]
+        @test t7[!,:a] == [2,2,2,2,2]
+        @test t7[!,:b] == [1,1,1,1,1]
+        @test t7[!,:c] == [2,2,2,2,2]
 
         rand()
 	config.evidence = Assignment(:c=>2)
         t7 = rand(bn2, config, 5)
-        @test t7[:a] == [2,2,2,2,2]
-        @test t7[:b] == [1,1,1,1,1]
-        @test t7[:c] == [2,2,2,2,2]
+        @test t7[!,:a] == [2,2,2,2,2]
+        @test t7[!,:b] == [1,1,1,1,1]
+        @test t7[!,:c] == [2,2,2,2,2]
 
         bn3 = BayesNet()
         push!(bn3, StaticCPD(:a, Normal(2.5, 1.5)))
@@ -107,18 +107,18 @@ let
              variable_order=nothing, time_limit=nothing,
              error_if_time_out=true, initial_sample=nothing)
         @test size(t12) == (5, 3)
-        @test t12[:a] == [1,1,1,1,1]
-        @test t12[:b] == [2,2,2,2,2]
-        @test t12[:c] == [1,1,1,1,1]
+        @test t12[!,:a] == [1,1,1,1,1]
+        @test t12[!,:b] == [2,2,2,2,2]
+        @test t12[!,:c] == [1,1,1,1,1]
 
 
         t13 = gibbs_sample(d_bn, 5, 100; thinning=5, consistent_with=Assignment(:c=>1),
              variable_order=nothing, time_limit=nothing,
              error_if_time_out=true, initial_sample=nothing)
         @test size(t13) == (5, 3)
-        @test t13[:a] == [1,1,1,1,1]
-        @test t13[:b] == [2,2,2,2,2]
-        @test t13[:c] == [1,1,1,1,1]
+        @test t13[!,:a] == [1,1,1,1,1]
+        @test t13[!,:b] == [2,2,2,2,2]
+        @test t13[!,:c] == [1,1,1,1,1]
 
         # test bad parameters given to gibbs_sample
         pass = false

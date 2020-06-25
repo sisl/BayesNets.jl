@@ -3,7 +3,7 @@ function Distributions.fit(::Type{BayesNet}, data::DataFrame, dag::DAG, cpd_type
     length(cpd_types) == nv(dag) || throw(DimensionMismatch("dag and cpd_types must have the same length"))
 
     cpds = Array{CPD}(undef, length(cpd_types))
-    tablenames = names(data)
+    tablenames = propertynames(data)
     for (i, target) in enumerate(tablenames)
         C = cpd_types[i]
         parents = tablenames[inneighbors(dag, i)]
@@ -15,7 +15,7 @@ end
 function Distributions.fit(::Type{BayesNet}, data::DataFrame, dag::DAG, ::Type{C}) where {C<:CPD}
 
     cpds = Array{C}(undef, nv(dag))
-    tablenames = names(data)
+    tablenames = propertynames(data)
     for (i, target) in enumerate(tablenames)
         parents = tablenames[inneighbors(dag, i)]
         cpds[i] = fit(C, data, target, parents)
@@ -26,7 +26,7 @@ end
 Distributions.fit(::Type{BayesNet{T}}, data::DataFrame, dag::DAG) where {T<:CPD} = fit(BayesNet, data, dag, T)
 
 function _get_dag(data::DataFrame, edges::Tuple{Vararg{Pair{NodeName, NodeName}}})
-    varnames = names(data)
+    varnames = propertynames(data)
     dag = DAG(length(varnames))
     for (a,b) in edges
         i = findfirst(isequal(a), varnames)
@@ -109,7 +109,7 @@ As score_component(ScoringFunction, cpd, data), but returns pre-computed values 
 if they exist, and populates the cache if they don't
 """
 function _get_parent_indeces(parents::NodeNames, data::DataFrame)
-    varnames = names(data)
+    varnames = propertynames(data)
     retval = Array{Int}(undef, length(parents))
     for (i,p) in enumerate(parents)
         retval[i] = something(findfirst(isequal(p), varnames), 0)
@@ -124,7 +124,7 @@ function score_component(
     )
 
     pinds = _get_parent_indeces(parents(cpd), data)
-    varnames = names(data)
+    varnames = propertynames(data)
     i = something(findfirst(isequal(name(cpd)), varnames), 0)
 
     if !haskey(cache[i], pinds)

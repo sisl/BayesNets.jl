@@ -14,9 +14,10 @@ end
 
 Base.convert(::Type{DataFrame}, t::Table) = t.potential
 
-for f in [:names, :unique, :size, :eltype, :setindex!, :getindex]
+for f in [:names, :unique, :size, :eltype, :setindex!]
     @eval (Base.$f)(t::Table, x...) = $f(t.potential, x...)
 end
+Base.getindex(t::Table, x...) = getindex(t.potential, !, x...)
 
 for s in [:(==), :(!=)]
     @eval (Base.$s)(t::Table, f::DataFrame) = $s(t.potential, f)
