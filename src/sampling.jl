@@ -187,7 +187,7 @@ function sample_weighted_dataframe!(a::Assignment, weighted_dataframe::DataFrame
     while c < u && i < n
         c += p[i += 1]
     end
-    for varname in names(weighted_dataframe)
+    for varname in propertynames(weighted_dataframe)
         if varname != :p
             a[varname] = weighted_dataframe[i, varname]
         end

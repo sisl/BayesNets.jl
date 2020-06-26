@@ -34,13 +34,13 @@ function Base.:*(t1::Table, t2::Table)
     f1 =t1.potential
     f2 =t2.potential
 
-    onnames = setdiff(intersect(names(f1), names(f2)), [:p])
-    finalnames = vcat(setdiff(union(names(f1), names(f2)), [:p]), :p)
+    onnames = setdiff(intersect(propertynames(f1), propertynames(f2)), [:p])
+    finalnames = vcat(setdiff(union(propertynames(f1), propertynames(f2)), [:p]), :p)
 
     if isempty(onnames)
         j = join(f1, f2, kind=:cross, makeunique=true)
     else
-        j = join(f1, f2, on=onnames, kind=:outer, makeunique=true)
+        j = outerjoin(f1, f2, on=onnames, makeunique=true)
     end
 
     j[!,:p] = broadcast(*, j[!,:p], j[!,:p_1])
@@ -57,7 +57,7 @@ function sumout(t::Table, v::NodeNameUnion)
     f = t.potential
 
     # vcat works for single values and vectors alike (magic?)
-    remainingvars = setdiff(names(f), vcat(v, :p))
+    remainingvars = setdiff(propertynames(f), vcat(v, :p))
 
     if isempty(remainingvars)
         # they want to remove all variables except for prob column
@@ -88,7 +88,7 @@ Given a Table, extract the rows which match the given assignment
 function Base.partialsort(t::Table, a::Assignment)
     f = t.potential
 
-    commonNames = intersect(names(f), keys(a))
+    commonNames = intersect(propertynames(f), keys(a))
     mask = trues(size(f, 1))
     for s in commonNames
         # mask &= (f[!,s] .== a[s])
@@ -112,7 +112,7 @@ function Distributions.fit(::Type{Table}, f::DataFrame)
     w = ones(size(f, 1))
     t = f
     if hasproperty(f, :p)
-        t = f[:, names(t) .!= :p]
+        t = f[:, propertynames(t) .!= :p]
         w = f[!,:p]
     end
     # unique samples

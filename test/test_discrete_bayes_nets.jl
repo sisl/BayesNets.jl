@@ -34,7 +34,7 @@ let
 
 	for (i,cpd) in enumerate(bn.cpds)
 		parent_list[i] = inneighbors(bn.dag, i)
-		bincounts[i] = infer_number_of_instantiations(convert(Vector{Int}, data[i]))
+		bincounts[i] = infer_number_of_instantiations(convert(Vector{Int}, data[!,i]))
 	end
 
 	@test isapprox(bayesian_score_component(1, parent_list[1], bincounts, datamat, UniformPrior()), -6.445719819385579)

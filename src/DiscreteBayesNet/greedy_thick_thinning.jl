@@ -67,7 +67,7 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
 
     # construct the BayesNet
     cpds = Array{DiscreteCPD}(n)
-    varnames = names(data)
+    varnames = propertynames(data)
     for i in 1:n
         name = varnames[i]
         parents = varnames[parent_list[i]]
