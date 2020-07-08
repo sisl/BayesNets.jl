@@ -1,11 +1,8 @@
 name: CompatHelper
 
 on:
-  push:
-    branches: 
-      - compat
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '00 00 * * *'
 
 jobs:
   CompatHelper:
@@ -17,4 +14,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMPATHELPER_PRIV: ${{ secrets.COMPATHELPER_PRIV }}  # optional
-        run: julia -e 'using CompatHelper; CompatHelper.main(master_branch = "compat")'
+        run: julia -e 'using CompatHelper; CompatHelper.main()'
