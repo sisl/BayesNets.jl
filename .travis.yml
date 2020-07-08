@@ -1,23 +1,18 @@
 language: julia
 os:
   - linux
+  - osx 
+  - windows
 julia:
   - 1.0
-  - 1.1
-  - 1.2
-  - 1.3
-  - 1.4
+  - 1
+  - nightly 
 matrix:
   allow_failures:
     - julia: nightly
 notifications:
   email: false
-before_install:
-  # - sudo apt-get -qq update
-  - sudo apt-get install git
-# script:
-#   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#   - julia --project --check-bounds=yes -e 'import Pkg; Pkg.build(); Pkg.test("BayesNets"; coverage=true)'
+
 after_success:
   - julia --project -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'  
 
