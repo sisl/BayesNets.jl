@@ -1,6 +1,9 @@
 name: CompatHelper
 
 on:
+  push:
+    branches: 
+      - compat
   schedule:
     - cron: '*/5 * * * *'
 
