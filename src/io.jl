@@ -1,12 +1,18 @@
 #
 # Bayes Net
 #
-lualatex_available() = success(`lualatex -v`)
-function Base.showable(::MIME"image/svg+xml", bn::BayesNet)
-	try
-		lualatex_available()
-	catch
-		true # LuaLaTeX not installed, use GraphPlot instead
+lualatex_available() = try success(`lualatex -v`) catch; false end
+Base.showable(::MIME"image/svg+xml", bn::BayesNet) = true
+
+
+plot(dag::DAG, nodelabel) = gplot(dag, nodelabel=nodelabel) # GraphPlot (default)
+
+# called at runtime (replaces plot with TikzGraphs, if loaded)
+function __init__()
+	@require TikzGraphs="b4f28e30-c73f-5eaf-a395-8a9db949a742" begin
+		if lualatex_available()
+			plot(dag::DAG, nodelabel) = TikzGraphs.plot(dag, nodelabel)
+		end
 	end
 end
 
@@ -20,15 +26,7 @@ function plot(bn::BayesNet)
 		nodelabel = ["Empty Graph"]
 	end
 
-	try
-		if lualatex_available()
-			plot(dag, nodelabel) # TikzGraphs
-		else
-			error("LuaLaTeX unsuccessful.") # lualatex installed, but did not return error code 0
-		end
-	catch err
-		gplot(dag, nodelabel=nodelabel) # GraphPlot
-	end
+	plot(dag, nodelabel)
 end
 
 

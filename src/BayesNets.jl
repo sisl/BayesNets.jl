@@ -9,6 +9,7 @@ using IterTools
 using Dates
 using SpecialFunctions
 using SparseArrays
+using Requires
 
 include(joinpath("CPDs", "cpds.jl"))
 @reexport using BayesNets.CPDs
@@ -18,7 +19,6 @@ import Base: *, /, +, -
 import DataStructures: PriorityQueue, peek
 import BayesNets.CPDs.ProbabilisticGraphicalModels: markov_blanket, is_independent, infer
 import StatsBase: sample, Weights
-import TikzGraphs: plot
 import GraphPlot: gplot
 import LightGraphs: DiGraph, add_edge!, rem_edge!,
        add_vertex!, rem_vertex!, has_edge,
