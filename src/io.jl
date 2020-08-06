@@ -5,7 +5,13 @@ lualatex_available() = try success(`lualatex -v`) catch; false end
 Base.showable(::MIME"image/svg+xml", bn::BayesNet) = true
 
 
-plot(dag::DAG, nodelabel) = gplot(dag, nodelabel=nodelabel) # GraphPlot (default)
+plot(dag::DAG, nodelabel) = gplot(dag,
+								  nodelabel=nodelabel,
+								  layout=stressmajorize_layout,
+								  nodefillc="lightgray",
+								  edgestrokec="black",
+								  EDGELINEWIDTH=0.3) # GraphPlot (default plotting)
+
 
 # called at runtime (replaces plot with TikzGraphs, if loaded)
 function __init__()

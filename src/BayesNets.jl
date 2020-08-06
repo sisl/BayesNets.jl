@@ -19,7 +19,7 @@ import Base: *, /, +, -
 import DataStructures: PriorityQueue, peek
 import BayesNets.CPDs.ProbabilisticGraphicalModels: markov_blanket, is_independent, infer
 import StatsBase: sample, Weights
-import GraphPlot: gplot
+import GraphPlot: gplot, stressmajorize_layout
 import LightGraphs: DiGraph, add_edge!, rem_edge!,
        add_vertex!, rem_vertex!, has_edge,
        edges, topological_sort_by_dfs, inneighbors,
