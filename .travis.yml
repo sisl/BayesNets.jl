@@ -1,4 +1,5 @@
 language: julia
+coveralls: true
 os:
   - linux
   - osx 
@@ -12,7 +13,3 @@ matrix:
     - julia: nightly
 notifications:
   email: false
-
-after_success:
-  - julia --project -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'  
-
