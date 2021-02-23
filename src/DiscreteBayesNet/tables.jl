@@ -66,7 +66,7 @@ function sumout(t::Table, v::NodeNameUnion)
     else
         # note that this will fail miserably if f is too large (~1E4 maybe?)
         #  nothing I can do; there is a github issue
-        return Table(by(f, remainingvars, df -> DataFrame(p = sum(df[!,:p]))))
+        return Table(combine(df -> DataFrame(p = sum(df[!,:p])), DataFrames.groupby(f, remainingvars)))
     end
 end
 

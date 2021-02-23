@@ -45,7 +45,7 @@ bn = rand_discrete_bn(10, 4)
 name = :N5
 
 ϕ = Factor(bn, name)
-df = join(DataFrame(ϕ), table(bn, name).potential, on=names(ϕ))
+df = innerjoin(DataFrame(ϕ), table(bn, name).potential, on=names(ϕ))
 diff = abs.(df[!,:p] - df[!,:potential])
 
 @test all(diff .< 1E-13)
