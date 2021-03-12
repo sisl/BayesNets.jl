@@ -10,7 +10,8 @@ makedocs(
         "Table of Contents" => [
             "index.md",
             "install.md",
-            "usage.md"
+            "usage.md",
+            "concepts.md"
         ]
     ]
 )

@@ -9,5 +9,5 @@ A BN is defined by a directed acyclic graph and a set of conditional probability
 ### Table of Contents
 
 ```@contents
-Pages = ["install.md", "usage.md"]
+Pages = ["install.md", "usage.md", "concepts.md]
 ```
