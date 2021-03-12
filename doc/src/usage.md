@@ -27,14 +27,3 @@ Several inference methods are available. Exact inference is the default.
 | `LoopyBelief` | The loopy belief propagation algorithm |
 | `GibbsSamplingNodewise` | Gibbs sampling where each iteration changes one node |
 | `GibbsSamplingFull` | Gibbs sampling where each iteration changes all nodes |
-
-## Example
-
-### Getting Started
-
-```julia
-using Random
-Random.seed!(0) # seed the random number generator to 0, for a reproducible demonstration
-using BayesNets
-using TikzGraphs # required to plot tex-formatted graphs (recommended), otherwise GraphPlot.jl is used
-```
