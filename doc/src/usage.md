@@ -1,6 +1,6 @@
 # Usage
 
-##Parameter Learning
+## Parameter Learning
 BayesNets.jl supports parameter learning for an entire graph.
 
 ```# specify each node's CPD type individually
@@ -54,3 +54,15 @@ Several inference methods are available. Exact inference is the default.
 | `LoopyBelief` | The loopy belief propagation algorithm |
 | `GibbsSamplingNodewise` | Gibbs sampling where each iteration changes one node |
 | `GibbsSamplingFull` | Gibbs sampling where each iteration changes all nodes |
+
+```julia
+ϕ = infer(GibbsSamplingNodewise(), bn, [:a, :b], evidence=Assignment(:c=>2))
+```
+
+## Reading from XDSL
+
+Discrete Bayesian Networks can be read from the .XDSL file format.
+
+```julia
+bn = readxdsl(joinpath(dirname(pathof(BayesNets)), "..", "test", "sample_bn.xdsl"))
+```
