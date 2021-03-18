@@ -1,5 +1,32 @@
 # Usage
 
+##Parameter Learning
+BayesNets.jl supports parameter learning for an entire graph.
+
+```# specify each node's CPD type individually
+fit(BayesNet, data, (:a=>:b), [StaticCPD{Normal}, LinearGaussianCPD])
+```
+#TODO ADD IMAGE RESULT
+```# specify a single CPD type for all nodes
+fit(BayesNet, data, (:a=>:b), LinearGaussianCPD)
+```
+#TODO ADD IMAGE RESULT
+Fitting can be done for specific BayesNets types as well:
+
+```data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3],
+b=[1,1,1,2,2,2,2,1,1,2,1,1],
+a=[1,1,1,2,1,1,2,1,1,2,1,1])
+
+fit(DiscreteBayesNet, data, (:a=>:b, :a=>:c, :b=>:c))
+```
+
+#TODO ADD IMAGE RESULT
+Fitting a ```DiscreteCPD```, which is a ```CategoricalCPD{Categorical}```, can be done with a specified number of categories. This prevents cases where your test data does not provide an example for every category.
+
+```cpd = fit(DiscreteCPD, DataFrame(a=[1,2,1,2,2]), :a, ncategories=3);
+cpd = fit(DiscreteCPD, data, :b, [:a], parental_ncategories=[3], target_ncategories=3);
+```
+
 ## Inference
 
 Inference methods for discrete Bayesian networks can be used via the `infer` method:
