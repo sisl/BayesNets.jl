@@ -58,6 +58,78 @@ Several inference methods are available. Exact inference is the default.
 ```julia
 ϕ = infer(GibbsSamplingNodewise(), bn, [:a, :b], evidence=Assignment(:c=>2))
 ```
+## Structure Learning
+
+We demonstrate structure learning through an example using an iris dataset.
+
+```julia
+using Discretizers
+using RDatasets
+iris = dataset("datasets", "iris")
+names(iris)
+data = DataFrame(
+    SepalLength = iris[!,:SepalLength],
+    SepalWidth = iris[!,:SepalWidth],
+    PetalLength = iris[!,:PetalLength],
+    PetalWidth = iris[!,:PetalWidth],
+    Species = encode(CategoricalDiscretizer(iris[!,:Species]), iris[!,:Species]),
+)
+```
+
+Here we use the K2 structure learning algorithm which runs in polynomial time but requires that we specify a topological node ordering.
+
+```julia
+parameters = K2GraphSearch([:Species, :SepalLength, :SepalWidth, :PetalLength, :PetalWidth], 
+                       ConditionalLinearGaussianCPD,
+                       max_n_parents=2)
+fit(BayesNet, data, parameters)
+```
+
+CPD types can also be specified per-node. Note that complete CPD definitions are required - simply using ``StaticCPD`` is insufficient as you need the target distribution type as well, as in ``StaticCPD{Categorical}``.
+
+Changing the ordering will change the structure.
+
+```julia
+CLG = ConditionalLinearGaussianCPD
+parameters = K2GraphSearch([:Species, :PetalLength, :PetalWidth, :SepalLength, :SepalWidth], 
+                        [StaticCPD{Categorical}, CLG, CLG, CLG, CLG],
+                        max_n_parents=2)
+fit(BayesNet, data, parameters)
+```
+
+A ``ScoringFunction`` allows for extracting a scoring metric for a CPD given data. The negative BIC score is implemented in ``NegativeBayesianInformationCriterion``.
+
+A ``GraphSearchStrategy`` defines a structure learning algorithm. The K2 algorithm is defined through ``K2GraphSearch`` and ``GreedyHillClimbing`` is implemented for discrete Bayesian networks and the Bayesian score:
+
+```julia
+data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3], 
+                 b=[1,1,1,2,2,2,2,1,1,2,1,1],
+                 a=[1,1,1,2,1,1,2,1,1,2,1,1])
+parameters = GreedyHillClimbing(ScoreComponentCache(data), max_n_parents=3, prior=UniformPrior())
+bn = fit(DiscreteBayesNet, data, parameters)
+```
+
+We can specify the number of categories for each variable in case it cannot be correctly inferred:
+
+```julia
+bn = fit(DiscreteBayesNet, data, parameters, ncategories=[3,3,2])
+```
+
+A whole suite of features are supported for DiscreteBayesNets. Here, we illustrate the following:
+
+1. Obtain a list of counts for a node
+2. Obtain sufficient statistics from a discrete dataset
+3. Obtain the factor table for a node
+4. Obtain a factor table matching a particular assignment
+
+We also detail obtaining a bayesian score for a network structure in the next section.
+
+```julia
+count(bn, :a, data) # 1
+statistics(bn.dag, data) # 2
+table(bn, :b) # 3
+table(bn, :c, :a=>1) # 4
+```
 
 ## Reading from XDSL
 
