@@ -131,14 +131,6 @@ table(bn, :b) # 3
 table(bn, :c, :a=>1) # 4
 ```
 
-## Reading from XDSL
-
-Discrete Bayesian Networks can be read from the .XDSL file format.
-
-```julia
-bn = readxdsl(joinpath(dirname(pathof(BayesNets)), "..", "test", "sample_bn.xdsl"))
-```
-
 ## Bayesian Score for a Network Structure
 
 The bayesian score for a discrete-valued BayesNet can can be calculated based only on the structure and data (the CPDs do not need to be defined beforehand). This is implemented with a method of ``bayesian_score`` that takes in a directed graph, the names of the nodes and data.
@@ -150,4 +142,12 @@ data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3],
 g = DAG(3)
 add_edge!(g,1,2); add_edge!(g,2,3); add_edge!(g,1,3)
 bayesian_score(g, [:a,:b,:c], data)
+```
+
+## Reading from XDSL
+
+Discrete Bayesian Networks can be read from the .XDSL file format.
+
+```julia
+bn = readxdsl(joinpath(dirname(pathof(BayesNets)), "..", "test", "sample_bn.xdsl"))
 ```
