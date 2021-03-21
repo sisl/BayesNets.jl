@@ -1,5 +1,73 @@
 # Usage
 
+##Representation
+
+Bayesian Networks are represented with the `BayesNet` type. This type contains the directed acyclic graph (a LightTables.DiGraph) and a list of conditional probability distributions (a list of CPDs).
+Here we construct the BayesNet $a \\rightarrow b$, with Gaussians $a$ and $b$:
+
+a = \\mathcal{N}(0,1) \\qquad b = \\mathcal{N}(2a +3,1)\n
+
+```
+bn = BayesNet()
+push!(bn, StaticCPD(:a, Normal(1.0)))
+push!(bn, LinearGaussianCPD(:b, [:a], [2.0], 3.0, 1.0))
+```
+
+
+
+##Likelihood
+
+A Bayesian Network represents a joint probability distribution, $P(x_1, x_2, \\ldots, x_n)$.
+Assignments are represented as dictionaries mapping variable names (Symbols) to variable values.
+We can evaluate probabilities as we would with Distributions.jl, only we use exclamation points as we modify the internal state when we condition:
+
+```pdf(bn, :a=>0.5, :b=>2.0) # evaluate the probability density```
+
+We can also evaluate the likelihood of a dataset:
+
+```
+data = DataFrame(a=[0.5,1.0,2.0], b=[4.0,5.0,7.0])
+pdf(bn, data)    #  0.00215
+logpdf(bn, data) # -6.1386;
+```
+
+Or the likelihood for a particular cpd:
+
+```
+pdf(cpdB, data)    #  0.006
+logpdf(cpdB, data) # -5.201
+```
+
+##Sampling
+
+Assignments can be sampled from a `BayesNet`.
+
+```rand(bn)```
+```
+Dict{Symbol,Any} with 2 entries:
+  :a => 1.20808
+  :b => 4.93954
+```
+
+In general, sampling can be done according to `rand(BayesNet, BayesNetSampler, nsamples)` to produce a table of samples, `rand(BayesNet, BayesNetSampler)` to produce a single Assignment, or `rand!(Assignment, BayesNet, BayesNetSampler)` to modify an assignment in-place.
+New samplers need only implement `rand!`.
+The functions above default to the `DirectSampler`, which samples the variables in topographical order.
+
+Rejection sampling can be used to draw samples that are consistent with a provided assignment:
+```
+bn = BayesNet()
+push!(bn, StaticCPD(:a, Categorical([0.3,0.7])))
+push!(bn, StaticCPD(:b, Categorical([0.6,0.4])))
+push!(bn, CategoricalCPD{Bernoulli}(:c, [:a, :b], [2,2], [Bernoulli(0.1), Bernoulli(0.2), Bernoulli(1.0), Bernoulli(0.4)]))
+```
+
+```
+rand(bn, RejectionSampler(:c=>1), 5)
+```
+# there is a table here 
+
+
+
 ##Parameter Learning
 BayesNets.jl supports parameter learning for an entire graph.
 
