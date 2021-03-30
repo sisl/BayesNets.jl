@@ -13,7 +13,73 @@ push!(bn, StaticCPD(:a, Normal(1.0)))
 push!(bn, LinearGaussianCPD(:b, [:a], [2.0], 3.0, 1.0))
 ```
 
+##Conditional Probability Distributions
 
+Conditional Probablity Distributions, $P(x_i \\mid \\text{parents}(x_i))$, are defined in BayesNets.CPDs. Each CPD knows its own name, the names of its parents, and is associated with a distribution from Distributions.jl.
+
+| `CPDForm`                      | Description |
+| ------------------------------ | ----------- |
+| `StaticCPD`                    | Any `Distributions.distribution`; indepedent of any parents |
+| `FunctionalCPD`                | Allows for a CPD defined with a custom eval function |
+| `ParentFunctionalCPD`          | Modification to `FunctionalCPD` allowing the parent values to be passed in |
+| `CategoricalCPD`               | Categorical distribution, assumes integer parents in $1:N$ |
+| `LinearGaussianCPD`            | Linear Gaussian, assumes target and parents are numeric |
+| `ConditionalLinearGaussianCPD` | A linear Gaussian for each discrete parent instantiation|
+
+Each CPD can be learned from data using `fit`.
+Here we learn the same network as above.
+
+```
+a = randn(100)
+b = randn(100) .+ 2*a .+ 3
+
+data = DataFrame(a=a, b=b)
+cpdA = fit(StaticCPD{Normal}, data, :a)
+cpdB = fit(LinearGaussianCPD, data, :b, [:a])
+
+bn2 = BayesNet([cpdA, cpdB])
+```
+Each `CPD` implements four functions:
+
+* `name(cpd)` - obtain the name of the variable target variable
+* `parents(cpd)` - obtain the list of parents
+* `nparams(cpd` - obtain the number of free parameters in the CPD
+* `cpd(assignment)` - allows calling `cpd()` to obtain the conditional distribution
+* `Distributions.fit(Type{CPD}, data, target, parents)`
+
+[comment]: <> (```)
+
+[comment]: <> (cpdB&#40;:a=>0.5&#41;)
+
+[comment]: <> (```)
+
+[comment]: <> (```)
+
+[comment]: <> (Normal{Float64}&#40;μ=3.9100288094947837, σ=2.5884318677452463&#41;)
+
+[comment]: <> (```)
+
+Several functions conveniently condition and then produce their return values:
+
+```
+rand(cpdB, :a=>0.5) # condition and then sample
+pdf(cpdB, :a=>1.0, :b=>3.0) # condition and then compute pdf(distribution, 3)
+logpdf(cpdB, :a=>1.0, :b=>3.0) # condition and then compute logpdf(distribution, 3);
+```
+
+The NamedCategorical distribution allows for String or Symbol return values. The FunctionalCPD allows for crafting quick and simple CPDs:
+
+```
+bn2 = BayesNet()
+push!(bn2, StaticCPD(:sighted, NamedCategorical([:bird, :plane, :superman], [0.40, 0.55, 0.05])))
+push!(bn2, FunctionalCPD{Bernoulli}(:happy, [:sighted], a->Bernoulli(a == :superman ? 0.95 : 0.2)))
+```
+
+Variables can be removed by name using `delete!`. A warning will be issued when removing a CPD with children.
+
+```
+delete!(bn2, :happy)
+```
 
 ##Likelihood
 
@@ -68,17 +134,14 @@ rand(bn, RejectionSampler(:c=>1), 5)
 
 
 
-##Parameter Learning
 BayesNets.jl supports parameter learning for an entire graph.
 
 ```# specify each node's CPD type individually
 fit(BayesNet, data, (:a=>:b), [StaticCPD{Normal}, LinearGaussianCPD])
 ```
-#TODO ADD IMAGE RESULT
 ```# specify a single CPD type for all nodes
 fit(BayesNet, data, (:a=>:b), LinearGaussianCPD)
 ```
-#TODO ADD IMAGE RESULT
 Fitting can be done for specific BayesNets types as well:
 
 ```data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3],
