@@ -3,7 +3,7 @@ name: Documentation
 on:
   push:
     branches:
-      - gh-pages
+      - documentation
     tags: '*'
   pull_request:
 
