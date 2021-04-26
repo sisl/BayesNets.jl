@@ -1,5 +1,6 @@
 push!(LOAD_PATH, "../src")
-
+import Pkg
+Pkg.add("BayesNets")
 using Documenter, BayesNets
 
 makedocs(
