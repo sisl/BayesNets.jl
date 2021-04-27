@@ -3,7 +3,7 @@ name: Documentation
 on:
   push:
     branches:
-      - documentation
+      - master
     tags: '*'
   pull_request:
 
