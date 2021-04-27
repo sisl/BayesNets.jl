@@ -1,5 +1,12 @@
 # Usage
 
+```julia
+using Random
+Random.seed!(0) # seed the random number generator to 0, for a reproducible demonstration
+using BayesNets
+using TikzGraphs # required to plot tex-formatted graphs (recommended), otherwise GraphPlot.jl is used
+```
+
 ##Representation
 
 Bayesian Networks are represented with the `BayesNet` type. This type contains the directed acyclic graph (a LightTables.DiGraph) and a list of conditional probability distributions (a list of CPDs).
@@ -7,7 +14,7 @@ Here we construct the BayesNet $a \\rightarrow b$, with Gaussians $a$ and $b$:
 
 a = \\mathcal{N}(0,1) \\qquad b = \\mathcal{N}(2a +3,1)\n
 
-```
+```julia
 bn = BayesNet()
 push!(bn, StaticCPD(:a, Normal(1.0)))
 push!(bn, LinearGaussianCPD(:b, [:a], [2.0], 3.0, 1.0))
@@ -29,7 +36,7 @@ Conditional Probablity Distributions, $P(x_i \\mid \\text{parents}(x_i))$, are d
 Each CPD can be learned from data using `fit`.
 Here we learn the same network as above.
 
-```
+```julia
 a = randn(100)
 b = randn(100) .+ 2*a .+ 3
 
@@ -61,7 +68,7 @@ Each `CPD` implements four functions:
 
 Several functions conveniently condition and then produce their return values:
 
-```
+```julia
 rand(cpdB, :a=>0.5) # condition and then sample
 pdf(cpdB, :a=>1.0, :b=>3.0) # condition and then compute pdf(distribution, 3)
 logpdf(cpdB, :a=>1.0, :b=>3.0) # condition and then compute logpdf(distribution, 3);
@@ -69,7 +76,7 @@ logpdf(cpdB, :a=>1.0, :b=>3.0) # condition and then compute logpdf(distribution,
 
 The NamedCategorical distribution allows for String or Symbol return values. The FunctionalCPD allows for crafting quick and simple CPDs:
 
-```
+```julia
 bn2 = BayesNet()
 push!(bn2, StaticCPD(:sighted, NamedCategorical([:bird, :plane, :superman], [0.40, 0.55, 0.05])))
 push!(bn2, FunctionalCPD{Bernoulli}(:happy, [:sighted], a->Bernoulli(a == :superman ? 0.95 : 0.2)))
@@ -77,7 +84,7 @@ push!(bn2, FunctionalCPD{Bernoulli}(:happy, [:sighted], a->Bernoulli(a == :super
 
 Variables can be removed by name using `delete!`. A warning will be issued when removing a CPD with children.
 
-```
+```julia
 delete!(bn2, :happy)
 ```
 
@@ -91,7 +98,7 @@ We can evaluate probabilities as we would with Distributions.jl, only we use exc
 
 We can also evaluate the likelihood of a dataset:
 
-```
+```julia
 data = DataFrame(a=[0.5,1.0,2.0], b=[4.0,5.0,7.0])
 pdf(bn, data)    #  0.00215
 logpdf(bn, data) # -6.1386;
@@ -99,7 +106,7 @@ logpdf(bn, data) # -6.1386;
 
 Or the likelihood for a particular cpd:
 
-```
+```julia
 pdf(cpdB, data)    #  0.006
 logpdf(cpdB, data) # -5.201
 ```
@@ -108,11 +115,8 @@ logpdf(cpdB, data) # -5.201
 
 Assignments can be sampled from a `BayesNet`.
 
-```rand(bn)```
-```
-Dict{Symbol,Any} with 2 entries:
-  :a => 1.20808
-  :b => 4.93954
+```julia
+rand(bn)
 ```
 
 In general, sampling can be done according to `rand(BayesNet, BayesNetSampler, nsamples)` to produce a table of samples, `rand(BayesNet, BayesNetSampler)` to produce a single Assignment, or `rand!(Assignment, BayesNet, BayesNetSampler)` to modify an assignment in-place.
@@ -120,14 +124,14 @@ New samplers need only implement `rand!`.
 The functions above default to the `DirectSampler`, which samples the variables in topographical order.
 
 Rejection sampling can be used to draw samples that are consistent with a provided assignment:
-```
+```julia
 bn = BayesNet()
 push!(bn, StaticCPD(:a, Categorical([0.3,0.7])))
 push!(bn, StaticCPD(:b, Categorical([0.6,0.4])))
 push!(bn, CategoricalCPD{Bernoulli}(:c, [:a, :b], [2,2], [Bernoulli(0.1), Bernoulli(0.2), Bernoulli(1.0), Bernoulli(0.4)]))
 ```
 
-```
+```julia
 rand(bn, RejectionSampler(:c=>1), 5)
 ```
 # there is a table here 
