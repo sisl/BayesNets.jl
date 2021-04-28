@@ -124,28 +124,26 @@ push!(bn, CategoricalCPD{Bernoulli}(:c, [:a, :b], [2,2], [Bernoulli(0.1), Bernou
 ```julia
 rand(bn, RejectionSampler(:c=>1), 5)
 ```
-### there is a table here 
-
 
 
 BayesNets.jl supports parameter learning for an entire graph.
 
-```# specify each node's CPD type individually
+```julia 
 fit(BayesNet, data, (:a=>:b), [StaticCPD{Normal}, LinearGaussianCPD])
 ```
-```# specify a single CPD type for all nodes
+```julia
 fit(BayesNet, data, (:a=>:b), LinearGaussianCPD)
 ```
 Fitting can be done for specific BayesNets types as well:
 
-```data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3],
+```julia
+data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3],
 b=[1,1,1,2,2,2,2,1,1,2,1,1],
 a=[1,1,1,2,1,1,2,1,1,2,1,1])
 
 fit(DiscreteBayesNet, data, (:a=>:b, :a=>:c, :b=>:c))
 ```
 
-#TODO ADD IMAGE RESULT
 Fitting a ```DiscreteCPD```, which is a ```CategoricalCPD{Categorical}```, can be done with a specified number of categories. This prevents cases where your test data does not provide an example for every category.
 
 ```cpd = fit(DiscreteCPD, DataFrame(a=[1,2,1,2,2]), :a, ncategories=3);
