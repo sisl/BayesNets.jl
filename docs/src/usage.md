@@ -7,12 +7,14 @@ using BayesNets
 using TikzGraphs # required to plot tex-formatted graphs (recommended), otherwise GraphPlot.jl is used
 ```
 
-##Representation
+## Representation
 
 Bayesian Networks are represented with the `BayesNet` type. This type contains the directed acyclic graph (a LightTables.DiGraph) and a list of conditional probability distributions (a list of CPDs).
-Here we construct the BayesNet $a \\rightarrow b$, with Gaussians $a$ and $b$:
+Here we construct the BayesNet $a \rightarrow b$, with Gaussians $a$ and $b$:
 
-a = \\mathcal{N}(0,1) \\qquad b = \\mathcal{N}(2a +3,1)\n
+```math
+a = \mathcal{N}(0,1) \qquad b = \mathcal{N}(2a +3,1)
+```
 
 ```julia
 bn = BayesNet()
@@ -20,9 +22,9 @@ push!(bn, StaticCPD(:a, Normal(1.0)))
 push!(bn, LinearGaussianCPD(:b, [:a], [2.0], 3.0, 1.0))
 ```
 
-##Conditional Probability Distributions
+## Conditional Probability Distributions
 
-Conditional Probablity Distributions, $P(x_i \\mid \\text{parents}(x_i))$, are defined in BayesNets.CPDs. Each CPD knows its own name, the names of its parents, and is associated with a distribution from Distributions.jl.
+Conditional Probablity Distributions, $P(x_i \mid \text{parents}(x_i))$, are defined in BayesNets.CPDs. Each CPD knows its own name, the names of its parents, and is associated with a distribution from Distributions.jl.
 
 | `CPDForm`                      | Description |
 | ------------------------------ | ----------- |
@@ -54,18 +56,6 @@ Each `CPD` implements four functions:
 * `cpd(assignment)` - allows calling `cpd()` to obtain the conditional distribution
 * `Distributions.fit(Type{CPD}, data, target, parents)`
 
-[comment]: <> (```)
-
-[comment]: <> (cpdB&#40;:a=>0.5&#41;)
-
-[comment]: <> (```)
-
-[comment]: <> (```)
-
-[comment]: <> (Normal{Float64}&#40;μ=3.9100288094947837, σ=2.5884318677452463&#41;)
-
-[comment]: <> (```)
-
 Several functions conveniently condition and then produce their return values:
 
 ```julia
@@ -88,9 +78,9 @@ Variables can be removed by name using `delete!`. A warning will be issued when 
 delete!(bn2, :happy)
 ```
 
-##Likelihood
+## Likelihood
 
-A Bayesian Network represents a joint probability distribution, $P(x_1, x_2, \\ldots, x_n)$.
+A Bayesian Network represents a joint probability distribution, $P(x_1, x_2, \ldots, x_n)$.
 Assignments are represented as dictionaries mapping variable names (Symbols) to variable values.
 We can evaluate probabilities as we would with Distributions.jl, only we use exclamation points as we modify the internal state when we condition:
 
@@ -111,7 +101,7 @@ pdf(cpdB, data)    #  0.006
 logpdf(cpdB, data) # -5.201
 ```
 
-##Sampling
+## Sampling
 
 Assignments can be sampled from a `BayesNet`.
 
@@ -134,7 +124,7 @@ push!(bn, CategoricalCPD{Bernoulli}(:c, [:a, :b], [2,2], [Bernoulli(0.1), Bernou
 ```julia
 rand(bn, RejectionSampler(:c=>1), 5)
 ```
-# there is a table here 
+### there is a table here 
 
 
 
@@ -220,7 +210,7 @@ parameters = K2GraphSearch([:Species, :SepalLength, :SepalWidth, :PetalLength, :
 fit(BayesNet, data, parameters)
 ```
 
-CPD types can also be specified per-node. Note that complete CPD definitions are required - simply using ``StaticCPD`` is insufficient as you need the target distribution type as well, as in ``StaticCPD{Categorical}``.
+CPD types can also be specified per-node. Note that complete CPD definitions are required - simply using `StaticCPD` is insufficient as you need the target distribution type as well, as in `StaticCPD{Categorical}`.
 
 Changing the ordering will change the structure.
 
@@ -232,9 +222,9 @@ parameters = K2GraphSearch([:Species, :PetalLength, :PetalWidth, :SepalLength, :
 fit(BayesNet, data, parameters)
 ```
 
-A ``ScoringFunction`` allows for extracting a scoring metric for a CPD given data. The negative BIC score is implemented in ``NegativeBayesianInformationCriterion``.
+A `ScoringFunction` allows for extracting a scoring metric for a CPD given data. The negative BIC score is implemented in `NegativeBayesianInformationCriterion`.
 
-A ``GraphSearchStrategy`` defines a structure learning algorithm. The K2 algorithm is defined through ``K2GraphSearch`` and ``GreedyHillClimbing`` is implemented for discrete Bayesian networks and the Bayesian score:
+A `GraphSearchStrategy` defines a structure learning algorithm. The K2 algorithm is defined through `K2GraphSearch` and `GreedyHillClimbing` is implemented for discrete Bayesian networks and the Bayesian score:
 
 ```julia
 data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3], 

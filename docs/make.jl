@@ -6,7 +6,9 @@ using Documenter, BayesNets
 
 makedocs(
     modules = [BayesNets],
-    format = Documenter.HTML(),
+    format = Documenter.HTML(
+        mathengine = Documenter.MathJax()
+    ),
     sitename = "BayesNets.jl",
     pages = [
         "Table of Contents" => [
