@@ -1,6 +1,6 @@
 # Usage
 
-```julia
+```@example 1
 using Random
 Random.seed!(0) # seed the random number generator to 0, for a reproducible demonstration
 using BayesNets
@@ -16,11 +16,14 @@ Here we construct the BayesNet $a \rightarrow b$, with Gaussians $a$ and $b$:
 a = \mathcal{N}(0,1) \qquad b = \mathcal{N}(2a +3,1)
 ```
 
-```julia
+```@example 1
 bn = BayesNet()
 push!(bn, StaticCPD(:a, Normal(1.0)))
 push!(bn, LinearGaussianCPD(:b, [:a], [2.0], 3.0, 1.0))
+TikzGraphs.plot(bn, Layouts.Layered())
 ```
+
+
 
 ## Conditional Probability Distributions
 
@@ -84,7 +87,11 @@ A Bayesian Network represents a joint probability distribution, $P(x_1, x_2, \ld
 Assignments are represented as dictionaries mapping variable names (Symbols) to variable values.
 We can evaluate probabilities as we would with Distributions.jl, only we use exclamation points as we modify the internal state when we condition:
 
-```pdf(bn, :a=>0.5, :b=>2.0) # evaluate the probability density```
+
+TODO: fix code comments
+```julia
+pdf(bn, :a=>0.5, :b=>2.0) # evaluate the probability density
+```
 
 We can also evaluate the likelihood of a dataset:
 
@@ -146,7 +153,8 @@ fit(DiscreteBayesNet, data, (:a=>:b, :a=>:c, :b=>:c))
 
 Fitting a ```DiscreteCPD```, which is a ```CategoricalCPD{Categorical}```, can be done with a specified number of categories. This prevents cases where your test data does not provide an example for every category.
 
-```cpd = fit(DiscreteCPD, DataFrame(a=[1,2,1,2,2]), :a, ncategories=3);
+```julia
+cpd = fit(DiscreteCPD, DataFrame(a=[1,2,1,2,2]), :a, ncategories=3);
 cpd = fit(DiscreteCPD, data, :b, [:a], parental_ncategories=[3], target_ncategories=3);
 ```
 
