@@ -16,7 +16,7 @@ jobs:
         with:
           version: '1.6'
       - name: Install LuaLatex
-        run: sudo apt-get install texlive && sudo apt-get texlive-lualatex
+        run: sudo apt-get install texlive && sudo apt-get install texlive-lualatex
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy
