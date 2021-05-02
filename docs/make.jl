@@ -1,13 +1,17 @@
 push!(LOAD_PATH, "../src")
 import Pkg
 Pkg.add("BayesNets")
+Pkg.add("TikzPictures")
+Pkg.add("TikzGraphs")
 Pkg.add("Documenter")
-using Documenter, BayesNets
+Pkg.add("Discretizers")
+Pkg.add("RDatasets")
+using Documenter, BayesNets, TikzGraphs, TikzPictures, Discretizers, RDatasets
 
 makedocs(
-    modules = [BayesNets],
+    modules = [BayesNets, TikzPictures, TikzGraphs, Discretizers, RDatasets],
     format = Documenter.HTML(
-        mathengine = Documenter.MathJax()
+        mathengine = Documenter.MathJax2()
     ),
     sitename = "BayesNets.jl",
     pages = [
