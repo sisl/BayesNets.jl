@@ -16,10 +16,7 @@ jobs:
         with:
           version: '1.6'
       - uses: xu-cheng/texlive-action/full@v1
-        with:
-          run: |
-            apk add make
-            make
+        run: apk add texlive-lualatex
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy
