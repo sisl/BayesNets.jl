@@ -360,7 +360,7 @@ TikzPictures.save(SVG("plot10"), plot) # hide
 
 # Bayesian Score for a Network Structure
 
-The bayesian score for a discrete-valued BayesNet can can be calculated based only on the structure and data (the CPDs do not need to be defined beforehand). This is implemented with a method of ``bayesian_score`` that takes in a directed graph, the names of the nodes and data.
+The bayesian score for a discrete-valued BayesNet can can be calculated based only on the structure and data (the CPDs do not need to be defined beforehand). This is implemented with a method of `bayesian_score` that takes in a directed graph, the names of the nodes and data.
 
 ```@example bayesnet
 data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3], 
