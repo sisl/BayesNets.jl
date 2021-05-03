@@ -183,7 +183,7 @@ gsampler = GibbsSampler(evidence, burn_in=500, thinning=1, initial_sample=initia
 rand(bn_gibbs, gsampler, 5)
 ```
 
-# Parameter Learning
+## Parameter Learning
 
 BayesNets.jl supports parameter learning for an entire graph.
 
@@ -345,7 +345,7 @@ table(bn, :b) # 3
 table(bn, :c, :a=>1) # 4
 ```
 
-# Reading from XDSL
+## Reading from XDSL
 
 Discrete Bayesian Networks can be read from the .XDSL file format.
 
@@ -358,9 +358,9 @@ TikzPictures.save(SVG("plot10"), plot) # hide
 
 ![](plot10.svg)
 
-# Bayesian Score for a Network Structure
+## Bayesian Score for a Network Structure
 
-The bayesian score for a discrete-valued BayesNet can can be calculated based only on the structure and data (the CPDs do not need to be defined beforehand). This is implemented with a method of `bayesian_score` that takes in a directed graph, the names of the nodes and data.
+The bayesian score for a discrete-valued BayesNet can can be calculated based only on the structure and data (the CPDs do not need to be defined beforehand). This is implemented with a method of ```bayesian_score``` that takes in a directed graph, the names of the nodes and data.
 
 ```@example bayesnet
 data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3], 
