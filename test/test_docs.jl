@@ -1,5 +1,5 @@
 using NBInclude
 
 let
-    @nbinclude(joinpath(dirname(@__DIR__), "doc", "BayesNets.ipynb"))
+    @nbinclude(joinpath(dirname(@__DIR__), "docs", "BayesNets.ipynb"))
 end

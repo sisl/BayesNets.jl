@@ -9,3 +9,7 @@
 
 .DS_Store
 
+doc/build/
+doc/site/
+/docs/build/
+/.idea/
