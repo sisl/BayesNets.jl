@@ -25,5 +25,5 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/sisl/BayesNets.jl.git",
+    repo = "github.com/dwijenchawra/BayesNets.jl.git",
 )
