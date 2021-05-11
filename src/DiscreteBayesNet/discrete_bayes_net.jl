@@ -244,7 +244,8 @@ function statistics(dag::DAG, data::DataFrame)
 
     parents = [inneighbors(dag, i) for i in 1:n]
     ncategories = [Int(infer_number_of_instantiations(data[!,i])) for i in 1 : n]
-    datamat = convert(Matrix{Int}, data)'
+#     datamat = convert(Matrix{Int}, data)'
+    datamat = Matrix{Int}(data)
 
     statistics(parents, ncategories, datamat)
 end
@@ -255,8 +256,8 @@ function statistics(bn::DiscreteBayesNet, target::NodeName, data::DataFrame)
     targetind = bn.name_to_index[target]
     parents = inneighbors(bn.dag, targetind)
     ncategories = [Int(infer_number_of_instantiations(data[!,i])) for i in 1 : n]
-    datamat = convert(Matrix{Int}, data)'
-
+#     datamat = convert(Matrix{Int}, data)'
+    datamat = Matrix{Int}(data)
     statistics(targetind, parents, ncategories, datamat)
 end
 
