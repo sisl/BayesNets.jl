@@ -30,7 +30,7 @@ let
 	n = length(bn)
 	parent_list = Array{Vector{Int}}(undef, n)
 	bincounts = Array{Int}(undef, n)
-	datamat = convert(Matrix{Int}, data)'
+	datamat = Matrix{Int}(data)'
 
 	for (i,cpd) in enumerate(bn.cpds)
 		parent_list[i] = inneighbors(bn.dag, i)

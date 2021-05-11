@@ -111,7 +111,8 @@ function bayesian_score(bn::DiscreteBayesNet, data::DataFrame, prior::DirichletP
     n = length(bn)
     parent_list = Array{Vector{Int}}(undef, n)
     ncategories = Array{Int}(undef, n)
-    datamat = convert(Matrix{Int}, data)'
+#     datamat = convert(Matrix{Int}, data)'
+    datamat = Matrix{Int}(data)'
 
     for (i,cpd) in enumerate(bn.cpds)
         parent_list[i] = inneighbors(bn.dag, i)
@@ -168,7 +169,7 @@ function bayesian_score_components(bn::DiscreteBayesNet, data::DataFrame, prior:
     n = length(bn)
     parent_list = Array{Vector{Int}}(undef, n)
     ncategories = Array{Int}(undef, n)
-    datamat = convert(Matrix{Int}, data)'
+    datamat = Matrix{Int}(data)'
 
     for (i,cpd) in enumerate(bn.cpds)
         parent_list[i] = inneighbors(bn.dag, i)
