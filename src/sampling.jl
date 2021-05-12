@@ -170,7 +170,6 @@ function get_weighted_dataframe(bn::BayesNet, nsamples::Integer, evidence::Assig
     t[:p] = w / sum(w)
 
 
-#     convert(DataFrame, t)
     t = DataFrame(t)
 end
 
