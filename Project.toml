@@ -1,6 +1,6 @@
 name = "BayesNets"
 uuid = "ba4760a4-c768-5bed-964b-cf806dc591cb"
-version = "3.3.3"
+version = "3.3.4"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
