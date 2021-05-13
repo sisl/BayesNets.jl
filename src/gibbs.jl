@@ -241,7 +241,7 @@ function gibbs_sample_main_loop(
 
     end
 
-    return convert(DataFrame, t), (now() - start_time).value
+    return DataFrame(t), (now() - start_time).value
 end
 
 """

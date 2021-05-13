@@ -7,7 +7,7 @@
 Convert a Factor to a DataFrame
 """
 function Base.convert(::Type{DataFrame}, ϕ::Factor)
-    df = DataFrames.DataFrame(pattern(ϕ))
+    df = DataFrames.DataFrame(pattern(ϕ), :auto)
     DataFrames.rename!(df, [f => t for (f, t) = zip(names(df), names(ϕ))] )
     df[!,:potential] = ϕ.potential[:]
 

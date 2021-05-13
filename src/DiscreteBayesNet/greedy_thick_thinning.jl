@@ -20,7 +20,7 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
 
     n = ncol(data)
     parent_list = map!(i->Int[], Array{Vector{Int}}(n), 1:n)
-    datamat = convert(Matrix{Int}, data)'
+    datamat = Matrix{Int}(data)'
     score_components = bayesian_score_components(parent_list, ncategories, datamat, params.prior, params.cache)
 
     while true
