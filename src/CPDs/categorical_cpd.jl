@@ -37,7 +37,7 @@ function (cpd::CategoricalCPD)(a::Assignment=Assignment())
     if isempty(cpd.parents)
         return first(cpd.distributions)
     else
-        sub = [a[p] for p in cpd.parents]
+        sub = [a[potential] for potential in cpd.parents]
         shape = ntuple(i -> cpd.parental_ncategories[i],
                 length(cpd.parental_ncategories))
         ind = LinearIndices(shape)[sub...]
@@ -84,7 +84,7 @@ function Distributions.fit(::Type{CategoricalCPD{D}},
     # calc parent_instantiation_counts
 
     nparents = length(parents)
-    parental_ncategories = map!(p->infer_number_of_instantiations(data[!,p]), Array{Int}(undef, length(parents)), parents)
+    parental_ncategories = map!(potential->infer_number_of_instantiations(data[!,potential]), Array{Int}(undef, length(parents)), parents)
     dims = [1:parental_ncategories[i] for i in 1:nparents]
     distributions = Array{D}(undef, prod(parental_ncategories))
     for (q, parent_instantiation) in enumerate(Iterators.product(dims...))
@@ -119,7 +119,7 @@ function Distributions.fit(::Type{DiscreteCPD},
     data::DataFrame,
     target::NodeName,
     parents::NodeNames;
-    parental_ncategories::Vector{Int} = map!(p->infer_number_of_instantiations(data[!,p]), Array{Int}(undef, length(parents)), parents),
+    parental_ncategories::Vector{Int} = map!(potential->infer_number_of_instantiations(data[!,potential]), Array{Int}(undef, length(parents)), parents),
     target_ncategories::Int = infer_number_of_instantiations(data[!,target]),
     )
 

@@ -46,7 +46,7 @@ name = :N5
 
 ϕ = Factor(bn, name)
 df = innerjoin(DataFrame(ϕ), table(bn, name).potential, on=names(ϕ))
-diff = abs.(df[!,:p] - df[!,:potential])
+diff = abs.(df[!,:potential] - df[!,:potential])
 
 @test all(diff .< 1E-13)
 end

@@ -56,9 +56,9 @@ let
         @test !parentless(cpd)
         @test nparams(cpd) == 6
 
-        @test cpd(:a=>1).p == [0.5,0.5]
-        @test cpd(:a=>2).p == [1.0,0.0]
-        @test cpd(:a=>3).p == [0.0,1.0]
+        @test cpd(:a=>1).potential == [0.5,0.5]
+        @test cpd(:a=>2).potential == [1.0,0.0]
+        @test cpd(:a=>3).potential == [0.0,1.0]
 
         cpd = fit(DiscreteCPD, df, :b, [:a], parental_ncategories=[3], target_ncategories=5)
         @test nparams(cpd) == 15
@@ -73,10 +73,10 @@ let
         @test nparams(cpd) == 4
 
         @test isa(cpd(Assignment(:a=>1, :b=>1)), disttype(cpd))
-        @test cpd(Assignment(:a=>1, :b=>1)).p == 1.0
-        @test cpd(Assignment(:a=>1, :b=>2)).p == 0.0
-        @test cpd(Assignment(:a=>2, :b=>1)).p == 0.5
-        @test cpd(Assignment(:a=>2, :b=>2)).p == 0.5
+        @test cpd(Assignment(:a=>1, :b=>1)).potential == 1.0
+        @test cpd(Assignment(:a=>1, :b=>2)).potential == 0.0
+        @test cpd(Assignment(:a=>2, :b=>1)).potential == 0.5
+        @test cpd(Assignment(:a=>2, :b=>2)).potential == 0.5
     end
 end
 
@@ -193,8 +193,8 @@ end
 let
     a = StaticCPD(:a, Bernoulli(0.5))
     b = StaticCPD(:b, Bernoulli(0.6))
-    p = [:a,:b]
-    c = ParentFunctionalCPD{Bernoulli}(:c, p, (seq,par)->begin
+    potential = [:a,:b]
+    c = ParentFunctionalCPD{Bernoulli}(:c, potential, (seq,par)->begin
                 Bernoulli(mean(seq[k] for k in par))
             end
         )
