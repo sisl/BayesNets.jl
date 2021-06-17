@@ -27,3 +27,4 @@ makedocs(
 deploydocs(
     repo = "github.com/sisl/BayesNets.jl.git",
 )
+return true
