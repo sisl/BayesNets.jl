@@ -71,15 +71,15 @@ function table(bn::DiscreteBayesNet, name::NodeName)
         d[!,name] = 1:ncategories(cpd(assignment))
     end
 
-    p = ones(size(d,1)) # the probability column
+    potential = ones(size(d,1)) # the probability column
     for i in 1:size(d,1)
         assignment = Assignment()
         for j in 1:length(varnames)
             assignment[varnames[j]] = d[i,j]
         end
-        p[i] = pdf(cpd, assignment)
+        potential[i] = pdf(cpd, assignment)
     end
-    d[!,:p] = p
+    d[!,:potential] = potential
 
     return Table(d)
 end

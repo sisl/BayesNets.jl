@@ -9,7 +9,7 @@ function infer(im::ExactInference, inf::InferenceState{BN}) where {BN<:DiscreteB
     nodes = names(bn)
     query = inf.query
     evidence = inf.evidence
-    hidden = setdiff(nodes, vcat(query, names(evidence)))
+    hidden = setdiff(nodes, vcat(query, keys(evidence)))
 
     factors = map(n -> Factor(bn, n, evidence), nodes)
 
@@ -31,4 +31,3 @@ function infer(im::ExactInference, inf::InferenceState{BN}) where {BN<:DiscreteB
 end
 infer(inf::InferenceState{BN}) where {BN<:DiscreteBayesNet} = infer(ExactInference(), inf)
 infer(bn::BN, query::NodeNameUnion; evidence::Assignment=Assignment()) where {BN<:DiscreteBayesNet} = infer(ExactInference(), InferenceState(bn, query, evidence))
-
