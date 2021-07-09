@@ -7,7 +7,6 @@
 
 nodeconvert(::Type{NodeNames}, names::NodeNameUnion) = names
 
-
 nodeconvert(::Type{NodeNames}, name::NodeName) = [name]
 
 

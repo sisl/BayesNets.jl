@@ -193,8 +193,8 @@ end
 let
     a = StaticCPD(:a, Bernoulli(0.5))
     b = StaticCPD(:b, Bernoulli(0.6))
-    potential = [:a,:b]
-    c = ParentFunctionalCPD{Bernoulli}(:c, potential, (seq,par)->begin
+    p = [:a,:b]
+    c = ParentFunctionalCPD{Bernoulli}(:c, p, (seq,par)->begin
                 Bernoulli(mean(seq[k] for k in par))
             end
         )

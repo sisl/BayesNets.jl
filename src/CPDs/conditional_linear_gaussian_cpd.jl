@@ -70,8 +70,8 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
     # ---------------------
     # identify discrete and continuous parents
 
-    parents_disc = filter(potential->eltype(data[!,potential]) <: Int, parents)
-    parents_cont = filter(potential->eltype(data[!,potential]) <: AbstractFloat, parents)
+    parents_disc = filter(p->eltype(data[!,p]) <: Int, parents)
+    parents_cont = filter(p->eltype(data[!,p]) <: AbstractFloat, parents)
 
    # ---------------------
     # pull discrete dataset
@@ -85,8 +85,8 @@ function Distributions.fit(::Type{ConditionalLinearGaussianCPD},
 
         parental_ncategories = Array{Int}(undef, nparents_disc)
         dims = Array{UnitRange{Int64}}(undef, nparents_disc)
-        for (i,potential) in enumerate(parents_disc)
-            parental_ncategories[i] = infer_number_of_instantiations(data[!,potential])
+        for (i,p) in enumerate(parents_disc)
+            parental_ncategories[i] = infer_number_of_instantiations(data[!,p])
             dims[i] = 1:parental_ncategories[i]
         end
 
