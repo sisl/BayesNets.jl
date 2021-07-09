@@ -10,15 +10,15 @@ let
 	push!(bn, DiscreteCPD(:b, [:a], [2], [Categorical([0.5,0.5]),Categorical([0.2,0.8])]))
 
 	T = table(bn, :a)
-	@test T == DataFrame(a=[1,2], p=[0.4,0.6])
+	@test T == DataFrame(a=[1,2], potential=[0.4,0.6])
 
 	T = table(bn, :b)
-	@test T == DataFrame(a=[1,2,1,2], b=[1,1,2,2], p=[0.5,0.2,0.5,0.8])
+	@test T == DataFrame(a=[1,2,1,2], b=[1,1,2,2], potential=[0.5,0.2,0.5,0.8])
 
 	data = DataFrame(a=[1,1,1,1,2,2,2,2],
 		             b=[1,2,1,2,1,1,1,2])
 	T = count(bn, :a, data)
-	@test T == DataFrame(a=[1,2], count=[4,4]) 
+	@test T == DataFrame(a=[1,2], count=[4,4])
 
 	T = count(bn, :b, data)
 	@test nrow(T) == 4
@@ -131,4 +131,3 @@ let
 	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>1, :c=>2), 0.5, atol=1e-4)
 	@test isapprox(pdf(get(bn, :a), :a=>1, :b=>2, :c=>2), 0.7, atol=1e-4)
 end
-

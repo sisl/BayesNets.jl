@@ -157,8 +157,8 @@ function Base.write(io::IO, mime::MIME"text/plain", bn::DiscreteBayesNet)
     for name in arr_names
         cpd = get(bn, name)
         for D in cpd.distributions
-            for p in probs(D)[1:end-1]
-                str = @sprintf("%.16g", p)
+            for potential in probs(D)[1:end-1]
+                str = @sprintf("%.16g", potential)
                 print(io, space ? " " : "" , str)
                 space = true
             end

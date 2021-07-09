@@ -329,7 +329,7 @@ function gibbs_sample(bn::BayesNet, nsamples::Integer, burn_in::Integer;
     # for burn_in_initial_sample use get_weighted_dataframe, should be consistent with the varibale consistent_with
     if initial_sample == nothing
         rand_samples = get_weighted_dataframe(bn, 50, consistent_with)
-    	if reduce(|, isnan.(convert(Array{AbstractFloat}, rand_samples[!,:p])))
+    	if reduce(|, isnan.(convert(Array{AbstractFloat}, rand_samples[!,:potential])))
     		error("Gibbs Sampler was unable to find an inital sample with non-zero probability, please supply an inital sample")
     	end
         burn_in_initial_sample = sample_weighted_dataframe(rand_samples)

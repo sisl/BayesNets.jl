@@ -107,7 +107,9 @@ export
     adding_edge_preserves_acyclicity,
     bayesian_score_component,
     bayesian_score_components,
-    bayesian_score
+    bayesian_score,
+
+    nodenames
 
 
 include("bayes_nets.jl")
