@@ -72,7 +72,7 @@ end
     @testset "gen bn" begin
         include(joinpath(testdir, "test_genbn.jl"))
     end
-    # @testset "docs" begin
-    #     include(joinpath(testdir, "test_docs.jl"))
-    # end
+    @testset "docs" begin
+        include(joinpath(testdir, "test_docs.jl"))
+    end
 end
