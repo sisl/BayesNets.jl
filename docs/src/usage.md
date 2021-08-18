@@ -187,7 +187,7 @@ rand(bn_gibbs, gsampler, 5)
 
 BayesNets.jl supports parameter learning for an entire graph.
 
-```julia 
+```julia
 fit(BayesNet, data, (:a=>:b), [StaticCPD{Normal}, LinearGaussianCPD])
 ```
 
@@ -223,7 +223,7 @@ Inference methods for discrete Bayesian networks can be used via the `infer` met
 bn = DiscreteBayesNet()
 push!(bn, DiscreteCPD(:a, [0.3,0.7]))
 push!(bn, DiscreteCPD(:b, [0.2,0.8]))
-push!(bn, DiscreteCPD(:c, [:a, :b], [2,2], 
+push!(bn, DiscreteCPD(:c, [:a, :b], [2,2],
         [Categorical([0.1,0.9]),
          Categorical([0.2,0.8]),
          Categorical([1.0,0.0]),
@@ -283,7 +283,7 @@ data[1:3,:] # only display a subset...
 Here we use the K2 structure learning algorithm which runs in polynomial time but requires that we specify a topological node ordering.
 
 ```@example bayesnet
-parameters = K2GraphSearch([:Species, :SepalLength, :SepalWidth, :PetalLength, :PetalWidth], 
+parameters = K2GraphSearch([:Species, :SepalLength, :SepalWidth, :PetalLength, :PetalWidth],
                        ConditionalLinearGaussianCPD,
                        max_n_parents=2)
 bn = fit(BayesNet, data, parameters)
@@ -300,7 +300,7 @@ Changing the ordering will change the structure.
 
 ```julia
 CLG = ConditionalLinearGaussianCPD
-parameters = K2GraphSearch([:Species, :PetalLength, :PetalWidth, :SepalLength, :SepalWidth], 
+parameters = K2GraphSearch([:Species, :PetalLength, :PetalWidth, :SepalLength, :SepalWidth],
                         [StaticCPD{Categorical}, CLG, CLG, CLG, CLG],
                         max_n_parents=2)
 fit(BayesNet, data, parameters)
@@ -311,7 +311,7 @@ A `ScoringFunction` allows for extracting a scoring metric for a CPD given data.
 A `GraphSearchStrategy` defines a structure learning algorithm. The K2 algorithm is defined through `K2GraphSearch` and `GreedyHillClimbing` is implemented for discrete Bayesian networks and the Bayesian score:
 
 ```@example bayesnet
-data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3], 
+data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3],
                  b=[1,1,1,2,2,2,2,1,1,2,1,1],
                  a=[1,1,1,2,1,1,2,1,1,2,1,1])
 parameters = GreedyHillClimbing(ScoreComponentCache(data), max_n_parents=3, prior=UniformPrior())
@@ -339,6 +339,14 @@ A whole suite of features are supported for DiscreteBayesNets. Here, we illustra
 We also detail obtaining a bayesian score for a network structure in the next section.
 
 ```julia
+bn = DiscreteBayesNet()
+push!(bn, DiscreteCPD(:hospital, [:a, :b], [2,2],
+        [Categorical([0.9,0.1]),
+         Categorical([0.2,0.8]),
+         Categorical([0.7,0.3]),
+         Categorical([0.01,0.99]),
+        ]))
+
 count(bn, :a, data) # 1
 statistics(bn.dag, data) # 2
 table(bn, :b) # 3
@@ -363,12 +371,10 @@ TikzPictures.save(SVG("plot10"), plot) # hide
 The bayesian score for a discrete-valued BayesNet can can be calculated based only on the structure and data (the CPDs do not need to be defined beforehand). This is implemented with a method of ```bayesian_score``` that takes in a directed graph, the names of the nodes and data.
 
 ```@example bayesnet
-data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3], 
+data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3],
                  b=[1,1,1,2,2,2,2,1,1,2,1,1],
                  a=[1,1,1,2,1,1,2,1,1,2,1,1])
 g = DAG(3)
 add_edge!(g,1,2); add_edge!(g,2,3); add_edge!(g,1,3)
 bayesian_score(g, [:a,:b,:c], data)
 ```
-
-
