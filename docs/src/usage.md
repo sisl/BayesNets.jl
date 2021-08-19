@@ -325,7 +325,7 @@ TikzPictures.save(SVG("plot9"), plot) # hide
 
 We can specify the number of categories for each variable in case it cannot be correctly inferred:
 
-```julia
+```@example bayesnet
 bn = fit(DiscreteBayesNet, data, parameters, ncategories=[3,3,2])
 ```
 
@@ -338,19 +338,17 @@ A whole suite of features are supported for DiscreteBayesNets. Here, we illustra
 
 We also detail obtaining a bayesian score for a network structure in the next section.
 
-```julia
-bn = DiscreteBayesNet()
-push!(bn, DiscreteCPD(:hospital, [:a, :b], [2,2],
-        [Categorical([0.9,0.1]),
-         Categorical([0.2,0.8]),
-         Categorical([0.7,0.3]),
-         Categorical([0.01,0.99]),
-        ]))
-
-count(bn, :a, data) # 1
-statistics(bn.dag, data) # 2
-table(bn, :b) # 3
-table(bn, :c, :a=>1) # 4
+```@example bayesnet
+count(bn, :a, data)
+```
+```@example bayesnet
+statistics(bn.dag, data)
+```
+```@example bayesnet
+table(bn, :b)
+```
+```@example bayesnet
+table(bn, :c, :a=>1)
 ```
 
 ## Reading from XDSL
