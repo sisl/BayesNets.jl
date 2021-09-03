@@ -22,7 +22,7 @@ Normalize the factor so all instances of dims have (or the entire factors has)
 p-norm of 1
 """
 function LinearAlgebra.normalize!(ϕ::Factor, dims::NodeNameUnion; p::Int=1)
-    dims = unique(convert(NodeNames, dims))
+    dims = unique(nodeconvert(NodeNames, dims))
     _check_dims_valid(dims, ϕ)
 
     inds = indexin(dims, ϕ)
@@ -69,7 +69,7 @@ Reduce dimensions `dims` in `ϕ` using function `op`.
 """
 function reducedim(op, ϕ::Factor, dims::NodeNameUnion, v0=nothing)
     # a (possibly?) more efficient version than reducedim!(deepcopy(ϕ))
-    dims = convert(NodeNames, dims)
+    dims = nodeconvert(NodeNames, dims)
     _check_dims_valid(dims, ϕ)
 
     # needs to be a tuple for squeeze
@@ -85,7 +85,7 @@ function reducedim(op, ϕ::Factor, dims::NodeNameUnion, v0=nothing)
 end
 
 function reducedim!(op, ϕ::Factor, dims::NodeNameUnion, v0=nothing)
-    dims = convert(NodeNames, dims)
+    dims = nodeconvert(NodeNames, dims)
     _check_dims_valid(dims, ϕ)
 
     # needs to be a tuple for squeeze
@@ -270,4 +270,3 @@ end
 /(ϕ1::Factor, ϕ2::Factor) = join(/, ϕ1, ϕ2)
 +(ϕ1::Factor, ϕ2::Factor) = join(+, ϕ1, ϕ2)
 -(ϕ1::Factor, ϕ2::Factor) = join(-, ϕ1, ϕ2)
-

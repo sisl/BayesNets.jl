@@ -326,6 +326,3 @@ function CPDs.logpdf(bn::BayesNet, assignment::Assignment)
 	end
  	retval
 end
-
-
-

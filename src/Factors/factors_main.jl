@@ -5,6 +5,11 @@
 # THE MOST BASIC ASSUMPTION IS THAT ALL VARIABLES ARE CATEGORICAL AND THEREFORE
 # Base.OneTo WORTHY. IF THAT IS VIOLATED, NOTHING WILL WORK
 
+nodeconvert(::Type{NodeNames}, names::NodeNameUnion) = names
+
+nodeconvert(::Type{NodeNames}, name::NodeName) = [name]
+
+
 """
     Factor(dims, potential)
 
@@ -16,7 +21,7 @@ mutable struct Factor
                               # In most cases this will be a probability
 
     function Factor(dims::NodeNameUnion, potential::Array{Float64})
-        dims = convert(NodeNames, dims)
+        dims = nodeconvert(NodeNames, dims)
         _ckeck_dims_unique(dims)
 
         (length(dims) != ndims(potential)) &&
@@ -192,4 +197,3 @@ function pattern(ϕ::Factor)
     hcat([repeat(collect(1:l), inner=i, outer=o) for (l, i, o) in
             zip(lens, inners, outers)]...)
 end
-

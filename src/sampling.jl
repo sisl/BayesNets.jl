@@ -167,7 +167,7 @@ function get_weighted_dataframe(bn::BayesNet, nsamples::Integer, evidence::Assig
         end
         w[i] = weight
     end
-    t[:p] = w / sum(w)
+    t[:potential] = w / sum(w)
 
 
     t = DataFrame(t)
@@ -180,7 +180,7 @@ get_weighted_dataframe(bn::BayesNet, nsamples::Integer, pair::Pair{NodeName}...)
 Chooses a sample at random from a weighted dataframe
 """
 function sample_weighted_dataframe!(a::Assignment, weighted_dataframe::DataFrame)
-    p = weighted_dataframe[:, :p]
+    p = weighted_dataframe[:, :potential]
     n = length(p)
     i = 1
     c = p[1]
@@ -189,7 +189,7 @@ function sample_weighted_dataframe!(a::Assignment, weighted_dataframe::DataFrame
         c += p[i += 1]
     end
     for varname in propertynames(weighted_dataframe)
-        if varname != :p
+        if varname != :potential
             a[varname] = weighted_dataframe[i, varname]
         end
     end

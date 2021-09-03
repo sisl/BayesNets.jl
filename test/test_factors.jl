@@ -45,8 +45,8 @@ bn = rand_discrete_bn(10, 4)
 name = :N5
 
 ϕ = Factor(bn, name)
-df = innerjoin(DataFrame(ϕ), table(bn, name).potential, on=names(ϕ))
-diff = abs.(df[!,:p] - df[!,:potential])
+df = innerjoin(DataFrame(ϕ), table(bn, name).potential, on=names(ϕ), makeunique=true)
+diff = abs.(df[!,:potential] - df[!,:potential_1])
 
 @test all(diff .< 1E-13)
 end
@@ -64,6 +64,9 @@ end
 
 ###############################################################################
 #                   normalize
+
+using LinearAlgebra
+
 let
 ϕ = Factor([:a, :b], Float64[1 2; 3 4])
 ϕ2 = LinearAlgebra.normalize(ϕ, p=1)
@@ -203,4 +206,3 @@ let
 
 @test_throws DimensionMismatch ϕ1 * ϕ2
 end
-

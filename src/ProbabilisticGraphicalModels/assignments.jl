@@ -1,10 +1,10 @@
 const Assignment = Dict{NodeName, Any}
 
 """
-    names(a::Assignment)
+    nodenames(a::Assignment)
 Return a vector of NodeNames (aka symbols) for the assignment
 """
-Base.names(a::Assignment) = collect(keys(a))
+nodenames(a::Assignment) = collect(keys(a))
 
 """
     consistent(a::Assignment, b::Assignment)
