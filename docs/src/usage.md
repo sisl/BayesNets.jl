@@ -336,7 +336,7 @@ A whole suite of features are supported for DiscreteBayesNets. Here, we illustra
 3. Obtain the factor table for a node
 4. Obtain a factor table matching a particular assignment
 
-We also detail obtaining a bayesian score for a network structure in the next section.
+We also detail obtaining a Bayesian score for a network structure in the next section.
 
 ```@example bayesnet
 count(bn, :a, data)
@@ -366,7 +366,7 @@ TikzPictures.save(SVG("plot10"), plot) # hide
 
 ## Bayesian Score for a Network Structure
 
-The bayesian score for a discrete-valued BayesNet can can be calculated based only on the structure and data (the CPDs do not need to be defined beforehand). This is implemented with a method of ```bayesian_score``` that takes in a directed graph, the names of the nodes and data.
+The Bayesian score for a discrete-valued BayesNet can be calculated based only on the structure and data (the CPDs do not need to be defined beforehand). This is implemented with a method of ```bayesian_score``` that takes in a directed graph, the names of the nodes and data.
 
 ```@example bayesnet
 data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3],
