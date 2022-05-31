@@ -40,7 +40,7 @@ let
 
         cpd = fit(DiscreteCPD, DataFrame(a=[1,2,1,2,2]), :a, ncategories=3)
         @test pdf(cpd, :a=>1) == 0.4
-        @test pdf(cpd, :a=>2) == 0.6
+        @test pdf(cpd, :a=>2) ≈ 0.6
         @test pdf(cpd, :a=>3) == 0.0
         @test nparams(cpd) == 3
     end
