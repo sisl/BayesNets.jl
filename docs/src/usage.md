@@ -33,11 +33,11 @@ TikzPictures.save(SVG("plot1"), plot)
 
 ## Conditional Probability Distributions
 
-Conditional Probablity Distributions, $P(x_i \mid \text{parents}(x_i))$, are defined in BayesNets.CPDs. Each CPD knows its own name, the names of its parents, and is associated with a distribution from Distributions.jl.
+Conditional Probability Distributions, $P(x_i \mid \text{parents}(x_i))$, are defined in BayesNets.CPDs. Each CPD knows its own name, the names of its parents, and is associated with a distribution from Distributions.jl.
 
 | `CPDForm`                      | Description |
 | ------------------------------ | ----------- |
-| `StaticCPD`                    | Any `Distributions.distribution`; indepedent of any parents |
+| `StaticCPD`                    | Any `Distributions.distribution`; independent of any parents |
 | `FunctionalCPD`                | Allows for a CPD defined with a custom eval function |
 | `ParentFunctionalCPD`          | Modification to `FunctionalCPD` allowing the parent values to be passed in |
 | `CategoricalCPD`               | Categorical distribution, assumes integer parents in $1:N$ |
