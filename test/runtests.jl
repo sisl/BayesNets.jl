@@ -1,7 +1,7 @@
 using BayesNets
 using DataFrames
 using Test
-using LightGraphs
+using Graphs
 using Statistics
 using LinearAlgebra
 using Random

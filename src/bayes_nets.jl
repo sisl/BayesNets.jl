@@ -109,7 +109,7 @@ end
 """
 Returns all descendants as a list of NodeNames.
 """
-dst(edge::Pair{Int,Int}) = edge[2] # LightGraphs used to return a Pair, now it returns a SimpleEdge
+dst(edge::Pair{Int,Int}) = edge[2] # Graphs used to return a Pair, now it returns a SimpleEdge
 function descendants(bn::BayesNet, target::NodeName)
 	retval = Set{Int}()
 	for edge in edges(bfs_tree(bn.dag, bn.name_to_index[target]))

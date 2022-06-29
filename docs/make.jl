@@ -1,6 +1,6 @@
 push!(LOAD_PATH, "../src")
 import Pkg
-Pkg.add("BayesNets")
+Pkg.develop(path=".")
 Pkg.add("TikzPictures")
 Pkg.add("TikzGraphs")
 Pkg.add("Documenter")
@@ -25,6 +25,6 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/dwijenchawra/BayesNets.jl.git",
+    repo = "github.com/sisl/BayesNets.jl.git",
 )
 return true

@@ -25,14 +25,14 @@ Custom version of repeate, but only outer repetition, and only duplicates
 the array for the number of times specified in `dims` for dimensions greater
 than `ndims(A)`. If `dims` is empty, returns a copy of `A`.
 
-```jldoctest
-julia> duplicate(collect(1:3), 2)
+```julia
+julia> duplicate(collect(1:3), (2,))
 3×2 Array{Int64,2}:
  1  1
  2  2
  3  3
 
-julia> duplicate([1 3; 2 4], 3)
+julia> duplicate([1 3; 2 4], (3,))
 2×2×3 Array{Int64,3}:
 [:, :, 1] =
  1  3
