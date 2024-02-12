@@ -133,3 +133,68 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
     end
     BayesNet(cpds)
 end
+
+function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::GreedyHillClimbing, nlayers::Int;
+    ncategories::Vector{Int} = map!(i->infer_number_of_instantiations(data[!,i]), Array{Int}(undef, ncol(data)), 1:ncol(data)),
+    )
+    # The data I pass in has shape (N_SAMPLES, N_TRANSFORMER_LAYERS * DIM_SIZE)
+    @assert ncol(data) % nlayers == 0
+    n = ncol(data)
+    dim_size = n ÷ nlayers
+    parent_list = map!(i->Int[], Array{Vector{Int}}(undef, n), 1:n)
+    datamat = Matrix{Int}(data)'
+    score_components = bayesian_score_components(parent_list, ncategories, datamat, params.prior, params.cache)
+
+    while true
+        best_diff = 0.0
+        best_parent_list = parent_list
+        for i in (dim_size + 1):(2 * dim_size) # n + 1: 2n will be the second layer, or child nodes
+
+            # 1) add an edge (j->i)
+            if length(parent_list[i]) < params.max_n_parents
+                for j in deleteat!(collect(1:dim_size), parent_list[i])
+                    if adding_edge_preserves_acyclicity(parent_list, j, i)
+                        new_parents = sort!(push!(copy(parent_list[i]), j))
+                        new_component_score = bayesian_score_component(i, new_parents, ncategories, datamat, params.prior, params.cache)
+                        if new_component_score - score_components[i] > best_diff
+                            best_diff = new_component_score - score_components[i]
+                            best_parent_list = deepcopy(parent_list)
+                            best_parent_list[i] = new_parents
+                        end
+                    end
+                end
+            end
+
+            # 2) remove an edge
+            for (idx, j) in enumerate(parent_list[i])
+
+                new_parents = deleteat!(copy(parent_list[i]), idx)
+                new_component_score = bayesian_score_component(i, new_parents, ncategories, datamat, params.prior, params.cache)
+                if new_component_score - score_components[i] > best_diff
+                    best_diff = new_component_score - score_components[i]
+                    best_parent_list = deepcopy(parent_list)
+                    best_parent_list[i] = new_parents
+                end
+
+                # 3) flip an edge is deleted, because edges should not be flipped!
+            end
+        end
+
+        if best_diff > 0.0
+            parent_list = best_parent_list
+            score_components = bayesian_score_components(parent_list, ncategories, datamat, params.prior, params.cache)
+        else
+            break
+        end
+    end
+
+    # construct the BayesNet
+    cpds = Array{DiscreteCPD}(undef, n)
+    varnames = propertynames(data)
+    for i in 1:n
+        name = varnames[i]
+        parents = varnames[parent_list[i]]
+        cpds[i] = fit(DiscreteCPD, data, name, parents, params.prior, parental_ncategories=ncategories[parent_list[i]], target_ncategories=ncategories[i])
+    end
+    BayesNet(cpds)
+end
