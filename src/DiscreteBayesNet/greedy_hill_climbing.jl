@@ -153,14 +153,12 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
             # 1) add an edge (j->i)
             if length(parent_list[i]) < params.max_n_parents
                 for j in deleteat!(collect(1:dim_size), parent_list[i])
-                    if adding_edge_preserves_acyclicity(parent_list, j, i)
-                        new_parents = sort!(push!(copy(parent_list[i]), j))
-                        new_component_score = bayesian_score_component(i, new_parents, ncategories, datamat, params.prior, params.cache)
-                        if new_component_score - score_components[i] > best_diff
-                            best_diff = new_component_score - score_components[i]
-                            best_parent_list = deepcopy(parent_list)
-                            best_parent_list[i] = new_parents
-                        end
+                    new_parents = sort!(push!(copy(parent_list[i]), j))
+                    new_component_score = bayesian_score_component(i, new_parents, ncategories, datamat, params.prior, params.cache)
+                    if new_component_score - score_components[i] > best_diff
+                        best_diff = new_component_score - score_components[i]
+                        best_parent_list = deepcopy(parent_list)
+                        best_parent_list[i] = new_parents
                     end
                 end
             end
