@@ -194,5 +194,6 @@ function Distributions.fit(::Type{DiscreteBayesNet}, data::DataFrame, params::Gr
         parents = varnames[parent_list[i]]
         cpds[i] = fit(DiscreteCPD, data, name, parents, params.prior, parental_ncategories=ncategories[parent_list[i]], target_ncategories=ncategories[i])
     end
-    BayesNet(cpds)
+    
+    return BayesNet(cpds)
 end
