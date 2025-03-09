@@ -16,8 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - "1"   # Earliest
-          - "1.6" # Latest
+          - "1"   # Latest
+          - "1.8" # Earliest
         os:
           - ubuntu-latest
           - windows-latest

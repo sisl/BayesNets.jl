@@ -76,8 +76,8 @@ function elimination_order(bn::BayesNet, query::AbstractVector, evidence::Abstra
     end
 
     matrix[clique, clique] .= 1
-    alg = CliqueTrees.MF()  # minimum fill heuristic
-    # alg = CliqueTrees.MMD() # minimum degree heuristic
+    # alg = CliqueTrees.MF()  # minimum fill heuristic
+    alg = CliqueTrees.MMD() # minimum degree heuristic
     # alg = CliqueTrees.MCS() # maximum cardinality search
     perm, _ = CliqueTrees.permutation(matrix; alg=CliqueTrees.CompositeRotations(clique, alg))
     return order[perm[1:end - n]]
