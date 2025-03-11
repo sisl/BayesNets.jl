@@ -5,3 +5,6 @@ Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 RDatasets = "ce6b1742-4840-55fa-b093-852dadbb1d8b"
 TikzGraphs = "b4f28e30-c73f-5eaf-a395-8a9db949a742"
 TikzPictures = "37f6aa50-8035-52d0-81c2-5a1d08754b2d"
+
+[compat]
+Documenter = "1"
