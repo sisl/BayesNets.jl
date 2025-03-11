@@ -70,7 +70,6 @@ end
     ScoreComponentCache
 Used to store scores in a priority queue such that graph search algorithms know
 when a particular construction has already been made.
-    cache[ⱼ](parentsⱼ, score) for the ith variable with parents parents
 """
 const ScoreComponentCache = Vector{PriorityQueue{Vector{Int}, Float64}} # parent indeces -> score
 

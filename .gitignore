@@ -13,3 +13,5 @@ doc/build/
 doc/site/
 /docs/build/
 /.idea/
+
+Manifest.toml

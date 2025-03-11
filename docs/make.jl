@@ -1,30 +1,27 @@
-push!(LOAD_PATH, "../src")
-import Pkg
-Pkg.develop(path=".")
-Pkg.add("TikzPictures")
-Pkg.add("TikzGraphs")
-Pkg.add("Documenter")
-Pkg.add("Discretizers")
-Pkg.add("RDatasets")
 using Documenter, BayesNets, TikzGraphs, TikzPictures, Discretizers, RDatasets
 
+page_order = [
+    "index.md",
+    "install.md",
+    "usage.md",
+    "concepts.md",
+    "api.md"
+]
+
 makedocs(
-    modules = [BayesNets, TikzPictures, TikzGraphs, Discretizers, RDatasets],
+    modules = [BayesNets],
     format = Documenter.HTML(
-        mathengine = Documenter.MathJax2()
+        mathengine = Documenter.MathJax2(),
+        size_threshold_ignore=["api.md"]
     ),
     sitename = "BayesNets.jl",
     pages = [
-        "Table of Contents" => [
-            "index.md",
-            "install.md",
-            "usage.md",
-            "concepts.md"
-        ]
-    ]
+        "Table of Contents" => page_order
+    ],
+    warnonly = [:missing_docs]
 )
 
 deploydocs(
     repo = "github.com/sisl/BayesNets.jl.git",
+    push_preview=true
 )
-return true
