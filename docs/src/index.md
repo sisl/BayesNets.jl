@@ -5,5 +5,5 @@
 ### Table of Contents
 
 ```@contents
-Pages = ["install.md", "usage.md", "concepts.md]
+Pages = Main.page_order
 ```
