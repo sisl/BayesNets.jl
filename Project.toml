@@ -1,6 +1,6 @@
 name = "BayesNets"
 uuid = "ba4760a4-c768-5bed-964b-cf806dc591cb"
-version = "3.5.1"
+version = "3.5.2"
 
 [deps]
 CliqueTrees = "60701a23-6482-424a-84db-faee86b9b1f8"

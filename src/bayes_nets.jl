@@ -103,7 +103,7 @@ Returns all neighbors as a list of NodeNames.
 """
 function neighbors(bn::BayesNet, target::NodeName)
 	i = bn.name_to_index[target]
-	NodeName[name(bn.cpds[j]) for j in append!(inneighbors(bn.dag, i), outneighbors(bn.dag, i))]
+	NodeName[name(bn.cpds[j]) for j in vcat(inneighbors(bn.dag, i), outneighbors(bn.dag, i))]
 end
 
 """
