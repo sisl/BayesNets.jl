@@ -1,15 +1,15 @@
+```@meta
+CurrentModule = BayesNets
+```
 # Usage
 
 ```@setup bayesnet
-using BayesNets, TikzGraphs, TikzPictures
-```
-
-```julia
-using Random
-Random.seed!(0) # seed the random number generator to 0, for a reproducible demonstration
 using BayesNets
-using TikzGraphs # required to plot tex-formatted graphs (recommended), otherwise GraphPlot.jl is used
-using TikzPictures
+using DataFrames
+using Distributions
+using Random
+using Graphs
+Random.seed!(0)
 ```
 
 ## Representation
@@ -25,11 +25,11 @@ a = \mathcal{N}(0,1) \qquad b = \mathcal{N}(2a +3,1)
 bn = BayesNet()
 push!(bn, StaticCPD(:a, Normal(1.0)))
 push!(bn, LinearGaussianCPD(:b, [:a], [2.0], 3.0, 1.0))
-plot = BayesNets.plot(bn)
-TikzPictures.save(SVG("plot1"), plot)
+p = BayesNets.plot(bn)
+p
 ```
 
-![](plot1.svg)
+
 
 ## Conditional Probability Distributions
 
@@ -56,17 +56,17 @@ cpdA = fit(StaticCPD{Normal}, data, :a)
 cpdB = fit(LinearGaussianCPD, data, :b, [:a])
 
 bn2 = BayesNet([cpdA, cpdB])
-plot = BayesNets.plot(bn2) # hide
-TikzPictures.save(SVG("plot2"), plot) # hide
+p = BayesNets.plot(bn2)
+p
 ```
 
-![](plot2.svg)
+
 
 Each `CPD` implements four functions:
 
 * `name(cpd)` - obtain the name of the variable target variable
 * `parents(cpd)` - obtain the list of parents
-* `nparams(cpd` - obtain the number of free parameters in the CPD
+* `nparams(cpd)` - obtain the number of free parameters in the CPD
 * `cpd(assignment)` - allows calling `cpd()` to obtain the conditional distribution
 * `Distributions.fit(Type{CPD}, data, target, parents)`
 
@@ -88,21 +88,19 @@ The NamedCategorical distribution allows for String or Symbol return values. The
 bn2 = BayesNet()
 push!(bn2, StaticCPD(:sighted, NamedCategorical([:bird, :plane, :superman], [0.40, 0.55, 0.05])))
 push!(bn2, FunctionalCPD{Bernoulli}(:happy, [:sighted], a->Bernoulli(a == :superman ? 0.95 : 0.2)))
-plot = BayesNets.plot(bn2) # hide
-TikzPictures.save(SVG("plot3"), plot) # hide
+p = BayesNets.plot(bn2)
+p
 ```
 
-![](plot3.svg)
+
 
 Variables can be removed by name using `delete!`. A warning will be issued when removing a CPD with children.
 
 ```@example bayesnet
 delete!(bn2, :happy)
-plot = BayesNets.plot(bn2) # hide
-TikzPictures.save(SVG("plot4"), plot) # hide
+p = BayesNets.plot(bn2)
+p
 ```
-
-![](plot4.svg)
 
 ## Likelihood
 
@@ -153,11 +151,10 @@ bn = BayesNet()
 push!(bn, StaticCPD(:a, Categorical([0.3,0.7])))
 push!(bn, StaticCPD(:b, Categorical([0.6,0.4])))
 push!(bn, CategoricalCPD{Bernoulli}(:c, [:a, :b], [2,2], [Bernoulli(0.1), Bernoulli(0.2), Bernoulli(1.0), Bernoulli(0.4)]))
-plot = BayesNets.plot(bn) # hide
-TikzPictures.save(SVG("plot5"), plot) # hide
+p = BayesNets.plot(bn)
+p
 ```
 
-![](plot5.svg)
 
 ```julia
 rand(bn, RejectionSampler(:c=>1), 5)
@@ -202,11 +199,11 @@ b=[1,1,1,2,2,2,2,1,1,2,1,1],
 a=[1,1,1,2,1,1,2,1,1,2,1,1])
 
 bn5 = fit(DiscreteBayesNet, data, (:a=>:b, :a=>:c, :b=>:c))
-plot = BayesNets.plot(bn5) # hide
-TikzPictures.save(SVG("plot6"), plot) # hide
+p = BayesNets.plot(bn5)
+p
 ```
 
-![](plot6.svg)
+
 
 Fitting a ```DiscreteCPD```, which is a ```CategoricalCPD{Categorical}```, can be done with a specified number of categories. This prevents cases where your test data does not provide an example for every category.
 
@@ -230,11 +227,11 @@ push!(bn, DiscreteCPD(:c, [:a, :b], [2,2],
          Categorical([0.4,0.6]),
         ]))
 
-plot = BayesNets.plot(bn) # hide
-TikzPictures.save(SVG("plot7"), plot) # hide
+p = BayesNets.plot(bn)
+p
 ```
 
-![](plot7.svg)
+
 
 ```@example bayesnet
 ϕ = infer(bn, :c, evidence=Assignment(:b=>1))
@@ -288,11 +285,11 @@ parameters = K2GraphSearch([:Species, :SepalLength, :SepalWidth, :PetalLength, :
                        max_n_parents=2)
 bn = fit(BayesNet, data, parameters)
 
-plot = BayesNets.plot(bn) # hide
-TikzPictures.save(SVG("plot8"), plot) # hide
+p = BayesNets.plot(bn)
+p
 ```
 
-![](plot8.svg)
+
 
 CPD types can also be specified per-node. Note that complete CPD definitions are required - simply using `StaticCPD` is insufficient as you need the target distribution type as well, as in `StaticCPD{Categorical}`.
 
@@ -317,11 +314,11 @@ data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3],
 parameters = GreedyHillClimbing(ScoreComponentCache(data), max_n_parents=3, prior=UniformPrior())
 bn = fit(DiscreteBayesNet, data, parameters)
 
-plot = BayesNets.plot(bn) # hide
-TikzPictures.save(SVG("plot9"), plot) # hide
+p = BayesNets.plot(bn)
+p
 ```
 
-![](plot9.svg)
+
 
 We can specify the number of categories for each variable in case it cannot be correctly inferred:
 
@@ -345,10 +342,10 @@ count(bn, :a, data)
 statistics(bn.dag, data)
 ```
 ```@example bayesnet
-table(bn, :b)
+BayesNets.table(bn, :b)
 ```
 ```@example bayesnet
-table(bn, :c, :a=>1)
+BayesNets.table(bn, :c, :a=>1)
 ```
 
 ## Reading from XDSL
@@ -358,11 +355,11 @@ Discrete Bayesian Networks can be read from the .XDSL file format.
 ```@example bayesnet
 bn = readxdsl(joinpath(dirname(pathof(BayesNets)), "..", "test", "sample_bn.xdsl"))
 
-plot = BayesNets.plot(bn) # hide
-TikzPictures.save(SVG("plot10"), plot) # hide
+p = BayesNets.plot(bn)
+p
 ```
 
-![](plot10.svg)
+
 
 ## Bayesian Score for a Network Structure
 
@@ -374,5 +371,5 @@ data = DataFrame(c=[1,1,1,1,2,2,2,2,3,3,3,3],
                  a=[1,1,1,2,1,1,2,1,1,2,1,1])
 g = DAG(3)
 add_edge!(g,1,2); add_edge!(g,2,3); add_edge!(g,1,3)
-bayesian_score(g, [:a,:b,:c], data)
+BayesNets.bayesian_score(g, [:a, :b, :c], data)
 ```

@@ -1,7 +1,11 @@
 [deps]
 BayesNets = "ba4760a4-c768-5bed-964b-cf806dc591cb"
+Compose = "a81c6b42-2e10-5240-aca2-a61377ecd94b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Discretizers = "6e83dbb3-75ca-525b-8ae2-3751f0dd50b4"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 RDatasets = "ce6b1742-4840-55fa-b093-852dadbb1d8b"
 TikzGraphs = "b4f28e30-c73f-5eaf-a395-8a9db949a742"
 TikzPictures = "37f6aa50-8035-52d0-81c2-5a1d08754b2d"
