@@ -234,7 +234,7 @@ p
 
 
 ```@example bayesnet
-ϕ = infer(bn, :c, evidence=Assignment(:b=>1))
+ϕ = DataFrame(infer(bn, :c, evidence=Assignment(:b=>1)))
 ```
 
 Several inference methods are available. Exact inference is the default.
